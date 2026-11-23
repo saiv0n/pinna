@@ -1,7 +1,9 @@
 use pinna_core::aap::{self, Component, Mode, Packet, Pod};
+use crate::audio;
+use crate::history::History;
 use crate::media::Media;
 use pinna_core::proximity::{self, Advert};
-use pinna_core::state::{self, Cell, Config, State};
+use pinna_core::state::{self, Cell, Config, Device, State};
 use anyhow::{Context, Result, anyhow, bail};
 use bluer::{Adapter, Address, AdapterEvent, DiscoveryFilter, DiscoveryTransport};
 use futures::StreamExt;
@@ -17,6 +19,7 @@ const APPLE: u32 = 0x004C;
 pub enum Event {
     State,
     CaseOpened(Advert),
+    Head([i16; 5]),
 }
 
 struct Inner {
@@ -26,6 +29,10 @@ struct Inner {
     primary_left: bool,
     warned: [u8; 2],
     last_popup: Option<Instant>,
+    history: History,
+    /// şarj bitti bildirimi gönderildi mi: sol, sağ, kutu
+    full: [bool; 3],
+    audio_set: bool,
 }
 
 #[derive(Clone)]
@@ -35,6 +42,7 @@ pub struct Daemon {
     media: Arc<Mutex<Media>>,
     adapter: Adapter,
     scan: watch::Sender<bool>,
+    pairing: watch::Sender<bool>,
 }
 
 impl Daemon {
@@ -47,6 +55,7 @@ impl Daemon {
         st.address = config.address.clone();
         let (events, _) = broadcast::channel(64);
         let (scan, _) = watch::channel(false);
+        let (pairing, _) = watch::channel(false);
         Ok(Daemon {
             inner: Arc::new(Mutex::new(Inner {
                 state: st,
@@ -55,11 +64,15 @@ impl Daemon {
                 primary_left: true,
                 warned: [100, 100],
                 last_popup: None,
+                history: History::default(),
+                full: [true; 3],
+                audio_set: false,
             })),
             events,
             media: Arc::new(Mutex::new(Media::new(bus))),
             adapter,
             scan,
+            pairing,
         })
     }
 
@@ -173,6 +186,160 @@ impl Daemon {
         Ok(())
     }
 
+    /// Başka bir eşli kulaklığa geçer: tercih edileni değiştirir, açık oturumu kapatıp yenisine bağlanır.
+    pub async fn select(&self, addr: &str) -> Result<()> {
+        let a: Address = addr.parse()?;
+        let old = {
+            let mut g = self.inner.lock().await;
+            let old = g.state.address.clone().filter(|o| o != addr && g.state.connected);
+            g.config.address = Some(addr.to_string());
+            g.config.save();
+            if old.is_some() || !g.state.connected {
+                // yeni cihazın bilgileri gelene kadar eskisini gösterme
+                g.state.address = Some(addr.to_string());
+                g.state.model_id = 0;
+                g.state.name.clear();
+            }
+            old
+        };
+        if let Some(o) = old.and_then(|o| o.parse::<Address>().ok()) {
+            let _ = self.adapter.device(o)?.disconnect().await;
+        }
+        self.refresh_devices().await;
+        self.changed();
+        self.adapter.set_powered(true).await?;
+        self.adapter.device(a)?.connect().await?;
+        Ok(())
+    }
+
+    pub async fn forget(&self, addr: &str) -> Result<()> {
+        let a: Address = addr.parse()?;
+        self.adapter.remove_device(a).await?;
+        {
+            let mut g = self.inner.lock().await;
+            if g.config.address.as_deref() == Some(addr) {
+                g.config.address = None;
+                g.config.save();
+            }
+            if g.state.address.as_deref() == Some(addr) {
+                g.state.address = None;
+                g.state.model_id = 0;
+                g.state.name.clear();
+            }
+        }
+        self.refresh_devices().await;
+        self.changed();
+        Ok(())
+    }
+
+    /// Eşleştirme modundaki kulaklıkları 30 saniye arar.
+    pub async fn discover(&self, on: bool) -> Result<()> {
+        let _ = self.pairing.send(on);
+        Ok(())
+    }
+
+    pub async fn pair(&self, addr: &str) -> Result<()> {
+        let a: Address = addr.parse()?;
+        let d = self.adapter.device(a)?;
+        if !d.is_paired().await.unwrap_or(false) {
+            d.pair().await.context("eşleştirme olmadı, kutunun arkasındaki düğmeye basılı tut")?;
+        }
+        d.set_trusted(true).await?;
+        let _ = self.pairing.send(false);
+        {
+            let mut g = self.inner.lock().await;
+            g.config.address = Some(addr.to_string());
+            g.config.save();
+        }
+        d.connect().await?;
+        self.refresh_devices().await;
+        self.changed();
+        Ok(())
+    }
+
+    pub async fn set_audio(&self, key: &str, v: &str) -> Result<()> {
+        let addr = self.inner.lock().await.state.address.clone().ok_or_else(|| anyhow!("AirPods bağlı değil"))?;
+        let (t, _) = audio::find(&addr).await.ok_or_else(|| anyhow!("ses aygıtı bulunamadı"))?;
+        let ok = match key {
+            "profile" => t.set_profile(v).await,
+            "volume" => t.set_volume(v.parse().context("sayı olmalı")?).await,
+            "default" => t.make_default().await,
+            _ => bail!("bilinmeyen ses ayarı: {key}"),
+        };
+        if !ok {
+            bail!("PipeWire bu isteği kabul etmedi");
+        }
+        self.refresh_audio().await;
+        Ok(())
+    }
+
+    async fn refresh_audio(&self) {
+        let (addr, connected) = {
+            let g = self.inner.lock().await;
+            (g.state.address.clone(), g.state.connected)
+        };
+        let found = match addr {
+            Some(a) if connected => audio::find(&a).await,
+            _ => None,
+        };
+        let (target, a) = match found {
+            Some((t, a)) => (Some(t), a),
+            None => (None, Default::default()),
+        };
+        let mut g = self.inner.lock().await;
+        // ilk kez çıkış görününce varsayılan yap, sonra kullanıcının seçimine karışma
+        let make_default = a.available && !a.is_default && !g.audio_set && g.state.prefs.auto_output;
+        if a.available {
+            g.audio_set = true;
+        }
+        let changed = g.state.audio != a;
+        g.state.audio = a;
+        drop(g);
+        if make_default && let Some(t) = target {
+            t.make_default().await;
+            return Box::pin(self.refresh_audio()).await;
+        }
+        if changed {
+            self.changed();
+        }
+    }
+
+    pub async fn head_tracking(&self, on: bool) -> Result<()> {
+        self.send(if on { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await?;
+        self.inner.lock().await.state.head_tracking = on;
+        self.changed();
+        Ok(())
+    }
+
+    /// Eşli Apple kulaklıklarının listesini yeniler.
+    async fn refresh_devices(&self) -> Vec<Device> {
+        let mut list = Vec::new();
+        for a in self.adapter.device_addresses().await.unwrap_or_default() {
+            let Ok(d) = self.adapter.device(a) else { continue };
+            if !d.is_paired().await.unwrap_or(false) {
+                continue;
+            }
+            let Ok(Some(m)) = d.modalias().await else { continue };
+            if m.vendor != APPLE || !is_headphone(m.product as u16) {
+                continue;
+            }
+            list.push(Device {
+                address: a.to_string(),
+                name: d.alias().await.unwrap_or_default(),
+                model_name: proximity::model_name(m.product as u16).into(),
+                model_id: m.product as u16,
+                connected: d.is_connected().await.unwrap_or(false),
+            });
+        }
+        let mut g = self.inner.lock().await;
+        if g.state.devices != list {
+            g.state.devices = list.clone();
+            drop(g);
+            self.changed();
+        }
+        list
+    }
+
     pub async fn popup(&self) {
         let mut g = self.inner.lock().await;
         if !g.state.prefs.popup {
@@ -193,45 +360,44 @@ impl Daemon {
         }
     }
 
-    /// Eşli Apple kulaklıklarını bulur; bağlı olanı döndürür.
+    /// Bağlı kulaklığı seçer; birden çoksa tercih edileni.
     async fn find(&self) -> Option<Address> {
-        let addrs = self.adapter.device_addresses().await.ok()?;
+        let list = self.refresh_devices().await;
         let preferred = self.inner.lock().await.config.address.clone();
-        let mut known = None;
-        let mut connected = None;
-        for a in addrs {
-            let Ok(d) = self.adapter.device(a) else { continue };
-            if !d.is_paired().await.unwrap_or(false) {
-                continue;
-            }
-            let Ok(Some(m)) = d.modalias().await else { continue };
-            if m.vendor != APPLE || !is_headphone(m.product as u16) {
-                continue;
-            }
-            let is_pref = preferred.as_deref() == Some(&a.to_string());
-            if known.is_none() || is_pref {
-                known = Some((a, m.product as u16, d.alias().await.unwrap_or_default()));
-            }
-            if d.is_connected().await.unwrap_or(false) && (connected.is_none() || is_pref) {
-                connected = Some(a);
-            }
-        }
+        let pick = |only_connected: bool| {
+            let mut it = list.iter().filter(|d| !only_connected || d.connected);
+            let first = it.clone().next();
+            it.find(|d| Some(&d.address) == preferred.as_ref()).or(first).cloned()
+        };
         let mut g = self.inner.lock().await;
-        if let Some((a, product, alias)) = known
+        if let Some(d) = pick(false)
             && (g.state.address.is_none() || g.state.model_id == 0)
         {
-            g.state.address = Some(a.to_string());
-            g.state.model_id = product;
-            g.state.model_name = proximity::model_name(product).into();
+            g.state.address = Some(d.address.clone());
+            g.state.model_id = d.model_id;
+            g.state.model_name = d.model_name.clone();
             if g.state.name.is_empty() {
-                g.state.name = alias;
+                g.state.name = d.name.clone();
             }
         }
-        connected
+        drop(g);
+        pick(true).and_then(|d| d.address.parse().ok())
     }
 
     pub async fn run(self) -> Result<()> {
         tokio::spawn(self.clone().scan_loop());
+        tokio::spawn(self.clone().pair_loop());
+        // oturum açıkken ana döngü bekler; ses ve cihaz listesi ayrıca yenilensin
+        let me = self.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                if me.inner.lock().await.state.connected {
+                    me.refresh_audio().await;
+                    me.refresh_devices().await;
+                }
+            }
+        });
         loop {
             let powered = self.adapter.is_powered().await.unwrap_or(false);
             {
@@ -269,6 +435,9 @@ impl Daemon {
         g.state.speaking = false;
         g.state.ear = Default::default();
         g.state.battery = Default::default();
+        g.state.head_tracking = false;
+        g.state.audio = Default::default();
+        g.audio_set = false;
         drop(g);
         self.media.lock().await.forget();
         self.changed();
@@ -282,6 +451,10 @@ impl Daemon {
             if g.config.address.as_deref() != Some(&addr.to_string()) {
                 g.config.address = Some(addr.to_string());
                 g.config.save();
+            }
+            if let Some(d) = g.state.devices.iter().find(|d| d.address == addr.to_string()).cloned() {
+                g.state.model_id = d.model_id;
+                g.state.model_name = d.model_name;
             }
         }
         self.changed();
@@ -387,9 +560,16 @@ impl Daemon {
                     }
                 }
                 let low = self.low_battery(&mut g);
+                let full = self.charged(&mut g);
+                let b = g.state.battery.clone();
+                g.history.record(&b);
                 drop(g);
+                let m = self.media.lock().await;
                 if let Some(msg) = low {
-                    self.media.lock().await.notify("AirPods pili azaldı", &msg, "battery-caution").await;
+                    m.notify("AirPods pili azaldı", &msg, "battery-caution").await;
+                }
+                if let Some(msg) = full {
+                    m.notify("Şarj tamamlandı", &msg, "battery-full-charged").await;
                 }
             }
             Packet::Ear(primary, secondary) => {
@@ -448,6 +628,11 @@ impl Daemon {
                 g.state.has_keys = true;
                 g.config.save();
             }
+            Packet::Head(v) => {
+                drop(g);
+                let _ = self.events.send(Event::Head(v));
+                return;
+            }
             Packet::HandshakeAck | Packet::Other(_) => return,
         }
         self.changed();
@@ -460,17 +645,93 @@ impl Daemon {
         let mut msg = None;
         for (i, (cell, side)) in [(g.state.battery.left, "Sol"), (g.state.battery.right, "Sağ")].iter().enumerate() {
             let Some(lvl) = cell.level else { continue };
-            if cell.charging || lvl > 20 {
+            let limit = g.state.prefs.low_battery;
+            if cell.charging || lvl > limit {
                 g.warned[i] = 100;
                 continue;
             }
-            let step = if lvl <= 10 { 10 } else { 20 };
+            let step = if lvl <= limit / 2 { limit / 2 } else { limit };
             if step < g.warned[i] {
                 g.warned[i] = step;
                 msg = Some(format!("{side} AirPod %{lvl}"));
             }
         }
         msg
+    }
+
+    fn charged(&self, g: &mut Inner) -> Option<String> {
+        let b = &g.state.battery;
+        let cells = [(b.left, "Sol AirPod"), (b.right, "Sağ AirPod"), (b.case_, "Kutu")];
+        let mut done = Vec::new();
+        for (i, (c, name)) in cells.iter().enumerate() {
+            match c.level {
+                // tam dolu başlarsa bildirme, sadece şarj olurken dolanı söyle
+                Some(100) if c.charging && !g.full[i] => {
+                    g.full[i] = true;
+                    done.push(*name);
+                }
+                Some(l) if l < 95 => g.full[i] = false,
+                _ => {}
+            }
+        }
+        (g.state.prefs.charged_notify && !done.is_empty()).then(|| done.join(", ") + " %100")
+    }
+
+    async fn pair_loop(self) {
+        let mut want = self.pairing.subscribe();
+        loop {
+            while !*want.borrow_and_update() {
+                if want.changed().await.is_err() {
+                    return;
+                }
+            }
+            self.inner.lock().await.state.discovering = true;
+            self.changed();
+            let r = tokio::time::timeout(Duration::from_secs(30), self.pair_scan(&mut want)).await;
+            if let Ok(Err(e)) = r {
+                debug!("eşleştirme taraması: {e}");
+            }
+            let _ = self.pairing.send(false);
+            let mut g = self.inner.lock().await;
+            g.state.discovering = false;
+            g.state.nearby.clear();
+            drop(g);
+            self.changed();
+        }
+    }
+
+    async fn pair_scan(&self, want: &mut watch::Receiver<bool>) -> Result<()> {
+        self.adapter
+            .set_discovery_filter(DiscoveryFilter { transport: DiscoveryTransport::BrEdr, ..Default::default() })
+            .await?;
+        let mut stream = self.adapter.discover_devices().await?;
+        loop {
+            tokio::select! {
+                _ = want.changed() => if !*want.borrow() { return Ok(()) },
+                ev = stream.next() => {
+                    let Some(AdapterEvent::DeviceAdded(a)) = ev else {
+                        if ev.is_none() { return Ok(()) }
+                        continue;
+                    };
+                    let Ok(d) = self.adapter.device(a) else { continue };
+                    if d.is_paired().await.unwrap_or(true) {
+                        continue;
+                    }
+                    let name = d.alias().await.unwrap_or_default();
+                    let apple = matches!(d.modalias().await, Ok(Some(m)) if m.vendor == APPLE);
+                    // eşleştirme modundaki AirPods çoğu zaman modalias vermiyor, adına bak
+                    if !apple && !name.contains("AirPods") && !name.contains("Beats") {
+                        continue;
+                    }
+                    let mut g = self.inner.lock().await;
+                    if !g.state.nearby.iter().any(|n| n.address == a.to_string()) {
+                        g.state.nearby.push(Device { address: a.to_string(), name, ..Default::default() });
+                        drop(g);
+                        self.changed();
+                    }
+                }
+            }
+        }
     }
 
     async fn scan_loop(self) {

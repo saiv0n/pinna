@@ -11,7 +11,19 @@ pub const REQUEST_KEYS: &[u8] = &[0x04, 0x00, 0x04, 0x00, 0x30, 0x00, 0x05, 0x00
 
 const HDR: [u8; 4] = [0x04, 0x00, 0x04, 0x00];
 
+// baş takibi akışını başlatıp durduran paketler, LibrePods notlarından
+pub const HEAD_START: &[u8] = &[
+    0x04, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x10, 0x00, 0x10, 0x00, 0x08, 0xA1, 0x02, 0x42, 0x0B, 0x08, 0x0E,
+    0x10, 0x02, 0x1A, 0x05, 0x01, 0x40, 0x9C, 0x00, 0x00,
+];
+pub const HEAD_STOP: &[u8] = &[
+    0x04, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x10, 0x00, 0x11, 0x00, 0x08, 0x7E, 0x10, 0x02, 0x42, 0x0B, 0x08,
+    0x4E, 0x10, 0x02, 0x1A, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00,
+];
+
 pub mod cmd {
+    pub const MIC_MODE: u8 = 0x01;
+    pub const EAR_DETECTION: u8 = 0x0A;
     pub const LISTENING_MODE: u8 = 0x0D;
     pub const PRESS_SPEED: u8 = 0x17;
     pub const HOLD_DURATION: u8 = 0x18;
@@ -124,6 +136,8 @@ pub enum Packet {
     Speaking(u8),
     Info(DeviceInfo),
     Keys { irk: [u8; 16], enc: [u8; 16] },
+    /// üç yönelim ve iki ivme değeri
+    Head([i16; 5]),
     Other(u16),
 }
 
@@ -184,6 +198,10 @@ pub fn parse(d: &[u8]) -> Option<Packet> {
         0x4B => Packet::Speaking(*body.get(3)?),
         0x1D => Packet::Info(parse_info(body)),
         0x31 => parse_keys(body)?,
+        0x17 if d.len() >= 55 => {
+            let v = |o: usize| i16::from_le_bytes([d[o], d[o + 1]]);
+            Packet::Head([v(43), v(45), v(47), v(51), v(53)])
+        }
         other => Packet::Other(other),
     })
 }
@@ -254,6 +272,16 @@ mod tests {
         let Packet::Info(i) = p else { panic!() };
         assert_eq!(i.name, "AirPods Pro");
         assert_eq!(i.model, "A3047");
+    }
+
+    #[test]
+    fn head() {
+        let mut d = vec![0u8; 60];
+        d[..6].copy_from_slice(&[0x04, 0x00, 0x04, 0x00, 0x17, 0x00]);
+        d[43..45].copy_from_slice(&(-120i16).to_le_bytes());
+        let Packet::Head(h) = parse(&d).unwrap() else { panic!() };
+        assert_eq!(h[0], -120);
+        assert!(matches!(parse(HEAD_START), Some(Packet::Other(0x17))));
     }
 
     #[test]

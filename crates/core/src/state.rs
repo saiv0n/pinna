@@ -53,6 +53,35 @@ pub struct State {
     pub settings: BTreeMap<String, Value>,
     pub prefs: Prefs,
     pub has_keys: bool,
+    /// eşli bütün Apple kulaklıkları
+    pub devices: Vec<Device>,
+    /// eşleştirme taraması sırasında görülen yeni kulaklıklar
+    pub nearby: Vec<Device>,
+    pub discovering: bool,
+    pub audio: Audio,
+    pub head_tracking: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Device {
+    pub address: String,
+    pub name: String,
+    pub model_name: String,
+    pub model_id: u16,
+    pub connected: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Audio {
+    /// PipeWire bu kulaklık için bir çıkış açtı mı
+    pub available: bool,
+    /// a2dp, hfp ya da off
+    pub profile: String,
+    pub volume: u8,
+    pub muted: bool,
+    pub is_default: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,6 +94,11 @@ pub struct Prefs {
     pub low_battery_notify: bool,
     pub popup: bool,
     pub case_scan: bool,
+    /// yüzde; bu düzeyin altına inince uyarı verilir
+    pub low_battery: u8,
+    pub charged_notify: bool,
+    /// bağlanınca varsayılan ses çıkışı yap
+    pub auto_output: bool,
 }
 
 impl Default for Prefs {
@@ -77,6 +111,9 @@ impl Default for Prefs {
             low_battery_notify: true,
             popup: true,
             case_scan: true,
+            low_battery: 20,
+            charged_notify: true,
+            auto_output: true,
         }
     }
 }
@@ -92,6 +129,9 @@ impl Prefs {
             "lowBatteryNotify" => self.low_battery_notify = b()?,
             "popup" => self.popup = b()?,
             "caseScan" => self.case_scan = b()?,
+            "lowBattery" => self.low_battery = v.parse::<u8>()?.clamp(5, 50),
+            "chargedNotify" => self.charged_notify = b()?,
+            "autoOutput" => self.auto_output = b()?,
             _ => anyhow::bail!("bilinmeyen tercih: {key}"),
         }
         Ok(())
@@ -116,6 +156,8 @@ pub enum Kind {
 
 /// Arayüzün gördüğü ayar adı ile kontrol komutu arasındaki eşleme.
 pub const SETTINGS: &[(&str, u8, Kind)] = &[
+    ("micMode", cmd::MIC_MODE, Kind::Number(0, 2)),
+    ("earDetection", cmd::EAR_DETECTION, Kind::Toggle),
     ("conversationAwareness", cmd::CONVERSATION, Kind::Toggle),
     ("adaptiveVolume", cmd::ADAPTIVE_VOLUME, Kind::Toggle),
     ("oneBudAnc", cmd::ONE_BUD_ANC, Kind::Toggle),
@@ -133,7 +175,7 @@ pub const SETTINGS: &[(&str, u8, Kind)] = &[
 ];
 
 /// Kulaklığın bildirmediği, her bağlantıda bizim yeniden göndermemiz gereken ayarlar.
-pub const STICKY: &[&str] = &["listeningCycle", "allowOff", "holdLeft", "holdRight"];
+pub const STICKY: &[&str] = &["listeningCycle", "allowOff", "holdLeft", "holdRight", "micMode"];
 
 pub fn lookup(key: &str) -> Option<(u8, Kind)> {
     SETTINGS.iter().find(|s| s.0 == key).map(|s| (s.1, s.2))
