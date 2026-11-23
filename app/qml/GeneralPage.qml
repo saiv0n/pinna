@@ -141,7 +141,7 @@ Page {
         Setting {
             title: Store.s.discovering ? qsTr("Aranıyor…") : qsTr("Yeni kulaklık eşleştir")
             enabled: Backend.daemon
-            Spinner { visible: !!Store.s.discovering; size: 14; anchors.verticalCenter: parent.verticalCenter }
+            Spinner { visible: !!Store.s.discovering; size: 14 }
             Button {
                 text: Store.s.discovering ? qsTr("Durdur") : qsTr("Ara")
                 onClicked: Backend.discover(!Store.s.discovering)

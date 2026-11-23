@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Pinna
 
 // Bir satır: solda ad ve açıklama, sağda denetim.
@@ -53,7 +54,8 @@ Item {
             wrapMode: Text.Wrap
         }
     }
-    Row {
+    // Row üstten hizalıyor, farklı yükseklikteki denetimler ortada dursun
+    RowLayout {
         id: slot
         anchors.right: parent.right
         anchors.rightMargin: Theme.pad

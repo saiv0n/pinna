@@ -23,7 +23,7 @@ StatusView {
         Setting {
             visible: root.nearby.length === 0
             title: qsTr("Aranıyor…")
-            Spinner { size: 14; anchors.verticalCenter: parent.verticalCenter }
+            Spinner { size: 14 }
             Button { text: qsTr("Durdur"); onClicked: Backend.discover(false) }
         }
         Repeater {
