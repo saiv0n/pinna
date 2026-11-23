@@ -79,9 +79,9 @@ Window {
                 elide: Text.ElideRight
             }
             Text {
-                text: win.connecting ? qsTr("Bağlanıyor…")
-                    : win.connected ? (Store.modeNames[win.s.mode] ? qsTr("Bağlı") + "  ·  " + Store.modeNames[win.s.mode] : qsTr("Bağlı"))
-                    : qsTr("Kutu açık, bağlanmaya hazır")
+                text: win.connecting ? qsTr("Connecting…")
+                    : win.connected ? (Store.modeNames[win.s.mode] ? qsTr("Connected") + "  ·  " + Store.modeNames[win.s.mode] : qsTr("Connected"))
+                    : qsTr("Case open, ready to connect")
                 font: Theme.footnote
                 color: Theme.text2
             }
@@ -92,7 +92,7 @@ Window {
             y: 56
             spacing: 12
             Repeater {
-                model: [["left", qsTr("Sol")], ["right", qsTr("Sağ")], ["case", qsTr("Kutu")]]
+                model: [["left", qsTr("Left")], ["right", qsTr("Right")], ["case", qsTr("Case")]]
                 BatteryTile {
                     required property var modelData
                     readonly property var now: win.level(modelData[0])
@@ -112,14 +112,14 @@ Window {
             anchors.margins: 12
             spacing: 8
             Button {
-                text: qsTr("Ayarlar")
+                text: qsTr("Settings")
                 onClicked: { Backend.openSettings(); Qt.quit() }
             }
             Button {
                 visible: !win.connected
                 primary: true
                 busy: win.connecting
-                text: qsTr("Bağlan")
+                text: qsTr("Connect")
                 onClicked: { win.connecting = true; Backend.connectDevice() }
             }
         }

@@ -14,9 +14,9 @@ Item {
     }
     property real hoverX: -1
     readonly property var series: [
-        { i: 1, name: qsTr("Sol"), color: Theme.accent },
-        { i: 2, name: qsTr("Sağ"), color: Theme.green },
-        { i: 3, name: qsTr("Kutu"), color: Theme.orange }
+        { i: 1, name: qsTr("Left"), color: Theme.accent },
+        { i: 2, name: qsTr("Right"), color: Theme.green },
+        { i: 3, name: qsTr("Case"), color: Theme.orange }
     ]
     implicitHeight: 170
     onRowsChanged: canvas.requestPaint()
@@ -118,7 +118,7 @@ Item {
         }
     }
     Repeater {
-        model: [qsTr("%1 sa önce").arg(root.span / 3600), root.span < 14400 ? qsTr("%1 dk önce").arg(root.span / 120) : qsTr("%1 sa önce").arg(root.span / 7200), qsTr("şimdi")]
+        model: [qsTr("%1 h ago").arg(root.span / 3600), root.span < 14400 ? qsTr("%1 min ago").arg(root.span / 120) : qsTr("%1 h ago").arg(root.span / 7200), qsTr("now")]
         Text {
             required property int index
             required property string modelData
@@ -146,7 +146,7 @@ Item {
     Text {
         anchors.centerIn: canvas
         visible: !root.rows || root.rows.length === 0
-        text: qsTr("Henüz kayıt yok. Kulaklık bağlıyken pil düzeyi birkaç dakikada bir kaydedilir.")
+        text: qsTr("No data yet. Battery levels are recorded every few minutes while connected.")
         font: Theme.footnote
         color: Theme.text2
     }

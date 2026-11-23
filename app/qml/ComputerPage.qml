@@ -4,103 +4,103 @@ import Pinna
 Page {
     id: page
     property Item confirm
-    title: qsTr("Bu Bilgisayar")
+    title: qsTr("This Computer")
 
     Section {
-        title: qsTr("Medya")
+        title: qsTr("Media")
         enabled: Backend.daemon
         Setting {
-            title: qsTr("Kulaklık çıkınca duraklat")
+            title: qsTr("Pause when removed")
             Switch { checked: Store.pref("autoPause", true); onToggled: v => Backend.setPref("autoPause", v) }
         }
         Setting {
-            title: qsTr("Takınca devam ettir")
+            title: qsTr("Resume when put back in")
             Switch { checked: Store.pref("autoResume", true); onToggled: v => Backend.setPref("autoResume", v) }
         }
     }
 
     Section {
-        title: qsTr("Bildirimler")
+        title: qsTr("Notifications")
         enabled: Backend.daemon
         Setting {
-            title: qsTr("Bağlanınca kart göster")
+            title: qsTr("Show a card on connect")
             Switch { checked: Store.pref("popup", true); onToggled: v => Backend.setPref("popup", v) }
         }
         Setting {
-            title: qsTr("Kutu açılınca pili göster")
-            subtitle: qsTr("Bağlı değilken kutunun yayınını dinler.")
+            title: qsTr("Show battery when case opens")
+            subtitle: qsTr("Listens for the case broadcast while not connected.")
             Switch { checked: Store.pref("caseScan", true); onToggled: v => Backend.setPref("caseScan", v) }
         }
         Setting {
-            title: qsTr("Pil azalınca uyar")
+            title: qsTr("Low battery warning")
             Dropdown {
                 visible: Store.pref("lowBatteryNotify", true)
                 readonly property var steps: [10, 15, 20, 30]
-                model: steps.map(n => qsTr("%1% altında").arg(n))
+                model: steps.map(n => qsTr("Below %1%").arg(n))
                 currentIndex: Math.max(0, steps.indexOf(Store.pref("lowBattery", 20)))
                 onPicked: i => Backend.setPref("lowBattery", steps[i])
             }
             Switch { checked: Store.pref("lowBatteryNotify", true); onToggled: v => Backend.setPref("lowBatteryNotify", v) }
         }
         Setting {
-            title: qsTr("Şarj bitince bildir")
+            title: qsTr("Notify when fully charged")
             Switch { checked: Store.pref("chargedNotify", true); onToggled: v => Backend.setPref("chargedNotify", v) }
         }
     }
 
     Section {
-        title: qsTr("Uygulama")
+        title: qsTr("Application")
         Setting {
-            title: qsTr("Dil")
+            title: qsTr("Language")
             Dropdown {
                 readonly property var codes: ["", "tr", "en"]
-                model: [qsTr("Sistem dili"), "Türkçe", "English"]
+                model: [qsTr("System language"), "Türkçe", "English"]
                 currentIndex: Math.max(0, codes.indexOf(Backend.language))
                 onPicked: i => Backend.language = codes[i]
             }
         }
         Setting {
-            title: qsTr("Kapatınca tepside kalsın")
-            subtitle: Backend.trayAvailable ? "" : qsTr("Masaüstünde sistem tepsisi bulunamadı.")
+            title: qsTr("Keep in tray when closed")
+            subtitle: Backend.trayAvailable ? "" : qsTr("No system tray was found on this desktop.")
             enabled: Backend.trayAvailable
             Switch { checked: Backend.closeToTray; onToggled: v => Backend.closeToTray = v }
         }
         Setting {
-            title: qsTr("Oturum açılınca tepside başlat")
+            title: qsTr("Start in tray at login")
             Switch { checked: Backend.autostart; onToggled: v => Backend.autostart = v }
         }
     }
 
     Section {
         title: qsTr("Bluetooth")
-        footer: qsTr("Bazı özellikler kulaklığın karşısında bir Apple aygıtı görmek istiyor. Bu ayar BlueZ'e Apple kimliği verir; sistem dosyası değiştiği için parola sorulur.")
+        footer: qsTr("Some features only work when the headphones see an Apple device. This gives BlueZ an Apple vendor ID; it edits a system file, so you will be asked for your password.")
         Setting {
-            title: qsTr("Apple aygıt kimliği (DeviceID)")
-            subtitle: Backend.deviceIdOk ? qsTr("/etc/bluetooth/main.conf içinde ayarlı.") : qsTr("Ayarlı değil.")
+            title: qsTr("Apple device ID (DeviceID)")
+            subtitle: Backend.deviceIdOk ? qsTr("Set in /etc/bluetooth/main.conf.") : qsTr("Not set.")
             Button {
                 visible: !Backend.deviceIdOk
-                text: qsTr("Ayarla…")
-                onClicked: page.confirm.ask(qsTr("DeviceID eklensin mi?"),
-                    qsTr("Şu komut yönetici yetkisiyle çalışacak. Bluetooth yeniden başlayacağı için kulaklık bir an kopar."),
-                    Backend.deviceIdCommand, qsTr("Çalıştır"), () => Backend.setupDeviceId())
+                text: qsTr("Set Up…")
+                onClicked: page.confirm.ask(qsTr("Add DeviceID?"),
+                    qsTr("This command will run as administrator. Bluetooth restarts, so the headphones will disconnect briefly."),
+                    Backend.deviceIdCommand, qsTr("Run"), () => Backend.setupDeviceId())
             }
         }
     }
 
     Section {
-        title: qsTr("Servis")
+        title: qsTr("Service")
         Setting {
-            title: Backend.daemon ? qsTr("pinnad çalışıyor") : qsTr("pinnad çalışmıyor")
-            subtitle: qsTr("Kulaklıkla konuşan arka plan servisi. Pencere kapalıyken de çalışır.")
+            title: Backend.daemon ? qsTr("pinnad is running") : qsTr("pinnad is not running")
+            subtitle: qsTr("The background service that talks to the headphones. It keeps running when the window is closed.")
             Button {
-                text: Backend.daemon ? qsTr("Yeniden Başlat") : qsTr("Başlat")
+                text: Backend.daemon ? qsTr("Restart") : qsTr("Start")
                 onClicked: Backend.startDaemon()
             }
         }
         Setting {
-            title: qsTr("Hata ayıklama günlüğü")
-            subtitle: qsTr("Servis günlüğünü ve durumu İndirilenler klasörüne bir dosya olarak kaydeder.")
-            Button { text: qsTr("Dışa Aktar"); onClicked: Backend.exportLog() }
+            title: qsTr("Debug log")
+            subtitle: qsTr("Saves the service log and current state to a file in your Downloads folder.")
+            Button { text: qsTr("Export"); onClicked: Backend.exportLog() }
         }
     }
 }

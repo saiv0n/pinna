@@ -63,7 +63,7 @@ Rectangle {
         anchors.rightMargin: 10
         anchors.verticalCenter: parent.verticalCenter
         icon: "close"
-        Accessible.name: qsTr("Kapat")
+        Accessible.name: qsTr("Close")
         onClicked: root.opacity = 0
     }
 }

@@ -17,12 +17,12 @@ Rectangle {
 
     // cihaz kartı: görsel, tam ad, durum ve üç pil
     readonly property bool hasLevels: Store.level("left") !== null || Store.level("right") !== null
-    readonly property string status: !Backend.daemon ? qsTr("Servis çalışmıyor")
-        : Store.s.adapter === false ? qsTr("Bluetooth kapalı")
-        : !root.paired ? qsTr("Eşli kulaklık yok")
-        : Store.live ? (Store.modeNames[Store.s.mode] || qsTr("Bağlı"))
-        : Store.lastSeen ? qsTr("Son görülme %1").arg(Store.ago(Store.lastSeen[0]))
-        : qsTr("Bağlı değil")
+    readonly property string status: !Backend.daemon ? qsTr("Service not running")
+        : Store.s.adapter === false ? qsTr("Bluetooth is off")
+        : !root.paired ? qsTr("No paired headphones")
+        : Store.live ? (Store.modeNames[Store.s.mode] || qsTr("Connected"))
+        : Store.lastSeen ? qsTr("Last seen %1").arg(Store.ago(Store.lastSeen[0]))
+        : qsTr("Not connected")
 
     Rectangle {
         id: device
@@ -116,7 +116,7 @@ Rectangle {
                 spacing: 10
                 visible: root.hasLevels || (Store.lastSeen && root.paired && !Store.live)
                 Repeater {
-                    model: [["left", qsTr("Sol"), 1], ["right", qsTr("Sağ"), 2], ["case", qsTr("Kutu"), 3]]
+                    model: [["left", qsTr("Left"), 1], ["right", qsTr("Right"), 2], ["case", qsTr("Case"), 3]]
                     BatteryTile {
                         id: tile
                         required property var modelData
@@ -133,7 +133,7 @@ Rectangle {
 
             Button {
                 visible: Backend.daemon && Store.s.adapter !== false && root.paired && !Store.live
-                text: qsTr("Bağlan")
+                text: qsTr("Connect")
                 onClicked: Backend.connectDevice()
             }
         }
@@ -161,12 +161,12 @@ Rectangle {
             onObjectRemoved: (i, o) => deviceMenu.removeItem(o)
         }
         MenuItemLike {
-            text: Store.live ? qsTr("Bağlantıyı Kes") : qsTr("Bağlan")
+            text: Store.live ? qsTr("Disconnect") : qsTr("Connect")
             enabled: Backend.daemon
             onTriggered: Store.live ? Backend.disconnectDevice() : Backend.connectDevice()
         }
-        MenuItemLike { text: qsTr("Yeni Kulaklık Eşleştir…"); enabled: Backend.daemon; onTriggered: root.pair() }
-        MenuItemLike { text: qsTr("Adresi Kopyala"); enabled: !!Store.s.address; onTriggered: Backend.copy(Store.s.address) }
+        MenuItemLike { text: qsTr("Pair New Headphones…"); enabled: Backend.daemon; onTriggered: root.pair() }
+        MenuItemLike { text: qsTr("Copy Address"); enabled: !!Store.s.address; onTriggered: Backend.copy(Store.s.address) }
     }
 
     // bölümler
@@ -242,7 +242,7 @@ Rectangle {
             color: Backend.daemon ? Theme.green : Theme.red
         }
         Text {
-            text: Backend.daemon ? qsTr("pinnad çalışıyor") : qsTr("pinnad çalışmıyor")
+            text: Backend.daemon ? qsTr("pinnad is running") : qsTr("pinnad is not running")
             font: Theme.footnote
             color: Theme.text2
         }

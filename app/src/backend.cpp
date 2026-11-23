@@ -210,7 +210,7 @@ void Backend::call(const QString &method, const QVariantList &args)
             if (coded && colon > 0 && colon < 16)
                 emit error(msg.left(colon), msg.mid(colon + 2));
             else
-                emit error(QStringLiteral("service"), tr("Pinna servisine ulaşılamadı."));
+                emit error(QStringLiteral("service"), tr("Couldn't reach the Pinna service."));
             refresh();
         }
         w->deleteLater();
@@ -352,8 +352,8 @@ void Backend::setupDeviceId()
         p->deleteLater();
         if (code != 0) {
             // 126/127 pkexec'te iptal ya da yetki yok demek
-            emit error(QStringLiteral("deviceid"), code == 126 || code == 127 ? tr("Parola penceresi kapatıldı, hiçbir şey değişmedi.")
-                                                                               : tr("Satır eklenemedi (çıkış kodu %1).").arg(code));
+            emit error(QStringLiteral("deviceid"), code == 126 || code == 127 ? tr("The password prompt was closed; nothing changed.")
+                                                                               : tr("Couldn't add the line (exit code %1).").arg(code));
             return;
         }
         emit appChanged();
@@ -361,8 +361,8 @@ void Backend::setupDeviceId()
         auto *r = new QProcess(this);
         connect(r, &QProcess::finished, this, [this, r](int c) {
             r->deleteLater();
-            emit notice(c == 0 ? tr("DeviceID eklendi, Bluetooth yeniden başlatıldı.")
-                               : tr("DeviceID eklendi. Etkinleşmesi için Bluetooth'u yeniden başlat."));
+            emit notice(c == 0 ? tr("DeviceID added, Bluetooth restarted.")
+                               : tr("DeviceID added. Restart Bluetooth for it to take effect."));
         });
         r->start(QStringLiteral("systemctl"), {QStringLiteral("restart"), QStringLiteral("bluetooth.service")});
     });
@@ -382,14 +382,14 @@ QString Backend::exportLog()
     p.waitForFinished(5000);
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly)) {
-        emit error(QStringLiteral("file"), tr("Günlük %1 konumuna yazılamadı.").arg(path));
+        emit error(QStringLiteral("file"), tr("Couldn't write the log to %1.").arg(path));
         return {};
     }
     f.write("Pinna " + version().toUtf8() + "\n\n");
     f.write(QJsonDocument::fromVariant(m_state).toJson());
     f.write("\n");
     f.write(p.readAllStandardOutput());
-    emit notice(tr("Günlük kaydedildi: %1").arg(path));
+    emit notice(tr("Log saved: %1").arg(path));
     return path;
 }
 

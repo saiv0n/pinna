@@ -7,11 +7,11 @@ StatusView {
     readonly property bool searching: !!Store.s.discovering
     readonly property var nearby: Store.s.nearby || []
     property string pairing: ""
-    title: qsTr("AirPods'unu bağla")
+    title: qsTr("Connect your AirPods")
     text: searching
-        ? qsTr("AirPods kutudayken kapağı aç ve kutunun arkasındaki düğmeyi ışık beyaz yanıp sönene kadar basılı tut.")
-        : qsTr("Pinna, bu bilgisayarla eşleşmiş AirPods ya da Beats kulaklıkları yönetir. Başlamak için kulaklığını eşleştir.")
-    action: searching ? "" : qsTr("Eşleştirmeye Başla")
+        ? qsTr("With your AirPods in the case, open the lid and hold the button on the back until the light flashes white.")
+        : qsTr("Pinna manages AirPods and Beats headphones paired with this computer. Pair your headphones to get started.")
+    action: searching ? "" : qsTr("Start Pairing")
     onTriggered: Backend.discover(true)
     Connections {
         target: Backend
@@ -22,9 +22,9 @@ StatusView {
         visible: root.searching
         Setting {
             visible: root.nearby.length === 0
-            title: qsTr("Aranıyor…")
+            title: qsTr("Searching…")
             Spinner { size: 14 }
-            Button { text: qsTr("Durdur"); onClicked: Backend.discover(false) }
+            Button { text: qsTr("Stop"); onClicked: Backend.discover(false) }
         }
         Repeater {
             model: root.nearby
@@ -32,11 +32,11 @@ StatusView {
                 id: found
                 required property var modelData
                 title: modelData.name || modelData.address
-                subtitle: qsTr("Eşleştirmeye hazır")
+                subtitle: qsTr("Ready to pair")
                 Button {
                     primary: true
                     busy: root.pairing === found.modelData.address
-                    text: busy ? qsTr("Eşleştiriliyor…") : qsTr("Eşleştir")
+                    text: busy ? qsTr("Pairing…") : qsTr("Pair")
                     onClicked: { root.pairing = found.modelData.address; Backend.pair(found.modelData.address) }
                 }
             }

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Sistemdeki lupdate QML okuyamadığı için kaynak metinleri burada topluyoruz.
-# Var olan çeviriler korunur, yeni metinler "unfinished" olarak eklenir.
+# The system lupdate cannot read QML, so source strings are collected here.
+# Existing translations are kept, new strings are added as "unfinished".
 import html, pathlib, re, sys
 import xml.etree.ElementTree as ET
 
 app = pathlib.Path(__file__).resolve().parent.parent
-ts = app / "i18n" / "pinna_en.ts"
+ts = app / "i18n" / "pinna_tr.ts"
 old = {}
 if ts.exists():
     for m in ET.parse(ts).getroot().iter("message"):
@@ -23,7 +23,7 @@ for f in sorted(list((app / "qml").glob("*.qml")) + list((app / "src").glob("*.c
         if s not in contexts[name]:
             contexts[name].append(s)
 
-out = ['<?xml version="1.0" encoding="utf-8"?>', "<!DOCTYPE TS>", '<TS version="2.1" language="en_US" sourcelanguage="tr_TR">']
+out = ['<?xml version="1.0" encoding="utf-8"?>', "<!DOCTYPE TS>", '<TS version="2.1" language="tr_TR" sourcelanguage="en_US">']
 missing = 0
 for ctx, msgs in contexts.items():
     out.append(f"<context>\n    <name>{ctx}</name>")
@@ -35,4 +35,4 @@ for ctx, msgs in contexts.items():
     out.append("</context>")
 out.append("</TS>")
 ts.write_text("\n".join(out) + "\n")
-print(f"{ts.name}: {sum(map(len, contexts.values()))} metin, {missing} çevrilmemiş", file=sys.stderr)
+print(f"{ts.name}: {sum(map(len, contexts.values()))} strings, {missing} untranslated", file=sys.stderr)

@@ -3,19 +3,19 @@ import Pinna
 
 Page {
     id: page
-    title: qsTr("Hakkında")
+    title: qsTr("About")
 
     Section {
         title: Store.name
         Repeater {
             model: [
                 [qsTr("Model"), Store.s.modelName || "AirPods"],
-                [qsTr("Model numarası"), Store.s.model || ""],
-                [qsTr("Seri numarası"), Store.s.serial || ""],
-                [qsTr("Sol AirPod"), Store.s.serialLeft || ""],
-                [qsTr("Sağ AirPod"), Store.s.serialRight || ""],
-                [qsTr("Yazılım sürümü"), Store.s.firmware || ""],
-                [qsTr("Bluetooth adresi"), Store.s.address || ""]
+                [qsTr("Model number"), Store.s.model || ""],
+                [qsTr("Serial number"), Store.s.serial || ""],
+                [qsTr("Left AirPod"), Store.s.serialLeft || ""],
+                [qsTr("Right AirPod"), Store.s.serialRight || ""],
+                [qsTr("Firmware"), Store.s.firmware || ""],
+                [qsTr("Bluetooth address"), Store.s.address || ""]
             ]
             Setting {
                 id: info
@@ -31,7 +31,7 @@ Page {
                 }
                 Menu {
                     id: copyMenu
-                    MenuItemLike { text: qsTr("Kopyala"); onTriggered: Backend.copy(info.modelData[1]) }
+                    MenuItemLike { text: qsTr("Copy"); onTriggered: Backend.copy(info.modelData[1]) }
                 }
             }
         }
@@ -39,8 +39,8 @@ Page {
 
     Section {
         title: "Pinna"
-        footer: qsTr("Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0). Pinna'nın Apple ile bir bağı yoktur.")
-        Setting { title: qsTr("Sürüm"); Text { text: Backend.version; font: Theme.body; color: Theme.text2 } }
-        Setting { title: qsTr("Lisans"); Text { text: "GPL-3.0"; font: Theme.body; color: Theme.text2 } }
+        footer: qsTr("Headphone renders from Jed Falcone's AirPods Pro model (CC BY 4.0). Pinna is not affiliated with Apple.")
+        Setting { title: qsTr("Version"); Text { text: Backend.version; font: Theme.body; color: Theme.text2 } }
+        Setting { title: qsTr("License"); Text { text: "GPL-3.0"; font: Theme.body; color: Theme.text2 } }
     }
 }

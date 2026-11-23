@@ -2,19 +2,19 @@ import QtQuick
 import Pinna
 
 Page {
-    title: qsTr("Ses")
+    title: qsTr("Audio")
     readonly property var a: Store.audio
 
     Section {
-        title: qsTr("Bu Bilgisayarda Çıkış")
-        footer: a.available ? "" : qsTr("PipeWire bu kulaklık için henüz bir ses çıkışı açmadı.")
+        title: qsTr("Output on This Computer")
+        footer: a.available ? "" : qsTr("PipeWire hasn't created an audio output for these headphones yet.")
         enabled: Store.live && !!a.available
         Setting {
-            title: qsTr("Varsayılan çıkış")
-            subtitle: a.isDefault ? qsTr("Sistem sesi bu kulaklıktan çıkıyor.") : qsTr("Sistem sesi başka bir aygıttan çıkıyor.")
+            title: qsTr("Default output")
+            subtitle: a.isDefault ? qsTr("System audio is playing through these headphones.") : qsTr("System audio is playing through another device.")
             Button {
                 visible: !a.isDefault
-                text: qsTr("Bunu Kullan")
+                text: qsTr("Use These")
                 onClicked: Backend.setAudio("default", true)
             }
         }
@@ -22,7 +22,7 @@ Page {
             Item {
                 width: parent.width
                 height: 20
-                Text { text: qsTr("Ses düzeyi"); font: Theme.body; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: qsTr("Volume"); font: Theme.body; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
                 Text { anchors.right: parent.right; text: (a.volume || 0) + "%"; font: Theme.footnote; color: Theme.text2; anchors.verticalCenter: parent.verticalCenter }
             }
             Slider {
@@ -36,18 +36,18 @@ Page {
     }
 
     Section {
-        title: qsTr("Uzamsal Ses")
+        title: qsTr("Spatial Audio")
         experimental: true
         footer: Store.pref("spatial", "off") === "head"
-            ? qsTr("Ses önündeki iki hoparlörden geliyormuş gibi duyulur ve başını çevirince yerinde kalır. Uzun süre yana bakarsan ses de yavaşça oraya yerleşir. Baş takibi pili biraz daha hızlı bitirir.")
-            : qsTr("Stereo ses, kafanın içinde değil önündeki iki hoparlörden geliyormuş gibi duyulur.")
+            ? qsTr("Sound seems to come from two speakers in front of you and stays put when you turn your head. If you keep looking aside, it slowly settles there too. Head tracking uses a bit more battery.")
+            : qsTr("Stereo sounds like it comes from two speakers in front of you instead of inside your head.")
         enabled: Store.live
         Setting {
-            title: qsTr("Uzamsal ses")
-            subtitle: Store.pref("spatial", "off") !== "off" && !Store.audio.available ? qsTr("Ses çıkışı bekleniyor…") : ""
+            title: qsTr("Spatial audio")
+            subtitle: Store.pref("spatial", "off") !== "off" && !Store.audio.available ? qsTr("Waiting for audio output…") : ""
             Segmented {
                 readonly property var keys: ["off", "fixed", "head"]
-                options: [qsTr("Kapalı"), qsTr("Sabit"), qsTr("Baş takipli")]
+                options: [qsTr("Off"), qsTr("Fixed"), qsTr("Head tracked")]
                 current: Math.max(0, keys.indexOf(Store.pref("spatial", "off")))
                 onPicked: i => Backend.setPref("spatial", keys[i])
             }
@@ -56,32 +56,32 @@ Page {
 
     Section {
         id: calls
-        title: qsTr("Görüşmeler")
+        title: qsTr("Calls")
         readonly property string mode: Store.pref("callMic", "computer")
         footer: mode === "airpods"
-            ? qsTr("Kulaklık müzik kalitesinde kalır, mikrofonu ayrı bir kanaldan gelir. Uygulama başka bir mikrofon kullanıyorsa adı \"(Pinna)\" ile biteni seç. Deneysel.")
+            ? qsTr("Earbuds stay at music quality and their microphone comes over a separate channel. If your app uses another microphone, pick the one ending in \"(Pinna)\". Experimental.")
             : mode === "hfp"
-            ? qsTr("Mikrofon açılınca kulaklık telefon profiline geçer, müzik de telefon kalitesine düşer. Değişiklik bir sonraki bağlanışta geçerli olur.")
-            : qsTr("Kulaklık müzik kalitesinde kalır, mikrofon olarak bilgisayarınki kullanılır.")
+            ? qsTr("When the microphone opens, the earbuds switch to the phone profile and music drops to phone quality too. Takes effect the next time they connect.")
+            : qsTr("Earbuds stay at music quality and the computer's microphone is used.")
         Setting {
-            title: qsTr("Görüşmede mikrofon")
+            title: qsTr("Microphone in calls")
             enabled: Backend.daemon
             Dropdown {
                 readonly property var modes: ["computer", "airpods", "hfp"]
-                model: [qsTr("Bilgisayarın"), qsTr("AirPods, yüksek kalite"), qsTr("AirPods, telefon kalitesi")]
+                model: [qsTr("This computer's"), qsTr("AirPods, high quality"), qsTr("AirPods, phone quality")]
                 currentIndex: Math.max(0, modes.indexOf(calls.mode))
                 onPicked: i => Backend.setPref("callMic", modes[i])
             }
         }
         Setting {
-            title: qsTr("Şu anki kalite")
+            title: qsTr("Current quality")
             enabled: Store.live && !!a.available
             subtitle: a.profile === "hfp"
-                ? qsTr("Kulaklık ve mikrofon %1, telefon kalitesi").arg(a.codec || "HFP")
+                ? qsTr("Earbuds and microphone %1, phone quality").arg(a.codec || "HFP")
                 : calls.mode === "airpods"
-                ? (a.micActive ? qsTr("Kulaklık %1, mikrofon AAC-ELD 64 kHz, açık").arg(a.codec || "A2DP")
-                               : qsTr("Kulaklık %1, mikrofon bir uygulama dinleyince açılır").arg(a.codec || "A2DP"))
-                : qsTr("Kulaklık %1, mikrofon bilgisayarın").arg(a.codec || "A2DP")
+                ? (a.micActive ? qsTr("Earbuds %1, microphone AAC-ELD 64 kHz, on").arg(a.codec || "A2DP")
+                               : qsTr("Earbuds %1, microphone turns on when an app listens").arg(a.codec || "A2DP"))
+                : qsTr("Earbuds %1, computer's microphone").arg(a.codec || "A2DP")
             Rectangle {
                 visible: !!a.micActive || a.profile === "hfp"
                 width: 8
@@ -92,10 +92,10 @@ Page {
         }
         Setting {
             visible: calls.mode === "hfp"
-            title: qsTr("Kulaklığın mikrofonu")
+            title: qsTr("Earbud microphone")
             enabled: Store.live && !!a.available
             Segmented {
-                options: [qsTr("Kapalı"), qsTr("Açık")]
+                options: [qsTr("Off"), qsTr("On")]
                 current: a.profile === "hfp" ? 1 : 0
                 onPicked: i => Backend.setAudio("profile", i ? "hfp" : "a2dp")
             }
@@ -104,8 +104,8 @@ Page {
 
     Section {
         Setting {
-            title: qsTr("Bağlanınca bu kulaklığa geç")
-            subtitle: qsTr("Kulaklık bağlanınca sistem sesi kendiliğinden ona yönlendirilir.")
+            title: qsTr("Switch output on connect")
+            subtitle: qsTr("System audio is routed to the headphones when they connect.")
             enabled: Backend.daemon
             Switch {
                 checked: Store.pref("autoOutput", true)
@@ -115,10 +115,10 @@ Page {
     }
 
     Section {
-        title: qsTr("Akıllı Ses")
+        title: qsTr("Smart Audio")
         Setting {
-            title: qsTr("Kişiselleştirilmiş ses düzeyi")
-            subtitle: qsTr("Ortama ve dinleme alışkanlığına göre ses düzeyi ayarlanır.")
+            title: qsTr("Personalized volume")
+            subtitle: qsTr("Adjusts volume based on your environment and listening habits.")
             enabled: Store.ready
             Switch {
                 checked: Store.setting("adaptiveVolume", false)
@@ -126,7 +126,7 @@ Page {
             }
         }
         Setting {
-            title: qsTr("Konuşunca bilgisayarın sesini kıs")
+            title: qsTr("Lower computer volume while you speak")
             enabled: Backend.daemon
             Switch {
                 checked: Store.pref("duckOnSpeech", true)
@@ -138,7 +138,7 @@ Page {
             Item {
                 width: parent.width
                 height: 20
-                Text { text: qsTr("Kısılınca kalan ses"); font: Theme.body; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: qsTr("Volume while lowered"); font: Theme.body; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
                 Text { anchors.right: parent.right; text: Store.pref("duckLevel", 25) + "%"; font: Theme.footnote; color: Theme.text2; anchors.verticalCenter: parent.verticalCenter }
             }
             Slider {
@@ -152,10 +152,10 @@ Page {
     }
 
     Section {
-        title: qsTr("Kutu Hoparlörü")
+        title: qsTr("Case Speaker")
         enabled: Store.ready
         Block {
-            Text { text: qsTr("Bildirim seslerinin düzeyi"); font: Theme.body; color: Theme.text }
+            Text { text: qsTr("Volume of the case chimes"); font: Theme.body; color: Theme.text }
             Slider {
                 width: parent.width
                 from: 0

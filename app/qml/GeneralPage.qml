@@ -4,7 +4,7 @@ import Pinna
 Page {
     id: page
     property Item confirm
-    title: qsTr("Genel")
+    title: qsTr("General")
     function startPairing() { Backend.discover(true) }
 
     // pil özeti
@@ -13,7 +13,7 @@ Page {
             Row {
                 width: parent.width
                 Repeater {
-                    model: [["left", qsTr("Sol AirPod"), 1], ["right", qsTr("Sağ AirPod"), 2], ["case", qsTr("Kutu"), 3]]
+                    model: [["left", qsTr("Left AirPod"), 1], ["right", qsTr("Right AirPod"), 2], ["case", qsTr("Case"), 3]]
                     Item {
                         id: cell
                         required property var modelData
@@ -45,10 +45,10 @@ Page {
                             id: sub
                             y: 68
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: cell.now !== null && Store.charging(cell.modelData[0]) ? qsTr("Şarj oluyor")
-                                : cell.last ? qsTr("Son bilinen, %1").arg(Store.ago(cell.last.at))
-                                : cell.lvl === null ? (cell.modelData[0] === "case" ? qsTr("Kutuyu aç") : qsTr("Bilinmiyor"))
-                                : cell.ear === "ear" ? qsTr("Kulakta") : cell.ear === "case" ? qsTr("Kutuda") : cell.ear === "out" ? qsTr("Dışarıda") : ""
+                            text: cell.now !== null && Store.charging(cell.modelData[0]) ? qsTr("Charging")
+                                : cell.last ? qsTr("Last known, %1").arg(Store.ago(cell.last.at))
+                                : cell.lvl === null ? (cell.modelData[0] === "case" ? qsTr("Open the case") : qsTr("Unknown"))
+                                : cell.ear === "ear" ? qsTr("In ear") : cell.ear === "case" ? qsTr("In case") : cell.ear === "out" ? qsTr("Out of ear") : ""
                             font: Theme.footnote
                             color: Theme.text2
                         }
@@ -61,24 +61,24 @@ Page {
     // bağlı değilken BLE yayınının gücüyle sıcak soğuk oyunu
     Section {
         id: finder
-        title: qsTr("Kulaklığı Bul")
+        title: qsTr("Find Your Headphones")
         visible: Backend.daemon && !Store.live && (Store.devices.length > 0 || !!Store.s.address)
-        footer: qsTr("Bilgisayarla birlikte dolaş; çubuklar dolarsa yaklaşıyorsun. Kutu kapalıyken yayın seyrekleşir.")
+        footer: qsTr("Walk around with the computer; more bars means you are getting closer. A closed case advertises less often.")
         property real now: Date.now() / 1000
         Timer { interval: 2000; repeat: true; running: finder.visible; onTriggered: finder.now = Date.now() / 1000 }
         readonly property bool fresh: Store.s.signal !== null && Store.s.signal !== undefined && finder.now - (Store.s.signalAt || 0) < 30
         readonly property int bars: !fresh ? 0 : Store.s.signal > -55 ? 4 : Store.s.signal > -67 ? 3 : Store.s.signal > -80 ? 2 : 1
         Setting {
-            title: !Store.pref("caseScan", true) ? qsTr("Tarama kapalı")
-                : !finder.fresh ? qsTr("Sinyal aranıyor…")
-                : [qsTr("Çok uzak"), qsTr("Uzakta"), qsTr("Yakında"), qsTr("Çok yakın")][finder.bars - 1]
+            title: !Store.pref("caseScan", true) ? qsTr("Scanning is off")
+                : !finder.fresh ? qsTr("Looking for a signal…")
+                : [qsTr("Very far"), qsTr("Far"), qsTr("Nearby"), qsTr("Very close")][finder.bars - 1]
             subtitle: finder.fresh ? qsTr("%1 dBm, %2").arg(Store.s.signal).arg(Store.ago(Store.s.signalAt))
-                : Store.pref("caseScan", true) ? qsTr("Kutunun kapağını aç ya da bir kulaklığı çıkar.") : ""
+                : Store.pref("caseScan", true) ? qsTr("Open the case lid or take out an AirPod.") : ""
             Row {
                 visible: Store.pref("caseScan", true)
                 spacing: 3
                 Accessible.role: Accessible.Indicator
-                Accessible.name: qsTr("Sinyal %1 / 4").arg(finder.bars)
+                Accessible.name: qsTr("Signal %1 of 4").arg(finder.bars)
                 Repeater {
                     model: 4
                     Rectangle {
@@ -94,16 +94,16 @@ Page {
             }
             Button {
                 visible: !Store.pref("caseScan", true)
-                text: qsTr("Taramayı Aç")
+                text: qsTr("Turn On Scanning")
                 onClicked: Backend.setPref("caseScan", true)
             }
         }
     }
 
     Section {
-        title: qsTr("Kulaklık")
+        title: qsTr("Headphones")
         Setting {
-            title: qsTr("Ad")
+            title: qsTr("Name")
             enabled: Store.ready
             Field {
                 id: nameField
@@ -115,8 +115,8 @@ Page {
             }
         }
         Setting {
-            title: qsTr("Otomatik Bağlan")
-            subtitle: qsTr("Kulaklık yakındaki aygıtlar arasında kendiliğinden bu bilgisayara geçebilir.")
+            title: qsTr("Connect Automatically")
+            subtitle: qsTr("The headphones can switch to this computer from nearby devices on their own.")
             enabled: Store.ready
             Switch {
                 checked: Store.setting("autoConnect", true)
@@ -124,51 +124,51 @@ Page {
             }
         }
         Setting {
-            title: qsTr("Bağlantı")
-            subtitle: Store.live ? qsTr("Bu bilgisayara bağlı") : qsTr("Bağlı değil")
+            title: qsTr("Connection")
+            subtitle: Store.live ? qsTr("Connected to this computer") : qsTr("Not connected")
             enabled: Backend.daemon
             Button {
-                text: Store.live ? qsTr("Bağlantıyı Kes") : qsTr("Bağlan")
+                text: Store.live ? qsTr("Disconnect") : qsTr("Connect")
                 onClicked: Store.live ? Backend.disconnectDevice() : Backend.connectDevice()
             }
         }
     }
 
     Section {
-        title: qsTr("Pil Geçmişi")
+        title: qsTr("Battery History")
         Block {
             BatteryChart { width: parent.width }
         }
     }
 
     Section {
-        title: qsTr("Eşli Kulaklıklar")
-        footer: Store.s.discovering ? qsTr("Kutunun kapağını aç ve arkasındaki düğmeyi ışık beyaz yanıp sönene kadar basılı tut.") : ""
+        title: qsTr("Paired Headphones")
+        footer: Store.s.discovering ? qsTr("Open the case lid and hold the button on the back until the light flashes white.") : ""
         Repeater {
             model: Store.devices
             Setting {
                 id: dev
                 required property var modelData
                 readonly property bool current: modelData.address === Store.s.address
-                title: modelData.name + (current ? "  ·  " + qsTr("seçili") : "")
-                subtitle: (modelData.modelName || "") + (modelData.connected ? "  ·  " + qsTr("bağlı") : "")
+                title: modelData.name + (current ? "  ·  " + qsTr("selected") : "")
+                subtitle: (modelData.modelName || "") + (modelData.connected ? "  ·  " + qsTr("connected") : "")
                 onMenu: devMenu.popup()
                 Button {
                     visible: !dev.current || !dev.modelData.connected
-                    text: dev.current ? qsTr("Bağlan") : qsTr("Bu Kulaklığa Geç")
+                    text: dev.current ? qsTr("Connect") : qsTr("Switch to These")
                     onClicked: Backend.select(dev.modelData.address)
                 }
                 Button {
-                    text: qsTr("Unut")
+                    text: qsTr("Forget")
                     destructive: true
-                    onClicked: page.confirm.ask(qsTr("%1 unutulsun mu?").arg(dev.modelData.name),
-                        qsTr("Eşleşme bu bilgisayardan silinir. Yeniden kullanmak için kulaklığı tekrar eşleştirmen gerekir."),
-                        "", qsTr("Unut"), () => Backend.forget(dev.modelData.address))
+                    onClicked: page.confirm.ask(qsTr("Forget %1?").arg(dev.modelData.name),
+                        qsTr("The pairing is removed from this computer. You'll need to pair again to use them."),
+                        "", qsTr("Forget"), () => Backend.forget(dev.modelData.address))
                 }
                 Menu {
                     id: devMenu
-                    MenuItemLike { text: qsTr("Adresi Kopyala"); onTriggered: Backend.copy(dev.modelData.address) }
-                    MenuItemLike { text: qsTr("Unut…"); onTriggered: Backend.forget(dev.modelData.address) }
+                    MenuItemLike { text: qsTr("Copy Address"); onTriggered: Backend.copy(dev.modelData.address) }
+                    MenuItemLike { text: qsTr("Forget…"); onTriggered: Backend.forget(dev.modelData.address) }
                 }
             }
         }
@@ -177,16 +177,16 @@ Page {
             Setting {
                 required property var modelData
                 title: modelData.name || modelData.address
-                subtitle: qsTr("Eşleştirmeye hazır")
-                Button { primary: true; text: qsTr("Eşleştir"); onClicked: Backend.pair(parent.parent.modelData.address) }
+                subtitle: qsTr("Ready to pair")
+                Button { primary: true; text: qsTr("Pair"); onClicked: Backend.pair(parent.parent.modelData.address) }
             }
         }
         Setting {
-            title: Store.s.discovering ? qsTr("Aranıyor…") : qsTr("Yeni kulaklık eşleştir")
+            title: Store.s.discovering ? qsTr("Searching…") : qsTr("Pair new headphones")
             enabled: Backend.daemon
             Spinner { visible: !!Store.s.discovering; size: 14 }
             Button {
-                text: Store.s.discovering ? qsTr("Durdur") : qsTr("Ara")
+                text: Store.s.discovering ? qsTr("Stop") : qsTr("Search")
                 onClicked: Backend.discover(!Store.s.discovering)
             }
         }

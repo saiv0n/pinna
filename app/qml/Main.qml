@@ -13,8 +13,8 @@ Window {
     color: Theme.bg
 
     property int page: 0
-    readonly property var pages: [qsTr("Genel"), qsTr("Gürültü Kontrolü"), qsTr("Kontroller"), qsTr("Ses"),
-                                  qsTr("Erişilebilirlik"), qsTr("Bu Bilgisayar"), qsTr("Hakkında")]
+    readonly property var pages: [qsTr("General"), qsTr("Noise Control"), qsTr("Controls"), qsTr("Audio"),
+                                  qsTr("Accessibility"), qsTr("This Computer"), qsTr("About")]
     function go(i, focusPage) {
         page = i
         if (focusPage) stack.children[i].forceActiveFocus()
@@ -89,7 +89,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width - x - stripButton.width - 40
                 elide: Text.ElideRight
-                text: qsTr("%1 bağlı değil. Bu ayarlar bağlanınca değiştirilebilir.").arg(Store.name)
+                text: qsTr("%1 is not connected. These settings can be changed once it connects.").arg(Store.name)
                 font: Theme.body
                 color: Theme.text
             }
@@ -98,7 +98,7 @@ Window {
                 anchors.right: parent.right
                 anchors.rightMargin: 16
                 anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Bağlan")
+                text: qsTr("Connect")
                 onClicked: Backend.connectDevice()
             }
         }
@@ -122,17 +122,17 @@ Window {
         StatusView {
             anchors.fill: parent
             visible: win.blocker === "service"
-            title: qsTr("Pinna servisi çalışmıyor")
-            text: qsTr("Kulaklıkla konuşan arka plan servisi kapalı. Başlatınca ayarların hepsi yeniden kullanılabilir.")
-            action: qsTr("Servisi Başlat")
+            title: qsTr("The Pinna service isn't running")
+            text: qsTr("The background service that talks to your headphones is stopped. Start it to use all settings again.")
+            action: qsTr("Start Service")
             onTriggered: Backend.startDaemon()
         }
         StatusView {
             anchors.fill: parent
             visible: win.blocker === "bluetooth"
-            title: qsTr("Bluetooth kapalı")
-            text: qsTr("AirPods'a bağlanmak ve ayarlarını değiştirmek için Bluetooth açık olmalı.")
-            action: qsTr("Bluetooth'u Aç")
+            title: qsTr("Bluetooth is off")
+            text: qsTr("Bluetooth needs to be on to connect to your AirPods and change their settings.")
+            action: qsTr("Turn On Bluetooth")
             onTriggered: Backend.powerOn()
         }
         Onboarding {
@@ -147,18 +147,18 @@ Window {
         target: Backend
         function onError(code, m) {
             const e = {
-                "not-connected": [qsTr("Kulaklık bağlı değil"), qsTr("Bu ayar ancak kulaklık bağlıyken değişebilir."), qsTr("Bağlan"), () => Backend.connectDevice()],
-                "bluetooth-off": [qsTr("Bluetooth kapalı"), qsTr("Kulaklığa ulaşmak için Bluetooth'u aç."), qsTr("Bluetooth'u Aç"), () => Backend.powerOn()],
-                "unreachable": [qsTr("Kulaklığa ulaşılamadı"), qsTr("Kutudan çıkar ya da kapağını aç ve bilgisayarın yakınında tut."), qsTr("Yeniden Dene"), () => Backend.connectDevice()],
-                "busy": [qsTr("Bluetooth meşgul"), qsTr("Başka bir işlem sürüyor. Birkaç saniye sonra yeniden dene.")],
-                "service": [qsTr("Servise ulaşılamadı"), qsTr("Pinna servisi yanıt vermedi."), qsTr("Servisi Başlat"), () => Backend.startDaemon()],
-                "pair-failed": [qsTr("Eşleşme tamamlanmadı"), qsTr("Kutu açıkken arkasındaki düğmeyi ışık beyaz yanıp sönene kadar basılı tut."), qsTr("Yeniden Ara"), () => Backend.discover(true)],
-                "audio": [qsTr("Ses ayarı değişmedi"), qsTr("PipeWire bu kulaklık için isteği kabul etmedi. Kulaklığı çıkarıp yeniden tak.")],
-                "invalid": [qsTr("Bu değer kullanılamıyor"), m],
-                "no-device": [qsTr("Eşli kulaklık yok"), qsTr("Önce AirPods'unu bu bilgisayarla eşleştir."), qsTr("Eşleştir"), () => { win.go(0); Backend.discover(true) }],
-                "deviceid": [qsTr("DeviceID eklenmedi"), m],
-                "file": [qsTr("Günlük kaydedilemedi"), m]
-            }[code] || [qsTr("Bir şey ters gitti"), m]
+                "not-connected": [qsTr("Headphones not connected"), qsTr("This setting can only change while the headphones are connected."), qsTr("Connect"), () => Backend.connectDevice()],
+                "bluetooth-off": [qsTr("Bluetooth is off"), qsTr("Turn on Bluetooth to reach your headphones."), qsTr("Turn On Bluetooth"), () => Backend.powerOn()],
+                "unreachable": [qsTr("Couldn't reach the headphones"), qsTr("Take them out of the case or open the lid, and keep them near the computer."), qsTr("Try Again"), () => Backend.connectDevice()],
+                "busy": [qsTr("Bluetooth is busy"), qsTr("Another operation is in progress. Try again in a few seconds.")],
+                "service": [qsTr("Couldn't reach the service"), qsTr("The Pinna service didn't respond."), qsTr("Start Service"), () => Backend.startDaemon()],
+                "pair-failed": [qsTr("Pairing didn't finish"), qsTr("With the lid open, hold the button on the back of the case until the light flashes white."), qsTr("Search Again"), () => Backend.discover(true)],
+                "audio": [qsTr("Audio setting didn't change"), qsTr("PipeWire didn't accept the request for these headphones. Take them out and put them back in.")],
+                "invalid": [qsTr("That value can't be used"), m],
+                "no-device": [qsTr("No paired headphones"), qsTr("Pair your AirPods with this computer first."), qsTr("Pair"), () => { win.go(0); Backend.discover(true) }],
+                "deviceid": [qsTr("DeviceID wasn't added"), m],
+                "file": [qsTr("Couldn't save the log"), m]
+            }[code] || [qsTr("Something went wrong"), m]
             toast.show(e[0], e[1], true, e[2], e[3])
         }
         function onNotice(m) { toast.show(m, "", false) }

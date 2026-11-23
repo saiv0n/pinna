@@ -17,7 +17,7 @@ Item {
         : !known ? Theme.control : level <= 10 ? Theme.red : level <= Store.pref("lowBattery", 20) ? Theme.orange : Theme.green
 
     Accessible.role: Accessible.StaticText
-    Accessible.name: name + ": " + (known ? level + "%" : qsTr("bilinmiyor")) + (charging ? ", " + qsTr("şarj oluyor") : "")
+    Accessible.name: name + ": " + (known ? level + "%" : qsTr("unknown")) + (charging ? ", " + qsTr("charging") : "")
 
     Rectangle {
         width: parent.width

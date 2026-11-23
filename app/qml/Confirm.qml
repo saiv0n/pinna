@@ -7,10 +7,10 @@ Rectangle {
     property string title
     property string text
     property string code
-    property string accept: qsTr("Devam")
+    property string accept: qsTr("Continue")
     property var onAccepted: null
     function ask(t, body, cmd, label, fn) {
-        title = t; text = body; code = cmd || ""; accept = label || qsTr("Devam"); onAccepted = fn
+        title = t; text = body; code = cmd || ""; accept = label || qsTr("Continue"); onAccepted = fn
         visible = true
         ok.forceActiveFocus()
     }
@@ -64,7 +64,7 @@ Rectangle {
             Row {
                 anchors.right: parent.right
                 spacing: 8
-                Button { text: qsTr("Vazgeç"); onClicked: root.visible = false }
+                Button { text: qsTr("Cancel"); onClicked: root.visible = false }
                 Button {
                     id: ok
                     primary: true

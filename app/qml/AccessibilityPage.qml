@@ -2,21 +2,21 @@ import QtQuick
 import Pinna
 
 Page {
-    title: qsTr("Erişilebilirlik")
+    title: qsTr("Accessibility")
 
     Section {
         enabled: Store.ready
         Setting {
-            title: qsTr("İşitme desteği")
-            subtitle: qsTr("Konuşmaları ve çevre sesini daha net duymana yardım eder.")
+            title: qsTr("Hearing assistance")
+            subtitle: qsTr("Helps you hear conversations and your surroundings more clearly.")
             Switch {
                 checked: Store.setting("hearingAssist", false)
                 onToggled: v => Backend.setSetting("hearingAssist", v)
             }
         }
         Setting {
-            title: qsTr("Uyku algılama")
-            subtitle: qsTr("Uykuya daldığını fark edince çalan medya duraklatılır.")
+            title: qsTr("Sleep detection")
+            subtitle: qsTr("Media is paused when you fall asleep.")
             Switch {
                 checked: Store.setting("sleepDetection", false)
                 onToggled: v => Backend.setSetting("sleepDetection", v)

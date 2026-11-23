@@ -61,14 +61,14 @@ qt_add_qml_module(pinna
         assets/tray.png
 )
 
-# çeviriler; Qt kurulumunda LinguistTools yoksa sistemdeki lrelease kullanılır
+# translations; falls back to the system lrelease when Qt has no LinguistTools
 find_program(LRELEASE NAMES lrelease lrelease-qt6 PATHS ${QT6_INSTALL_PREFIX}/bin /usr/lib/qt6/bin)
 if(LRELEASE)
-    set(QM ${CMAKE_CURRENT_BINARY_DIR}/pinna_en.qm)
+    set(QM ${CMAKE_CURRENT_BINARY_DIR}/pinna_tr.qm)
     add_custom_command(OUTPUT ${QM}
-        COMMAND ${LRELEASE} -silent ${CMAKE_CURRENT_SOURCE_DIR}/i18n/pinna_en.ts -qm ${QM}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/i18n/pinna_en.ts)
-    set_source_files_properties(${QM} PROPERTIES QT_RESOURCE_ALIAS pinna_en.qm)
+        COMMAND ${LRELEASE} -silent ${CMAKE_CURRENT_SOURCE_DIR}/i18n/pinna_tr.ts -qm ${QM}
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/i18n/pinna_tr.ts)
+    set_source_files_properties(${QM} PROPERTIES QT_RESOURCE_ALIAS pinna_tr.qm)
     qt_add_resources(pinna i18n PREFIX /i18n FILES ${QM})
 endif()
 

@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
         if (lang.isEmpty())
             lang = QLocale::system().uiLanguages().value(0, QLocale::system().name());
         QCoreApplication::removeTranslator(&translator);
-        if (!lang.startsWith(QLatin1String("tr")) && translator.load(QStringLiteral(":/i18n/pinna_en.qm")))
+        if (lang.startsWith(QLatin1String("tr")) && translator.load(QStringLiteral(":/i18n/pinna_tr.qm")))
             QCoreApplication::installTranslator(&translator);
     };
     applyLanguage();

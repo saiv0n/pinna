@@ -3,8 +3,8 @@ import Pinna
 
 Page {
     id: page
-    title: qsTr("Gürültü Kontrolü")
-    subtitle: qsTr("Dış seslerin ne kadarını duyacağını seç. Değişiklik kulaklığa hemen gider.")
+    title: qsTr("Noise Control")
+    subtitle: qsTr("Choose how much of the outside world you hear. Changes are sent right away.")
     readonly property int mask: Store.setting("listeningCycle", 14)
     readonly property bool allowOff: Store.setting("allowOff", true)
 
@@ -15,7 +15,7 @@ Page {
         }
         Block {
             visible: Store.s.mode === "adaptive"
-            Text { text: qsTr("Uyarlanabilir modda ortam sesi"); font: Theme.body; color: Theme.text }
+            Text { text: qsTr("Ambient sound in Adaptive mode"); font: Theme.body; color: Theme.text }
             Slider {
                 width: parent.width
                 from: 0
@@ -26,15 +26,15 @@ Page {
             Item {
                 width: parent.width
                 height: 14
-                Text { text: qsTr("Daha çok ortam sesi"); font: Theme.caption; color: Theme.text2 }
-                Text { anchors.right: parent.right; text: qsTr("Daha az ortam sesi"); font: Theme.caption; color: Theme.text2 }
+                Text { text: qsTr("More ambient sound"); font: Theme.caption; color: Theme.text2 }
+                Text { anchors.right: parent.right; text: qsTr("Less ambient sound"); font: Theme.caption; color: Theme.text2 }
             }
         }
     }
 
     Section {
-        title: qsTr("Basılı Tutunca Geçilecek Modlar")
-        footer: qsTr("Sapı basılı tutunca seçili modlar arasında sırayla geçilir. En az iki mod seçili kalmalı.")
+        title: qsTr("Modes to Cycle Through")
+        footer: qsTr("Pressing and holding the stem cycles through the selected modes. At least two must stay selected.")
         enabled: Store.ready
         Repeater {
             model: Store.cycleBits
@@ -56,7 +56,7 @@ Page {
             }
         }
         Setting {
-            title: qsTr("Kapalı seçeneğine izin ver")
+            title: qsTr("Allow Off option")
             Switch {
                 checked: page.allowOff
                 onToggled: v => Backend.setSetting("allowOff", v)
@@ -67,16 +67,16 @@ Page {
     Section {
         enabled: Store.ready
         Setting {
-            title: qsTr("Konuşma Algılama")
-            subtitle: qsTr("Konuşmaya başlayınca medya kısılır, karşındakinin sesi öne çıkar.")
+            title: qsTr("Conversation Awareness")
+            subtitle: qsTr("When you start speaking, media is lowered and voices in front of you are brought forward.")
             Switch {
                 checked: Store.setting("conversationAwareness", false)
                 onToggled: v => Backend.setSetting("conversationAwareness", v)
             }
         }
         Setting {
-            title: qsTr("Tek kulaklıkta konuşma algılamayı durdur")
-            subtitle: qsTr("Tek AirPod takılıyken konuşma algılama kapanır, ikisini takınca geri açılır.")
+            title: qsTr("Pause Conversation Awareness with one AirPod")
+            subtitle: qsTr("Conversation Awareness turns off while only one AirPod is in and comes back when both are.")
             enabled: Store.setting("conversationAwareness", false) || Store.pref("caOneBud", false)
             Switch {
                 checked: Store.pref("caOneBud", false)
@@ -84,8 +84,8 @@ Page {
             }
         }
         Setting {
-            title: qsTr("Tek AirPod ile Gürültü Engelleme")
-            subtitle: qsTr("Yalnızca bir AirPod takılıyken de gürültü engelleme açık kalır.")
+            title: qsTr("Noise Cancellation with One AirPod")
+            subtitle: qsTr("Keeps noise cancellation on with only one AirPod in.")
             Switch {
                 checked: Store.setting("oneBudAnc", false)
                 onToggled: v => Backend.setSetting("oneBudAnc", v)

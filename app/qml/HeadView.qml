@@ -59,21 +59,21 @@ Item {
         anchors.verticalCenter: stage.verticalCenter
         spacing: 10
         Text {
-            text: !root.zero ? qsTr("Düz bak, sıfırlanıyor…") : qsTr("Başını çevir ya da eğ")
+            text: !root.zero ? qsTr("Look straight ahead, calibrating…") : qsTr("Turn or tilt your head")
             font: Theme.body
             color: Theme.text2
         }
         Row {
             spacing: 24
             Column {
-                Text { text: qsTr("Dönüş"); font: Theme.footnote; color: Theme.text2 }
+                Text { text: qsTr("Turn"); font: Theme.footnote; color: Theme.text2 }
                 Text { text: Math.round(root.yaw) + "°"; font: Theme.title; color: Theme.text }
             }
             Column {
-                Text { text: qsTr("Eğim"); font: Theme.footnote; color: Theme.text2 }
+                Text { text: qsTr("Tilt"); font: Theme.footnote; color: Theme.text2 }
                 Text { text: Math.round(root.pitch) + "°"; font: Theme.title; color: Theme.text }
             }
         }
-        Button { text: qsTr("Sıfırla"); enabled: !!root.zero; onClicked: root.reset() }
+        Button { text: qsTr("Recenter"); enabled: !!root.zero; onClicked: root.reset() }
     }
 }

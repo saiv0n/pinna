@@ -30,7 +30,7 @@ Column {
             Text {
                 id: tag
                 anchors.centerIn: parent
-                text: qsTr("Deneysel")
+                text: qsTr("Experimental")
                 font.family: Theme.family
                 font.pixelSize: 10
                 font.weight: 600

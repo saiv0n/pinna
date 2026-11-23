@@ -52,14 +52,14 @@ void Tray::rebuild()
     QStringList parts;
     const QString l = level(bat, QStringLiteral("left")), r = level(bat, QStringLiteral("right")), c = level(bat, QStringLiteral("case"));
     if (!l.isEmpty())
-        parts << tr("Sol %1").arg(l);
+        parts << tr("Left %1").arg(l);
     if (!r.isEmpty())
-        parts << tr("Sağ %1").arg(r);
+        parts << tr("Right %1").arg(r);
     if (!c.isEmpty())
-        parts << tr("Kutu %1").arg(c);
-    const QString status = !b->daemon() ? tr("Servis çalışmıyor")
-        : !s.value(QStringLiteral("adapter")).toBool() ? tr("Bluetooth kapalı")
-        : !live ? tr("Bağlı değil") : parts.join(QStringLiteral("  "));
+        parts << tr("Case %1").arg(c);
+    const QString status = !b->daemon() ? tr("Service not running")
+        : !s.value(QStringLiteral("adapter")).toBool() ? tr("Bluetooth is off")
+        : !live ? tr("Not connected") : parts.join(QStringLiteral("  "));
     m_icon->setToolTip(name + QStringLiteral("\n") + status);
 
     m_menu->clear();
@@ -72,10 +72,10 @@ void Tray::rebuild()
         const bool allowOff = s.value(QStringLiteral("settings")).toMap().value(QStringLiteral("allowOff"), true).toBool();
         auto *group = new QActionGroup(m_menu);
         const QList<QPair<QString, QString>> modes = {
-            {QStringLiteral("off"), tr("Kapalı")},
-            {QStringLiteral("transparency"), tr("Şeffaflık")},
-            {QStringLiteral("adaptive"), tr("Uyarlanabilir")},
-            {QStringLiteral("anc"), tr("Gürültü Engelleme")},
+            {QStringLiteral("off"), tr("Off")},
+            {QStringLiteral("transparency"), tr("Transparency")},
+            {QStringLiteral("adaptive"), tr("Adaptive")},
+            {QStringLiteral("anc"), tr("Noise Cancellation")},
         };
         for (const auto &[key, label] : modes) {
             if (key == QLatin1String("off") && !allowOff && mode != key)
@@ -87,18 +87,18 @@ void Tray::rebuild()
             connect(a, &QAction::triggered, b, [b, key] { b->setMode(key); });
         }
         m_menu->addSeparator();
-        connect(m_menu->addAction(tr("Bağlantıyı Kes")), &QAction::triggered, b, &Backend::disconnectDevice);
+        connect(m_menu->addAction(tr("Disconnect")), &QAction::triggered, b, &Backend::disconnectDevice);
     } else if (b->daemon() && !s.value(QStringLiteral("adapter")).toBool()) {
-        connect(m_menu->addAction(tr("Bluetooth'u Aç")), &QAction::triggered, b, &Backend::powerOn);
+        connect(m_menu->addAction(tr("Turn On Bluetooth")), &QAction::triggered, b, &Backend::powerOn);
     } else if (b->daemon()) {
-        connect(m_menu->addAction(tr("Bağlan")), &QAction::triggered, b, &Backend::connectDevice);
+        connect(m_menu->addAction(tr("Connect")), &QAction::triggered, b, &Backend::connectDevice);
     } else {
-        connect(m_menu->addAction(tr("Servisi Başlat")), &QAction::triggered, b, &Backend::startDaemon);
+        connect(m_menu->addAction(tr("Start Service")), &QAction::triggered, b, &Backend::startDaemon);
     }
-    connect(m_menu->addAction(tr("Ayarları Aç")), &QAction::triggered, this, [this] {
+    connect(m_menu->addAction(tr("Open Settings")), &QAction::triggered, this, [this] {
         if (open)
             open();
     });
     m_menu->addSeparator();
-    connect(m_menu->addAction(tr("Çık")), &QAction::triggered, qApp, &QCoreApplication::quit);
+    connect(m_menu->addAction(tr("Quit")), &QAction::triggered, qApp, &QCoreApplication::quit);
 }
