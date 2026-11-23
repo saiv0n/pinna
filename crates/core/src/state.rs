@@ -156,8 +156,6 @@ pub enum Kind {
 
 /// Arayüzün gördüğü ayar adı ile kontrol komutu arasındaki eşleme.
 pub const SETTINGS: &[(&str, u8, Kind)] = &[
-    ("micMode", cmd::MIC_MODE, Kind::Number(0, 2)),
-    ("earDetection", cmd::EAR_DETECTION, Kind::Toggle),
     ("conversationAwareness", cmd::CONVERSATION, Kind::Toggle),
     ("adaptiveVolume", cmd::ADAPTIVE_VOLUME, Kind::Toggle),
     ("oneBudAnc", cmd::ONE_BUD_ANC, Kind::Toggle),
@@ -175,7 +173,7 @@ pub const SETTINGS: &[(&str, u8, Kind)] = &[
 ];
 
 /// Kulaklığın bildirmediği, her bağlantıda bizim yeniden göndermemiz gereken ayarlar.
-pub const STICKY: &[&str] = &["listeningCycle", "allowOff", "holdLeft", "holdRight", "micMode"];
+pub const STICKY: &[&str] = &["listeningCycle", "allowOff", "holdLeft", "holdRight"];
 
 pub fn lookup(key: &str) -> Option<(u8, Kind)> {
     SETTINGS.iter().find(|s| s.0 == key).map(|s| (s.1, s.2))
@@ -214,6 +212,22 @@ pub struct Config {
     pub sticky: BTreeMap<String, Value>,
 }
 
+/// BLE anahtarları da bu dosyada; sadece kullanıcı okuyabilsin.
+pub fn write_private(p: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
+    if let Some(d) = p.parent() {
+        std::fs::DirBuilder::new().recursive(true).mode(0o700).create(d)?;
+    }
+    // önce geçici dosyaya yaz, yarım kalmış ayar dosyası olmasın
+    let tmp = p.with_extension("tmp");
+    let mut f = std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(&tmp)?;
+    f.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+    f.write_all(data)?;
+    f.sync_all()?;
+    std::fs::rename(tmp, p)
+}
+
 fn config_path() -> PathBuf {
     dirs::config_dir().unwrap_or_else(|| PathBuf::from(".")).join("pinna").join("config.json")
 }
@@ -227,12 +241,8 @@ impl Config {
     }
 
     pub fn save(&self) {
-        let p = config_path();
-        if let Some(d) = p.parent() {
-            let _ = std::fs::create_dir_all(d);
-        }
         if let Ok(s) = serde_json::to_string_pretty(self) {
-            let _ = std::fs::write(p, s);
+            let _ = write_private(&config_path(), s.as_bytes());
         }
     }
 

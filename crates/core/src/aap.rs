@@ -1,5 +1,4 @@
-// AAP (Apple Accessory Protocol) paketleri. L2CAP PSM 0x1001 üzerinden konuşulur.
-// Paket düzeni LibrePods ekibinin tersine mühendislik notlarına dayanıyor.
+// AAP paketleri. L2CAP PSM 0x1001 üzerinden konuşulur.
 
 pub const PSM: u16 = 0x1001;
 
@@ -11,19 +10,16 @@ pub const REQUEST_KEYS: &[u8] = &[0x04, 0x00, 0x04, 0x00, 0x30, 0x00, 0x05, 0x00
 
 const HDR: [u8; 4] = [0x04, 0x00, 0x04, 0x00];
 
-// baş takibi akışını başlatıp durduran paketler, LibrePods notlarından
 pub const HEAD_START: &[u8] = &[
-    0x04, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x10, 0x00, 0x10, 0x00, 0x08, 0xA1, 0x02, 0x42, 0x0B, 0x08, 0x0E,
-    0x10, 0x02, 0x1A, 0x05, 0x01, 0x40, 0x9C, 0x00, 0x00,
+    0x04, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x10, 0x00, 0x0F, 0x00, 0x08, 0x73, 0x42, 0x0B, 0x08, 0x10, 0x10,
+    0x02, 0x1A, 0x05, 0x01, 0x40, 0x9C, 0x00, 0x00,
 ];
 pub const HEAD_STOP: &[u8] = &[
-    0x04, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x10, 0x00, 0x11, 0x00, 0x08, 0x7E, 0x10, 0x02, 0x42, 0x0B, 0x08,
-    0x4E, 0x10, 0x02, 0x1A, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0x04, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x10, 0x00, 0x0F, 0x00, 0x08, 0x75, 0x42, 0x0B, 0x08, 0x10, 0x10,
+    0x02, 0x1A, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00,
 ];
 
 pub mod cmd {
-    pub const MIC_MODE: u8 = 0x01;
-    pub const EAR_DETECTION: u8 = 0x0A;
     pub const LISTENING_MODE: u8 = 0x0D;
     pub const PRESS_SPEED: u8 = 0x17;
     pub const HOLD_DURATION: u8 = 0x18;
@@ -146,6 +142,11 @@ pub fn control(id: u8, data: [u8; 4]) -> Vec<u8> {
     p.extend_from_slice(&[0x09, 0x00, id]);
     p.extend_from_slice(&data);
     p
+}
+
+/// Kulaklığın kabul ettiği ad: 1-32 bayt, kontrol karakteri yok.
+pub fn valid_name(name: &str) -> bool {
+    !name.is_empty() && name.len() <= 32 && !name.chars().any(char::is_control)
 }
 
 pub fn rename(name: &str) -> Vec<u8> {
@@ -282,6 +283,43 @@ mod tests {
         let Packet::Head(h) = parse(&d).unwrap() else { panic!() };
         assert_eq!(h[0], -120);
         assert!(matches!(parse(HEAD_START), Some(Packet::Other(0x17))));
+    }
+
+    // kulaklıktan ya da havadan gelen her bayt dizisi güvenle ayrıştırılmalı
+    #[test]
+    fn fuzz_parse() {
+        let mut x: u64 = 0x9E37_79B9_7F4A_7C15;
+        let mut next = || {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            x
+        };
+        let key = [7u8; 16];
+        for i in 0..300_000 {
+            let len = (next() % 96) as usize;
+            let mut d: Vec<u8> = (0..len).map(|_| next() as u8).collect();
+            // yarısında geçerli başlık olsun ki derin dallara da girilsin
+            if i % 2 == 0 && d.len() >= 6 {
+                d[..4].copy_from_slice(&HDR);
+                d[4] = [0x04, 0x06, 0x09, 0x1D, 0x31, 0x4B, 0x17][(next() % 7) as usize];
+                d[5] = 0;
+            }
+            let _ = parse(&d);
+            if i % 3 == 0 && !d.is_empty() {
+                d[0] = 0x07;
+            }
+            let _ = crate::proximity::parse(&d, Some(&key));
+            let _ = crate::proximity::parse(&d, None);
+        }
+    }
+
+    #[test]
+    fn names() {
+        assert!(valid_name("AirPods"));
+        assert!(!valid_name(""));
+        assert!(!valid_name("a\nb"));
+        assert!(!valid_name(&"x".repeat(33)));
     }
 
     #[test]
