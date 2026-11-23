@@ -61,11 +61,12 @@ Window {
         onTriggered: Backend.loadHistory()
     }
     Connections { target: Store; function onLiveChanged() { Backend.loadHistory() } }
-    // PINNA_DEMO=mode with PINNA_STATE flips the mode after a second, to capture transitions mid-flight
+    // PINNA_DEMO=mode or page, with PINNA_STATE, changes the mode or page after a second
+    // so transitions can be captured mid-flight
     Timer {
-        running: typeof pinnaDemo === "string" && pinnaDemo === "mode"
+        running: typeof pinnaDemo === "string" && (pinnaDemo === "mode" || pinnaDemo === "page")
         interval: 1000
-        onTriggered: Backend.setMode(Store.s.mode === "transparency" ? "anc" : "transparency")
+        onTriggered: pinnaDemo === "page" ? win.go(1) : Backend.setMode(Store.s.mode === "transparency" ? "anc" : "transparency")
     }
 
     Sidebar {
@@ -116,6 +117,14 @@ Window {
             height: parent.height - y
             currentIndex: win.page
             visible: win.blocker === ""
+            // a short rise and fade on page change; skipped with reduced motion
+            transform: Translate { id: shift }
+            onCurrentIndexChanged: if (!Theme.reduce) enter.restart()
+            ParallelAnimation {
+                id: enter
+                NumberAnimation { target: stack; property: "opacity"; from: 0.4; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                NumberAnimation { target: shift; property: "y"; from: 10; to: 0; duration: 260; easing.type: Easing.OutCubic }
+            }
             GeneralPage { id: general; confirm: confirm }
             NoisePage {}
             ControlsPage {}

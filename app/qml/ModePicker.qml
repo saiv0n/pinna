@@ -20,6 +20,15 @@ Item {
         Backend.setMode(shown[i])
     }
     function tileX(i) { return i * (tileWidth + spacing) }
+    property int lastIndex: -1
+    onIndexChanged: {
+        if (lastIndex >= 0 && index >= 0 && !Theme.reduce && width > 0) {
+            pill.offset = tileX(lastIndex) - tileX(index) + pill.offset
+            slide.restart()
+        }
+        lastIndex = index
+    }
+    Component.onCompleted: lastIndex = index
 
     implicitHeight: 72
     activeFocusOnTab: true
@@ -47,16 +56,15 @@ Item {
     Rectangle {
         id: pill
         visible: root.index >= 0
-        x: root.tileX(Math.max(0, root.index))
+        // only a mode change moves it; layout and resizes jump straight to place
+        property real offset: 0
+        x: root.tileX(Math.max(0, root.index)) + offset
         width: root.tileWidth
         height: root.height
         radius: Theme.radius
         color: Theme.accent
         scale: root.pressed === root.index ? 0.96 : 1
-        Behavior on x {
-            enabled: !Theme.reduce && pill.visible
-            NumberAnimation { duration: 300; easing.type: Easing.OutBack; easing.overshoot: 0.8 }
-        }
+        NumberAnimation { id: slide; target: pill; property: "offset"; to: 0; duration: 300; easing.type: Easing.OutBack; easing.overshoot: 0.8 }
         Behavior on scale { enabled: !Theme.reduce; NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
         Rectangle {
             anchors.fill: parent

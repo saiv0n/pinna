@@ -43,9 +43,17 @@ Window {
         color: Theme.card
         border.width: 1
         border.color: Theme.border
+        // drops in from above with a small settle, like a system banner
         opacity: 0
-        Component.onCompleted: opacity = 1
-        Behavior on opacity { NumberAnimation { duration: 160 } }
+        scale: 0.94
+        transform: Translate { id: drop; y: -14 }
+        Component.onCompleted: Theme.reduce ? (opacity = 1, scale = 1, drop.y = 0) : arrive.start()
+        ParallelAnimation {
+            id: arrive
+            NumberAnimation { target: card; property: "opacity"; to: 1; duration: 180; easing.type: Easing.OutCubic }
+            NumberAnimation { target: card; property: "scale"; to: 1; duration: 340; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
+            NumberAnimation { target: drop; property: "y"; to: 0; duration: 340; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
+        }
         HoverHandler { id: hover }
 
         Row {
