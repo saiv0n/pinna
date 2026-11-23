@@ -8,8 +8,8 @@ import Caelestia.Config
 import qs.components
 import qs.services
 
-// Caelestia barı için: AirPods bağlıyken simge, en düşük pil ve dinleme modu.
-// Sol tık modlar arasında geçer, sağ tık Pinna'yı açar.
+// For the Caelestia bar: an icon, the lowest battery and the listening mode while AirPods are connected.
+// Left click cycles modes, right click opens Pinna.
 Item {
     id: root
 
@@ -37,7 +37,7 @@ Item {
                 } catch (e) {}
             }
         }
-        // servis yeniden başlarsa bağlantıyı tazele
+        // reconnect if the service restarts
         onExited: retry.start()
     }
 
