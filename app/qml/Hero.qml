@@ -1,114 +1,93 @@
 import QtQuick
 import Pinna
 
+// Sayfanın tepesi: kulaklık görseli, ad, durum ve piller.
 Column {
     id: root
-    property var s: ({})
-    signal renameRequested(string name)
-
-    width: parent ? parent.width : 0
-    spacing: 14
-
+    readonly property var s: Store.s
     readonly property var bat: s.battery || ({})
     readonly property var ear: s.ear || ({})
+    readonly property alias nameItem: nameText
+
+    width: parent ? parent.width : 0
+    spacing: 4
 
     function earText() {
         const l = ear.left, r = ear.right
+        if (!Store.ready) return "Kulaklıkla bağlantı kuruluyor…"
         if (l === "ear" && r === "ear") return "Kulaklarında"
         if (l === "ear") return "Sol AirPod kulağında"
         if (r === "ear") return "Sağ AirPod kulağında"
         if (l === "case" && r === "case") return "Kutuda"
         return "Bağlı"
     }
+    function cell(k) { return bat[k] || ({}) }
 
     PodArt {
         anchors.horizontalCenter: parent.horizontalCenter
+        scaleFactor: 0.92
         leftActive: root.ear.left !== "case"
         rightActive: root.ear.right !== "case"
     }
 
-    Column {
+    Item { width: 1; height: 6 }
+
+    Text {
+        id: nameText
         width: parent.width
-        spacing: 3
-
-        Item {
-            width: parent.width
-            height: nameText.height
-
-            Text {
-                id: nameText
-                visible: !nameEdit.visible
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.s.name || "AirPods"
-                font: Theme.title
-                color: Theme.text
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.IBeamCursor
-                    onClicked: {
-                        nameEdit.text = nameText.text
-                        nameEdit.visible = true
-                        nameEdit.forceActiveFocus()
-                        nameEdit.selectAll()
-                    }
-                }
-            }
-
-            TextInput {
-                id: nameEdit
-                visible: false
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: Math.max(140, contentWidth + 8)
-                horizontalAlignment: TextInput.AlignHCenter
-                font: Theme.title
-                color: Theme.text
-                selectionColor: Theme.accent
-                selectedTextColor: Theme.accentText
-                maximumLength: 32
-                onAccepted: {
-                    visible = false
-                    if (text.trim().length && text !== root.s.name)
-                        root.renameRequested(text.trim())
-                }
-                Keys.onEscapePressed: visible = false
-                onActiveFocusChanged: if (!activeFocus) visible = false
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.bottom
-                    height: 2
-                    radius: 1
-                    color: Theme.accent
-                }
-            }
-        }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: (root.s.modelName || "AirPods") + "  ·  " + root.earText()
-            font: Theme.caption
-            color: Theme.text2
-        }
+        horizontalAlignment: Text.AlignHCenter
+        text: Store.name
+        font: Theme.title
+        color: Theme.text
+        elide: Text.ElideRight
     }
 
     Row {
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 22
-        BatteryRing {
-            label: "Sol"
-            level: root.bat.left ? root.bat.left.level : null
-            charging: root.bat.left ? root.bat.left.charging : false
+        spacing: 6
+        Spinner {
+            visible: !Store.ready
+            size: 13
+            anchors.verticalCenter: parent.verticalCenter
         }
-        BatteryRing {
-            label: "Sağ"
-            level: root.bat.right ? root.bat.right.level : null
-            charging: root.bat.right ? root.bat.right.charging : false
+        Text {
+            text: root.earText()
+            font: Theme.footnote
+            color: Theme.text2
         }
-        BatteryRing {
-            label: "Kutu"
-            level: root.bat["case"] ? root.bat["case"].level : null
-            charging: root.bat["case"] ? root.bat["case"].charging : false
+    }
+
+    Item { width: 1; height: 14 }
+
+    Row {
+        id: batteries
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 30
+
+        Repeater {
+            model: [
+                { key: "left", label: "Sol" },
+                { key: "right", label: "Sağ" },
+                { key: "case", label: "Kutu" }
+            ]
+            Column {
+                required property var modelData
+                readonly property var c: root.cell(modelData.key)
+                // kutunun pili bilinmiyorsa Apple gibi hiç gösterme
+                visible: modelData.key !== "case" || (c.level !== null && c.level !== undefined)
+                spacing: 4
+                BatteryGlyph {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    level: parent.c.level === undefined ? null : parent.c.level
+                    charging: !!parent.c.charging
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: parent.modelData.label
+                    font: Theme.caption
+                    color: Theme.text2
+                }
+            }
         }
     }
 }

@@ -1,102 +1,138 @@
 import QtQuick
 import Pinna
 
-// Kulaklık bağlı değilken ya da servis çalışmıyorken gösterilen tek eylemli ekran.
-Column {
+// Kulaklık bağlı değilken görünen ekran: yükleniyor, servis kapalı, Bluetooth kapalı, eşli aygıt yok ya da bağlı değil.
+Item {
     id: root
-    property var s: ({})
-    property bool daemon: true
+    readonly property var s: Store.s
+    readonly property string kind: !Backend.daemon ? "daemon"
+        : !Store.loaded ? "loading"
+        : s.adapter === false ? "bluetooth"
+        : !s.address ? "unpaired"
+        : "away"
     property bool busy: false
+    property string failure
 
-    width: parent ? parent.width : 0
-    spacing: 18
-
-    readonly property bool paired: !!s.address
-    readonly property bool adapter: s.adapter !== false
-
-    Image {
-        anchors.horizontalCenter: parent.horizontalCenter
-        source: "../assets/set.png"
-        width: 280
-        height: 184
-        fillMode: Image.PreserveAspectFit
-        mipmap: true
-        opacity: 0.9
-        smooth: true
+    onKindChanged: {
+        busy = false
+        failure = ""
+        swap.restart()
     }
 
-    Column {
-        width: parent.width
-        spacing: 6
-        Text {
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            text: !root.daemon ? "Pinna servisi çalışmıyor"
-                : !root.adapter ? "Bluetooth kapalı"
-                : !root.paired ? "Eşli AirPods yok"
-                : (root.s.name || "AirPods") + " bağlı değil"
-            font: Theme.title
-            color: Theme.text
-            wrapMode: Text.WordWrap
-        }
-        Text {
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            text: !root.daemon ? "Kulaklıkla konuşan arka plan servisi kapalı. Başlatınca ayarlar burada görünür."
-                : !root.adapter ? "Bağlanmak için Bluetooth'u aç."
-                : !root.paired ? "Kutunun arkasındaki düğmeye basılı tut, sonra sistemin Bluetooth ayarlarından eşleştir."
-                : "Kutuyu aç ve yakınında tut ya da aşağıdan bağlan."
-            font: Theme.body
-            color: Theme.text2
-            wrapMode: Text.WordWrap
-            lineHeight: 1.2
-        }
-    }
-
-    Rectangle {
-        visible: root.paired || !root.daemon || !root.adapter
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: 200
-        height: 44
-        radius: 22
-        color: btn.pressed ? Qt.darker(Theme.accent, 1.12) : Theme.accent
-        opacity: root.busy ? 0.6 : 1
-
-        Text {
-            anchors.centerIn: parent
-            text: root.busy ? "Bağlanıyor…"
-                : !root.daemon ? "Servisi başlat"
-                : !root.adapter ? "Bluetooth'u aç ve bağlan"
-                : "Bağlan"
-            font: Theme.label
-            color: Theme.accentText
-        }
-
-        MouseArea {
-            id: btn
-            anchors.fill: parent
-            enabled: !root.busy
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                if (!root.daemon) {
-                    Backend.startDaemon()
-                    return
-                }
-                root.busy = true
-                busyTimer.restart()
-                Backend.connectDevice()
-            }
-        }
+    function act() {
+        failure = ""
+        busy = true
+        busyTimer.restart()
+        if (kind === "daemon") Backend.startDaemon()
+        else Backend.connectDevice()
     }
 
     Timer {
         id: busyTimer
-        interval: 12000
-        onTriggered: root.busy = false
+        interval: 15000
+        onTriggered: {
+            root.busy = false
+            root.failure = root.kind === "daemon" ? "Servis başlatılamadı. Terminalde 'systemctl --user status pinnad' çıktısına bak."
+                : "Bağlanılamadı. Kutuyu aç ve AirPods'u bilgisayara yakın tut."
+        }
     }
     Connections {
         target: Backend
-        function onStateChanged() { if (Backend.state.connected) root.busy = false }
-        function onError() { root.busy = false }
+        function onStateChanged() { if (Store.live) root.busy = false }
+        function onError(m) {
+            root.busy = false
+            root.failure = m
+        }
+    }
+
+    // durum değişince içerik hafifçe aşağıdan yeniden gelir
+    ParallelAnimation {
+        id: swap
+        NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: 260 }
+        NumberAnimation { target: content; property: "shift"; from: Theme.reduce ? 0 : 14; to: 0; duration: 520; easing.type: Easing.OutQuint }
+    }
+
+    Column {
+        id: content
+        property real shift: 0
+        visible: root.kind !== "loading"
+        width: parent.width - 64
+        x: 32
+        y: (parent.height - height) / 2 - 20 + shift
+        spacing: 22
+
+        Item {
+            width: parent.width
+            height: 170
+            PodArt {
+                id: art
+                anchors.centerIn: parent
+                scaleFactor: 0.95
+                leftActive: root.kind === "away"
+                rightActive: root.kind === "away"
+            }
+        }
+
+        Column {
+            width: parent.width
+            spacing: 8
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: root.kind === "daemon" ? "Pinna servisi çalışmıyor"
+                    : root.kind === "bluetooth" ? "Bluetooth kapalı"
+                    : root.kind === "unpaired" ? "Eşli AirPods yok"
+                    : Store.name + " bağlı değil"
+                font: Theme.title
+                color: Theme.text
+                wrapMode: Text.WordWrap
+            }
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: root.kind === "daemon" ? "Kulaklıkla konuşan arka plan servisi kapalı. Başlatınca ayarlar burada görünür."
+                    : root.kind === "bluetooth" ? "AirPods'a bağlanmak için bilgisayarın Bluetooth'unu aç."
+                    : root.kind === "unpaired" ? "AirPods kutudayken kapağı aç, kutunun arkasındaki düğmeye ışık beyaz yanıp sönene kadar basılı tut. Sonra sistemin Bluetooth ayarlarından eşleştir."
+                    : "Kutuyu aç ve AirPods'u yakınında tut, ya da aşağıdan bağlan."
+                font: Theme.body
+                color: Theme.text2
+                wrapMode: Text.WordWrap
+                lineHeight: 1.2
+            }
+        }
+
+        PillButton {
+            visible: root.kind !== "unpaired"
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            busy: root.busy
+            text: root.busy ? (root.kind === "daemon" ? "Başlatılıyor…" : "Bağlanıyor…")
+                : root.kind === "daemon" ? "Servisi Başlat"
+                : root.kind === "bluetooth" ? "Bluetooth'u Aç ve Bağlan"
+                : "Bağlan"
+            onClicked: root.act()
+        }
+
+        Text {
+            visible: root.failure.length > 0
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: root.failure
+            font: Theme.footnote
+            color: Theme.red
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    Column {
+        visible: root.kind === "loading"
+        anchors.centerIn: parent
+        spacing: 12
+        Spinner { anchors.horizontalCenter: parent.horizontalCenter; size: 26 }
+        Text {
+            text: "Yükleniyor…"
+            font: Theme.footnote
+            color: Theme.text2
+        }
     }
 }

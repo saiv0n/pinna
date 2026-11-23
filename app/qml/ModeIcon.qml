@@ -1,75 +1,83 @@
 import QtQuick
-import Pinna
 import QtQuick.Shapes
+import Pinna
 
-// Dinleme modlarının çizgi ikonları: baş silueti ve etrafındaki ses dalgaları.
+// Dinleme modu ikonları: ortada dinleyen kişi, çevresinde sesin geçişini anlatan halka.
 Shape {
     id: root
     property string mode: "anc"
     property color color: Theme.text
-    width: 26
-    height: 26
+    width: 28
+    height: 28
     preferredRendererType: Shape.CurveRenderer
 
-    readonly property real c: width / 2
+    readonly property real c: 14
+    readonly property real r: 11.5
+    readonly property color none: "transparent"
 
-    // ortadaki dolu nokta: dinleyen kişi
+    // baş ve omuzlar
     ShapePath {
-        strokeWidth: 0
-        strokeColor: "transparent"
+        strokeColor: root.none
         fillColor: root.color
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: 3.2; radiusY: 3.2; startAngle: 0; sweepAngle: 360 }
+        PathAngleArc { centerX: root.c; centerY: 10.6; radiusX: 3.7; radiusY: 3.7; startAngle: 0; sweepAngle: 360 }
+    }
+    ShapePath {
+        strokeColor: root.none
+        fillColor: root.color
+        startX: 7.4; startY: 21
+        PathCubic { control1X: 7.4; control1Y: 16.6; control2X: 10.4; control2Y: 15.4; x: 14; y: 15.4 }
+        PathCubic { control1X: 17.6; control1Y: 15.4; control2X: 20.6; control2Y: 16.6; x: 20.6; y: 21 }
+        PathQuad { controlX: 20.6; controlY: 21.8; x: 19.6; y: 21.8 }
+        PathLine { x: 8.4; y: 21.8 }
+        PathQuad { controlX: 7.4; controlY: 21.8; x: 7.4; y: 21 }
     }
 
-    // gürültü engelleme: kapalı kalın halka
+    // gürültü engelleme: kapalı, kalın halka
     ShapePath {
-        strokeWidth: root.mode === "anc" ? 2.2 : 0
-        strokeColor: root.mode === "anc" ? root.color : "transparent"
-        fillColor: "transparent"
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: 9; radiusY: 9; startAngle: 0; sweepAngle: 360 }
+        strokeColor: root.mode === "anc" ? root.color : root.none
+        strokeWidth: 2.4
+        fillColor: root.none
+        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: 0; sweepAngle: 360 }
     }
 
-    // şeffaf: kesik halka, ses içeri giriyor
+    // şeffaflık: noktalı halka, ses içeri giriyor
     ShapePath {
-        strokeWidth: root.mode === "transparency" ? 2 : 0
-        strokeColor: root.mode === "transparency" ? root.color : "transparent"
-        fillColor: "transparent"
+        strokeColor: root.mode === "transparency" ? root.color : root.none
+        strokeWidth: 2.1
+        fillColor: root.none
+        capStyle: ShapePath.RoundCap
         strokeStyle: ShapePath.DashLine
-        dashPattern: [1.6, 2.2]
-        capStyle: ShapePath.RoundCap
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: 9; radiusY: 9; startAngle: 0; sweepAngle: 360 }
+        dashPattern: [0.01, 2.05]
+        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: 0; sweepAngle: 360 }
     }
 
-    // uyarlanabilir: yarısı dolu yarısı kesik
+    // uyarlanabilir: yarısı kapalı, yarısı noktalı, köşede parıltı
     ShapePath {
-        strokeWidth: root.mode === "adaptive" ? 2.2 : 0
-        strokeColor: root.mode === "adaptive" ? root.color : "transparent"
-        fillColor: "transparent"
+        strokeColor: root.mode === "adaptive" ? root.color : root.none
+        strokeWidth: 2.4
+        fillColor: root.none
         capStyle: ShapePath.RoundCap
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: 9; radiusY: 9; startAngle: 90; sweepAngle: 180 }
+        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: 90; sweepAngle: 175 }
     }
     ShapePath {
-        strokeWidth: root.mode === "adaptive" ? 2 : 0
-        strokeColor: root.mode === "adaptive" ? root.color : "transparent"
-        fillColor: "transparent"
+        strokeColor: root.mode === "adaptive" ? root.color : root.none
+        strokeWidth: 2.1
+        fillColor: root.none
+        capStyle: ShapePath.RoundCap
         strokeStyle: ShapePath.DashLine
-        dashPattern: [1.6, 2.2]
-        capStyle: ShapePath.RoundCap
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: 9; radiusY: 9; startAngle: -90; sweepAngle: 180 }
+        dashPattern: [0.01, 2.05]
+        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: -18; sweepAngle: 100 }
     }
-
-    // kapalı: ince halka ve çapraz çizgi
+    readonly property real x0: 21.6
+    readonly property real y0: 5.2
+    readonly property real k: 4.6
     ShapePath {
-        strokeWidth: root.mode === "off" ? 1.6 : 0
-        strokeColor: root.mode === "off" ? root.color : "transparent"
-        fillColor: "transparent"
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: 9; radiusY: 9; startAngle: 0; sweepAngle: 360 }
-    }
-    ShapePath {
-        strokeWidth: root.mode === "off" ? 1.8 : 0
-        strokeColor: root.mode === "off" ? root.color : "transparent"
-        capStyle: ShapePath.RoundCap
-        startX: root.c - 7; startY: root.c + 7
-        PathLine { x: root.c + 7; y: root.c - 7 }
+        strokeColor: root.none
+        fillColor: root.mode === "adaptive" ? root.color : root.none
+        startX: root.x0; startY: root.y0 - root.k
+        PathQuad { controlX: root.x0 + 0.8; controlY: root.y0 - 0.8; x: root.x0 + root.k; y: root.y0 }
+        PathQuad { controlX: root.x0 + 0.8; controlY: root.y0 + 0.8; x: root.x0; y: root.y0 + root.k }
+        PathQuad { controlX: root.x0 - 0.8; controlY: root.y0 + 0.8; x: root.x0 - root.k; y: root.y0 }
+        PathQuad { controlX: root.x0 - 0.8; controlY: root.y0 - 0.8; x: root.x0; y: root.y0 - root.k }
     }
 }

@@ -44,8 +44,10 @@ private slots:
 private:
     void call(const QString &method, const QVariantList &args);
     void setDaemon(bool up);
+    void fakeCall(const QString &method, const QVariantList &args);
 
     QVariantMap m_state;
     bool m_daemon = false;
+    QString m_fake;
     QDBusServiceWatcher *m_watcher = nullptr;
 };

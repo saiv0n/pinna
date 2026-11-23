@@ -1,29 +1,44 @@
 import QtQuick
 import Pinna
 
-// iOS tarzı anahtar. Tıklayınca hemen döner, gerçek değer servisten gelince yerine oturur.
+// iOS anahtarı. Basılıyken düğme uzar, bırakınca yayla yerine oturur.
 Item {
     id: root
     property bool checked
+    property bool pressed: false
     signal toggled(bool value)
 
-    width: 46
-    height: 28
-    opacity: enabled ? 1 : 0.4
-    activeFocusOnTab: true
+    // tıklanınca hemen döner, servis reddederse eski hâline geri gelir
+    property bool on: checked
+    onCheckedChanged: on = checked
+    Connections {
+        target: Backend
+        function onError() { root.on = root.checked }
+    }
 
+    width: 51
+    height: 31
+    opacity: enabled ? 1 : 0.45
+    activeFocusOnTab: true
     Keys.onSpacePressed: flip()
+
     function flip() {
         if (!enabled) return
-        checked = !checked
-        toggled(checked)
+        on = !on
+        toggled(on)
     }
 
     Rectangle {
         anchors.fill: parent
         radius: height / 2
-        color: root.checked ? Theme.switchOn : Theme.track
-        Behavior on color { ColorAnimation { duration: Theme.fast } }
+        color: Theme.track
+    }
+    Rectangle {
+        anchors.fill: parent
+        radius: height / 2
+        color: Theme.green
+        opacity: root.on ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
     }
 
     Rectangle {
@@ -38,24 +53,29 @@ Item {
 
     Rectangle {
         id: knob
-        width: 24
-        height: 24
-        radius: 12
+        readonly property real w: root.pressed || area.pressed ? 34 : 27
+        width: w
+        height: 27
+        radius: 13.5
         y: 2
-        x: root.checked ? root.width - width - 2 : 2
+        x: root.on ? root.width - width - 2 : 2
         color: "#ffffff"
-        Behavior on x { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+        Behavior on x { enabled: !Theme.reduce; SpringAnimation { spring: 5; damping: 0.5; epsilon: 0.2 } }
+        Behavior on width { enabled: !Theme.reduce; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
         Rectangle {
             anchors.fill: parent
             anchors.margins: -0.5
+            anchors.topMargin: 0.5
+            anchors.bottomMargin: -1.5
             z: -1
-            radius: width / 2
-            color: "#28000000"
+            radius: height / 2
+            color: "#24000000"
         }
     }
 
     MouseArea {
+        id: area
         anchors.fill: parent
         anchors.margins: -6
         cursorShape: Qt.PointingHandCursor

@@ -10,6 +10,7 @@ SettingRow {
 
     Toggle {
         id: sw
+        enabled: root.enabled
         checked: root.checked
         onToggled: v => root.toggled(v)
     }

@@ -3,10 +3,10 @@ import Pinna
 
 SettingRow {
     id: root
-    property string value
+    property string text
 
     TextEdit {
-        text: root.value
+        text: root.text
         font: Theme.body
         color: Theme.text2
         readOnly: true

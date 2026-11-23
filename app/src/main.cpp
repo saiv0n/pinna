@@ -4,6 +4,7 @@
 #include <QFontDatabase>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QProcess>
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -29,6 +30,18 @@ public slots:
     }
 };
 
+// GNOME ayarlarında animasyonlar kapatıldıysa hareketleri sadeleştir
+static bool reduceMotion()
+{
+    if (qEnvironmentVariableIsSet("PINNA_REDUCE_MOTION"))
+        return qEnvironmentVariableIntValue("PINNA_REDUCE_MOTION") != 0;
+    QProcess p;
+    p.start(QStringLiteral("gsettings"), {"get", "org.gnome.desktop.interface", "enable-animations"});
+    if (!p.waitForFinished(400))
+        return false;
+    return p.readAllStandardOutput().trimmed() == "false";
+}
+
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
@@ -40,7 +53,8 @@ int main(int argc, char *argv[])
     const bool popup = app.arguments().contains(QStringLiteral("--popup"));
 
     Instance instance;
-    if (!popup) {
+    // ekran görüntüsü alınırken açık olan pencereye karışma
+    if (!popup && qEnvironmentVariable("PINNA_SHOT").isEmpty()) {
         auto bus = QDBusConnection::sessionBus();
         if (!bus.registerService(QStringLiteral("dev.pinna.App"))) {
             bus.call(QDBusMessage::createMethodCall(QStringLiteral("dev.pinna.App"), QStringLiteral("/"),
@@ -61,6 +75,8 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     instance.engine = &engine;
     engine.rootContext()->setContextProperty(QStringLiteral("pinnaTheme"), qEnvironmentVariable("PINNA_THEME"));
+    engine.rootContext()->setContextProperty(QStringLiteral("pinnaPage"), qEnvironmentVariable("PINNA_PAGE"));
+    engine.rootContext()->setContextProperty(QStringLiteral("pinnaReduceMotion"), reduceMotion());
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                      [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     if (int h = qEnvironmentVariableIntValue("PINNA_SHOT_HEIGHT"))

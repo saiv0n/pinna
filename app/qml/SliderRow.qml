@@ -1,6 +1,7 @@
 import QtQuick
 import Pinna
 
+// Başlığı olmayan kaydırıcı satırı; iki yanda ikon ya da yazı olabilir.
 SettingRow {
     id: root
     property real value
@@ -8,35 +9,40 @@ SettingRow {
     property real to: 100
     property string leftLabel
     property string rightLabel
-    property bool showValue: true
+    property bool speakers: false
     signal committed(int value)
 
-    Text {
-        visible: root.showValue
-        text: Math.round(slider.pressed ? slider.value : root.value)
-        font.pixelSize: 14
-        color: Theme.text2
-        font.features: { "tnum": 1 }
-    }
+    height: col.height + 22
 
-    below: Column {
-        width: parent.width
+    Column {
+        id: col
+        parent: root
+        x: Theme.pad
+        y: 11
+        width: root.width - 2 * Theme.pad
         spacing: 2
-        Slider {
-            id: slider
+
+        Row {
             width: parent.width
-            from: root.from
-            to: root.to
-            stepSize: 1
-            value: root.value
-            onCommitted: v => root.committed(Math.round(v))
+            spacing: 10
+            Speaker { visible: root.speakers; waves: 0; anchors.verticalCenter: parent.verticalCenter }
+            Slider {
+                id: slider
+                width: parent.width - (root.speakers ? 2 * 30 : 0)
+                from: root.from
+                to: root.to
+                target: root.value
+                enabled: root.enabled
+                onCommitted: v => root.committed(Math.round(v))
+            }
+            Speaker { visible: root.speakers; waves: 2; anchors.verticalCenter: parent.verticalCenter }
         }
         Item {
             visible: root.leftLabel.length > 0
             width: parent.width
             height: 18
-            Text { text: root.leftLabel; font: Theme.caption; color: Theme.text3 }
-            Text { anchors.right: parent.right; text: root.rightLabel; font: Theme.caption; color: Theme.text3 }
+            Text { text: root.leftLabel; font: Theme.caption; color: Theme.text2 }
+            Text { anchors.right: parent.right; text: root.rightLabel; font: Theme.caption; color: Theme.text2 }
         }
     }
 }

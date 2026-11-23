@@ -8,13 +8,13 @@ Column {
     property string footer
     default property alias rows: list.data
     width: parent ? parent.width : 0
-    spacing: 6
+    spacing: 7
 
     Text {
         visible: root.title.length > 0
-        text: root.title
+        text: root.title.toLocaleUpperCase(Qt.locale("tr_TR"))
         font: Theme.section
-        color: Theme.text2
+        color: Theme.header
         leftPadding: Theme.pad
     }
 
@@ -24,6 +24,8 @@ Column {
         radius: Theme.radius
         color: Theme.group
         clip: true
+        // satır açılıp kapanınca grup sıçramasın, yumuşakça uzasın
+        Behavior on height { enabled: !Theme.reduce && root.visible; NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
         Column {
             id: list
@@ -34,8 +36,8 @@ Column {
     Text {
         visible: root.footer.length > 0
         text: root.footer
-        font: Theme.caption
-        color: Theme.text3
+        font: Theme.footnote
+        color: Theme.text2
         width: parent.width
         wrapMode: Text.WordWrap
         leftPadding: Theme.pad

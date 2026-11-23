@@ -8,6 +8,7 @@
 #include <QDBusServiceWatcher>
 #include <QJsonDocument>
 #include <QCoreApplication>
+#include <QFile>
 #include <QProcess>
 
 static const QString SERVICE = QStringLiteral("dev.pinna.Daemon");
@@ -23,6 +24,16 @@ static QString str(const QVariant &v)
 
 Backend::Backend(QObject *parent) : QObject(parent)
 {
+    // ekran görüntüsü ve tasarım denemeleri için servis yerine dosyadan oku
+    m_fake = qEnvironmentVariable("PINNA_STATE");
+    if (!m_fake.isEmpty()) {
+        QFile f(m_fake);
+        if (f.open(QIODevice::ReadOnly))
+            onState(QString::fromUtf8(f.readAll()));
+        setDaemon(!m_state.isEmpty());
+        return;
+    }
+
     auto bus = QDBusConnection::sessionBus();
     bus.connect(SERVICE, PATH, IFACE, QStringLiteral("StateChanged"), this, SLOT(onState(QString)));
     bus.connect(SERVICE, PATH, IFACE, QStringLiteral("CaseOpened"), this, SLOT(onCase(QString)));
@@ -50,6 +61,8 @@ void Backend::setDaemon(bool up)
 
 void Backend::refresh()
 {
+    if (!m_fake.isEmpty())
+        return;
     auto msg = QDBusMessage::createMethodCall(SERVICE, PATH, IFACE, QStringLiteral("State"));
     auto *w = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(msg), this);
     connect(w, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher *w) {
@@ -75,6 +88,10 @@ void Backend::onCase(const QString &)
 
 void Backend::call(const QString &method, const QVariantList &args)
 {
+    if (!m_fake.isEmpty()) {
+        fakeCall(method, args);
+        return;
+    }
     auto msg = QDBusMessage::createMethodCall(SERVICE, PATH, IFACE, method);
     msg.setArguments(args);
     auto *w = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(msg, 30000), this);
@@ -103,4 +120,29 @@ void Backend::startDaemon()
 void Backend::openSettings()
 {
     QProcess::startDetached(QCoreApplication::applicationFilePath(), {});
+}
+
+void Backend::fakeCall(const QString &method, const QVariantList &args)
+{
+    const QString a = args.value(0).toString();
+    auto val = [](const QString &v) -> QVariant {
+        if (v == QLatin1String("true") || v == QLatin1String("false"))
+            return v == QLatin1String("true");
+        bool ok;
+        int n = v.toInt(&ok);
+        return ok ? QVariant(n) : QVariant(v);
+    };
+    if (method == QLatin1String("SetMode")) {
+        m_state[QStringLiteral("mode")] = a;
+    } else if (method == QLatin1String("Rename")) {
+        m_state[QStringLiteral("name")] = a;
+    } else if (method == QLatin1String("SetSetting") || method == QLatin1String("SetPref")) {
+        const QString group = method == QLatin1String("SetSetting") ? QStringLiteral("settings") : QStringLiteral("prefs");
+        auto m = m_state.value(group).toMap();
+        m[a] = val(args.value(1).toString());
+        m_state[group] = m;
+    } else if (method == QLatin1String("Connect") || method == QLatin1String("Disconnect")) {
+        m_state[QStringLiteral("connected")] = method == QLatin1String("Connect");
+    }
+    emit stateChanged();
 }
