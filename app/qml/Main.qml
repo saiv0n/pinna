@@ -44,23 +44,24 @@ Window {
         initialItem: mainPage
 
         readonly property var curve: [0.2, 0.9, 0.25, 1, 1, 1]
-        readonly property int dur: Theme.reduce ? 0 : 480
+        readonly property int dur: Theme.reduce ? 1 : 480
 
+        // Animator'lar gerçek pencerede render iş parçacığında koşup opaklığı 0'da bırakıyordu
         pushEnter: Transition {
-            XAnimator { from: stack.width; to: 0; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
-            OpacityAnimator { from: Theme.reduce ? 0 : 1; to: 1; duration: Theme.reduce ? 160 : 0 }
+            NumberAnimation { property: "x"; from: Theme.reduce ? 0 : stack.width; to: 0; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
+            NumberAnimation { property: "opacity"; from: Theme.reduce ? 0 : 1; to: 1; duration: Theme.reduce ? 160 : 1 }
         }
         pushExit: Transition {
-            XAnimator { from: 0; to: -stack.width * 0.28; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
-            OpacityAnimator { from: 1; to: Theme.reduce ? 0 : 0.5; duration: Theme.reduce ? 160 : stack.dur }
+            NumberAnimation { property: "x"; from: 0; to: Theme.reduce ? 0 : -stack.width * 0.3; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
+            NumberAnimation { property: "opacity"; from: 1; to: Theme.reduce ? 0 : 0.6; duration: Theme.reduce ? 160 : stack.dur }
         }
         popEnter: Transition {
-            XAnimator { from: -stack.width * 0.28; to: 0; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
-            OpacityAnimator { from: Theme.reduce ? 0 : 0.5; to: 1; duration: Theme.reduce ? 160 : stack.dur }
+            NumberAnimation { property: "x"; from: Theme.reduce ? 0 : -stack.width * 0.3; to: 0; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
+            NumberAnimation { property: "opacity"; from: Theme.reduce ? 0 : 0.6; to: 1; duration: Theme.reduce ? 160 : stack.dur }
         }
         popExit: Transition {
-            XAnimator { from: 0; to: stack.width; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
-            OpacityAnimator { from: 1; to: Theme.reduce ? 0 : 1; duration: Theme.reduce ? 160 : 0 }
+            NumberAnimation { property: "x"; from: 0; to: Theme.reduce ? 0 : stack.width; duration: stack.dur; easing.type: Easing.BezierSpline; easing.bezierCurve: stack.curve }
+            NumberAnimation { property: "opacity"; from: 1; to: Theme.reduce ? 0 : 1; duration: Theme.reduce ? 160 : 1 }
         }
     }
 
@@ -88,6 +89,7 @@ Window {
             computer: ["ComputerPage.qml", {}],
             name: ["NamePage.qml", {}]
         }
-        if (pages[p]) stack.push(Qt.resolvedUrl(pages[p][0]), pages[p][1], C.StackView.Immediate)
+        // gerçek geçişi denemek için animasyonlu aç
+        if (pages[p]) Qt.callLater(() => stack.push(Qt.resolvedUrl(pages[p][0]), pages[p][1]))
     }
 }

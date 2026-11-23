@@ -27,42 +27,68 @@ Column {
         return "Bağlı"
     }
 
-    PodArt {
-        anchors.horizontalCenter: parent.horizontalCenter
-        scaleFactor: 0.86
-        leftActive: root.ear.left !== "case"
-        rightActive: root.ear.right !== "case"
-    }
-
+    // Apple'daki gibi: solda kulaklıklar, sağda kutu, her birinin altında halkası
     Row {
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 34
+        spacing: 18
 
-        BatteryRing {
-            visible: root.joined
-            label: "AirPods"
-            level: root.joined ? Math.min(root.lvl("left"), root.lvl("right")) : null
-            charging: root.chg("left")
+        Column {
+            spacing: 6
+            PodArt {
+                anchors.horizontalCenter: parent.horizontalCenter
+                scaleFactor: 0.62
+                leftActive: root.ear.left !== "case"
+                rightActive: root.ear.right !== "case"
+            }
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 26
+                BatteryRing {
+                    visible: root.joined
+                    label: "AirPods"
+                    level: root.joined ? Math.min(root.lvl("left"), root.lvl("right")) : null
+                    charging: root.chg("left")
+                }
+                BatteryRing {
+                    visible: !root.joined
+                    label: "Sol"
+                    level: root.lvl("left")
+                    charging: root.chg("left")
+                }
+                BatteryRing {
+                    visible: !root.joined
+                    label: "Sağ"
+                    level: root.lvl("right")
+                    charging: root.chg("right")
+                    delay: 60
+                }
+            }
         }
-        BatteryRing {
-            visible: !root.joined
-            label: "Sol"
-            level: root.lvl("left")
-            charging: root.chg("left")
-        }
-        BatteryRing {
-            visible: !root.joined
-            label: "Sağ"
-            level: root.lvl("right")
-            charging: root.chg("right")
-            delay: 60
-        }
-        BatteryRing {
-            visible: root.lvl("case") !== null
-            label: "Kutu"
-            level: root.lvl("case")
-            charging: root.chg("case")
-            delay: 120
+
+        Column {
+            spacing: 6
+            Item {
+                width: 150
+                height: 106
+                Image {
+                    anchors.centerIn: parent
+                    source: "../assets/case.png"
+                    width: 128
+                    height: 100
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    mipmap: true
+                    opacity: root.lvl("case") !== null ? 1 : 0.55
+                    Behavior on opacity { NumberAnimation { duration: 260 } }
+                }
+            }
+            BatteryRing {
+                anchors.horizontalCenter: parent.horizontalCenter
+                label: "Kutu"
+                level: root.lvl("case")
+                charging: root.chg("case")
+                delay: 120
+            }
         }
     }
 

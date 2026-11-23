@@ -16,13 +16,24 @@ NavPage {
     Hero { id: hero }
 
     Group {
+        SettingRow {
+            title: "Ad"
+            value: Store.name
+            chevron: true
+            enabled: page.ready
+            onClicked: page.open(Qt.resolvedUrl("NamePage.qml"), {})
+        }
+    }
+
+    Group {
         title: "Dinleme Modu"
         visible: !!Store.s.mode
         enabled: page.ready
 
         Item {
             width: parent.width
-            height: modes.height + 24
+            height: modes.height + 24 + (adaptive.on ? adaptive.height + 4 : 0)
+            clip: true
             ModeSwitch {
                 id: modes
                 x: 12
@@ -32,6 +43,29 @@ NavPage {
                 allowOff: Store.setting("allowOff", true)
                 onPicked: m => Backend.setMode(m)
             }
+            // Apple'daki gibi uyarlanabilir seçiliyken gücü aynı satırda ayarlanır
+            Column {
+                id: adaptive
+                readonly property bool on: modes.shown === "adaptive"
+                x: Theme.pad
+                y: modes.y + modes.height + 6
+                width: parent.width - 2 * Theme.pad
+                opacity: on ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+                Slider {
+                    width: parent.width
+                    target: Store.setting("adaptiveStrength", 50)
+                    from: 0
+                    to: 100
+                    onCommitted: v => Backend.setSetting("adaptiveStrength", Math.round(v))
+                }
+                Item {
+                    width: parent.width
+                    height: 18
+                    Text { text: "Daha çok ortam sesi"; font: Theme.caption; color: Theme.text2 }
+                    Text { anchors.right: parent.right; text: "Daha az ortam sesi"; font: Theme.caption; color: Theme.text2 }
+                }
+            }
             Rectangle {
                 anchors.bottom: parent.bottom
                 x: Theme.pad
@@ -39,13 +73,6 @@ NavPage {
                 height: 1
                 color: Theme.separator
             }
-        }
-        SliderRow {
-            visible: modes.shown === "adaptive"
-            leftLabel: "Daha çok ortam sesi"
-            rightLabel: "Daha az ortam sesi"
-            value: Store.setting("adaptiveStrength", 50)
-            onCommitted: v => Backend.setSetting("adaptiveStrength", v)
         }
         ToggleRow {
             title: "Kapalı Seçeneğine İzin Ver"
@@ -97,13 +124,6 @@ NavPage {
     }
 
     Group {
-        SettingRow {
-            title: "Ad"
-            value: Store.name
-            chevron: true
-            enabled: page.ready
-            onClicked: page.open(Qt.resolvedUrl("NamePage.qml"), {})
-        }
         SettingRow {
             title: "Erişilebilirlik"
             chevron: true

@@ -30,6 +30,9 @@ bud.save(f"{dst}/bud.png", optimize=True)
 pair = crop(Image.open(f"{src}/set.png").convert("RGBA"))
 pair.thumbnail((1100, 900), Image.LANCZOS)
 pair.save(f"{dst}/set.png", optimize=True)
+case = crop(Image.open(f"{src}/case.png").convert("RGBA"))
+case.thumbnail((700, 700), Image.LANCZOS)
+case.save(f"{dst}/case.png", optimize=True)
 print("görseller yazıldı")
 PY
 

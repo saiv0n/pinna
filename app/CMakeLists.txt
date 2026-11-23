@@ -49,6 +49,7 @@ qt_add_qml_module(pinna
         fonts/Inter.ttf
         assets/bud.png
         assets/set.png
+        assets/case.png
 )
 
 target_include_directories(pinna PRIVATE src)

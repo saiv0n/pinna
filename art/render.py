@@ -289,7 +289,36 @@ def render_pair():
     render("set.png")
 
 
+def render_case():
+    """Kutu arkadan 3/4 açıyla: modelin önündeki girinti görünmesin, menteşe ve düğme gerçekteki gibi görünsün."""
+    scene()
+    M = materials()
+    import_model()
+    parts = [o for o in bpy.data.objects if o.type == "MESH" and root_of(o) == "Case_1"]
+    for o in parts:
+        apply_world(o)
+        retarget(o, MAP_CASE, M)
+        smooth(o)
+    lo, hi = bounds(parts)
+    c = (lo + hi) / 2
+    pivot = bpy.data.objects.new("case", None)
+    bpy.context.collection.objects.link(pivot)
+    for o in parts:
+        o.data.transform(Matrix.Translation(-c))
+        o.parent = pivot
+    drop_rest({"case"})
+    size = hi - lo
+    h = max(size.x, size.z)
+    a = math.radians(28)
+    d = h * 5.4
+    lights(Vector((0, 0, 0)), h / 3.4)
+    camera(Vector((math.sin(a) * d, math.cos(a) * d, h * 0.9)), Vector((0, 0, -h * 0.02)), 85, (1300, 1300))
+    render("case.png")
+
+
 if WHICH in ("all", "bud"):
     render_bud()
 if WHICH in ("all", "set"):
     render_pair()
+if WHICH in ("all", "case"):
+    render_case()

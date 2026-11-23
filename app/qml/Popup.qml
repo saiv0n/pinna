@@ -226,17 +226,13 @@ Window {
                 level: win.cell("case").level === undefined ? null : win.cell("case").level
                 charging: !!win.cell("case").charging
                 delay: 410
-                // kutu: kapaklı yuvarlak gövde
-                Rectangle {
+                Image {
                     anchors.centerIn: parent
-                    width: 26
-                    height: 21
-                    radius: 7
-                    color: Theme.dark ? "#e8e8ed" : "#ffffff"
-                    border.width: 1
-                    border.color: Theme.dark ? "#00000000" : "#d1d1d6"
-                    Rectangle { y: 6; width: parent.width; height: 1; color: Theme.dark ? "#8e8e93" : "#c7c7cc" }
-                    Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 12; width: 2.5; height: 2.5; radius: 1.25; color: Theme.green }
+                    source: "../assets/case.png"
+                    width: 30
+                    height: 26
+                    fillMode: Image.PreserveAspectFit
+                    mipmap: true
                 }
             }
         }
