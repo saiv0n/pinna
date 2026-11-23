@@ -10,6 +10,8 @@ use std::path::PathBuf;
 use tokio::process::Command;
 
 pub const SOURCE: &str = "pinna_mic";
+/// +12 dB
+const GAIN: f32 = 4.0;
 
 unsafe extern "C" {
     fn eld_new(asc: *const u8, asc_len: i32, rate: i32) -> *mut c_void;
@@ -43,6 +45,8 @@ pub struct Mic {
     path: PathBuf,
     pcm: Vec<f32>,
     bytes: Vec<u8>,
+    /// son ses paketinin geldiği an
+    pub last: Option<std::time::Instant>,
 }
 
 fn fifo_path() -> PathBuf {
@@ -85,7 +89,7 @@ impl Mic {
             &format!("source_properties='device.description=\"{desc}\" device.icon_name=audio-headset-bluetooth'"),
         ])
         .await?;
-        Some(Mic { module, dec, fifo: None, path, pcm: vec![0.0; 960], bytes: Vec::new() })
+        Some(Mic { module, dec, fifo: None, path, pcm: vec![0.0; 960], bytes: Vec::new(), last: None })
     }
 
     pub async fn close(self) {
@@ -94,6 +98,7 @@ impl Mic {
 
     /// Bir 0x58 paketini çözüp sanal kaynağa yazar. Okuyan yetişemezse ses atılır, oturum beklemez.
     pub fn feed(&mut self, sdu: &[u8]) {
+        self.last = Some(std::time::Instant::now());
         for au in aap::mic_frames(sdu) {
             let max = self.pcm.len() as i32;
             let n = unsafe { eld_decode(self.dec.0, au.as_ptr(), au.len() as i32, self.pcm.as_mut_ptr(), max) };
@@ -103,7 +108,9 @@ impl Mic {
             }
             self.bytes.clear();
             for s in &self.pcm[..n as usize] {
-                self.bytes.extend_from_slice(&s.to_le_bytes());
+                // kulaklık sesi çok kısık yolluyor, uygulamalar konuşmayı duymuyordu
+                let v = (s * GAIN).tanh();
+                self.bytes.extend_from_slice(&v.to_le_bytes());
             }
             self.write();
         }

@@ -420,6 +420,22 @@ impl Daemon {
     async fn mic_activity(&self) {
         let open = self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some();
         let want = open && mic::in_use().await;
+        if self.inner.lock().await.mic_on && !want {
+            // Discord gibi uygulamalar aygıtı kapatıp hemen açıyor, kulaklık da arka arkaya
+            // gelen STOP ve START'tan sonra ses yollamıyor; kapatmayı biraz bekletiyoruz
+            let me = self.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                me.mic_apply().await;
+            });
+        } else {
+            self.mic_apply().await;
+        }
+    }
+
+    async fn mic_apply(&self) {
+        let open = self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some();
+        let want = open && mic::in_use().await;
         let mut g = self.inner.lock().await;
         if g.mic_on == want || (want && !g.state.connected) {
             return;
@@ -433,11 +449,40 @@ impl Daemon {
         g.ca_paused |= pause;
         drop(g);
         info!("kulaklık mikrofonu {}", if want { "açılıyor" } else { "kapanıyor" });
+        if let Some(m) = self.mic.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
+            m.last = Some(Instant::now());
+        }
         let _ = self.send(if want { aap::MIC_START } else { aap::MIC_STOP }.to_vec()).await;
         if pause || resume {
             let _ = self.send(aap::control(aap::cmd::CONVERSATION, [if want { 2 } else { 1 }, 0, 0, 0])).await;
         }
         self.changed();
+    }
+
+    /// Mikrofon açıkken kulaklık ses yollamayı bırakırsa yeniden başlatır.
+    async fn mic_watchdog(self) {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            if !self.inner.lock().await.mic_on {
+                continue;
+            }
+            let stale = {
+                let mut g = self.mic.lock().unwrap_or_else(|e| e.into_inner());
+                match g.as_mut() {
+                    Some(m) if m.last.is_none_or(|t| t.elapsed() > Duration::from_secs(2)) => {
+                        m.last = Some(Instant::now());
+                        true
+                    }
+                    _ => false,
+                }
+            };
+            if stale {
+                info!("kulaklık mikrofonu ses yollamıyor, yeniden başlatılıyor");
+                let _ = self.send(aap::MIC_STOP.to_vec()).await;
+                tokio::time::sleep(Duration::from_millis(500)).await;
+                let _ = self.send(aap::MIC_START.to_vec()).await;
+            }
+        }
     }
 
     pub async fn head_tracking(&self, on: bool) -> Result<()> {
@@ -525,6 +570,7 @@ impl Daemon {
         tokio::spawn(self.clone().pair_loop());
         tokio::spawn(self.clone().bluez_events());
         tokio::spawn(self.clone().audio_events());
+        tokio::spawn(self.clone().mic_watchdog());
         let me = self.clone();
         tokio::spawn(async move {
             mic::cleanup().await;
