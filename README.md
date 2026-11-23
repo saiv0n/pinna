@@ -16,6 +16,9 @@ Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup ol
 - Sistem tepsisinde duruyor: pil, mod değiştirme, bağlan ve kes. Pencereyi kapatınca tepside kalıyor, istersen oturum açılınca tepside başlıyor.
 - Bir kulaklığı çıkarınca çalan şey duruyor, takınca devam ediyor (MPRIS destekleyen her oynatıcıda). Konuşmaya başlayınca bilgisayarın sesini de kısıyor.
 - Kutuyu açınca ya da kulaklık bağlanınca köşede küçük bir kart çıkıyor.
+- Kulaklık pilini BlueZ üzerinden sisteme de bildiriyor, böylece UPower, GNOME, KDE ve bar uygulamaları kendi pil göstergelerinde gösteriyor.
+- Kulaklık bağlı değilken yayınının sinyal gücüyle yakındaki kulaklığı bulmana yardım ediyor.
+- İstersen tek kulaklık takılıyken konuşma algılamayı kapatıyor, ikisi takılınca geri açıyor.
 - Türkçe ve İngilizce. Varsayılan olarak sistem dilini izliyor, Bu Bilgisayar sayfasından değiştirilebiliyor.
 - Baş takibini canlı gösteriyor: başını çevirdikçe ve eğdikçe açılar güncelleniyor.
 - Uzamsal ses: stereo ses önündeki iki hoparlörden geliyormuş gibi duyuluyor (PipeWire'ın HRTF süzgeci). Baş takipli modda başını çevirince ses yerinde kalıyor. Bunun için `libmysofa` ve `/usr/share/libmysofa/default.sofa` gerekiyor.
