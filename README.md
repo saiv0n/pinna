@@ -6,7 +6,7 @@ Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup ol
 
 ## Neler yapıyor
 
-- Sol, sağ ve kutu pilini gösteriyor, son 24 saatin pil grafiğini tutuyor. Pil azalınca (eşiği sen seçiyorsun) ve şarj bitince bildirim gönderiyor.
+- Sol, sağ ve kutu pilini gösteriyor, son 24 saatin pil grafiğini tutuyor. Kutu kapalıyken son bilinen değerini, kulaklık bağlı değilken en son ne zaman görüldüğünü yazıyor. Pil azalınca (eşiği sen seçiyorsun) ve şarj bitince bildirim gönderiyor.
 - Gürültü engelleme, şeffaf, uyarlanabilir ve kapalı modları arasında anında geçiyor. Uyarlanabilir modda ne kadar ortam sesi gireceğini 0 ile 100 arasında ayarlayabiliyorsun.
 - Konuşma algılama, kişiselleştirilmiş ses düzeyi, tek kulaklıkla gürültü engelleme, ses kaydırma, basma hızı, basılı tutma süresi, kutu hoparlörünün sesi, uyku algılama, işitme desteği.
 - Sapı basılı tutunca hangi modlar arasında geçileceğini ve sol ile sağ kulaklığın ne yapacağını seçebiliyorsun. Kulaklık bunları her yeni cihazda unuttuğu için Pinna her bağlantıda yeniden yazıyor.
@@ -18,6 +18,8 @@ Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup ol
 - Kutuyu açınca ya da kulaklık bağlanınca köşede küçük bir kart çıkıyor.
 - Türkçe ve İngilizce. Varsayılan olarak sistem dilini izliyor, Bu Bilgisayar sayfasından değiştirilebiliyor.
 - Baş takibini canlı gösteriyor: başını çevirdikçe ve eğdikçe açılar güncelleniyor.
+- Uzamsal ses: stereo ses önündeki iki hoparlörden geliyormuş gibi duyuluyor (PipeWire'ın HRTF süzgeci). Baş takipli modda başını çevirince ses yerinde kalıyor. Bunun için `libmysofa` ve `/usr/share/libmysofa/default.sofa` gerekiyor.
+- Sapa çift, üç kez ya da uzun basışı her kulaklık için ayrı ayrı bilgisayarda bir işe bağlayabiliyorsun: mikrofonu susturmak, ses düzeyi, parça değiştirmek ya da kendi yazdığın bir komut. Atanmamış basışlar kulaklığın her zamanki işini yapıyor.
 
 Kulaklık uyarlama, şeffaflık modunu özelleştirme, mikrofon seçimi ve kulak algılamayı kapatma şimdilik yok. Kulaklık bu ayarların değerini geri bildirmediği için doğru çalıştıklarından emin olamadım.
 
