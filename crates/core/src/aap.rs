@@ -1,9 +1,9 @@
-// AAP paketleri. L2CAP PSM 0x1001 üzerinden konuşulur.
+// AAP packets, spoken over L2CAP PSM 0x1001.
 
 pub const PSM: u16 = 0x1001;
 
 pub const HANDSHAKE: &[u8] = &[0x00, 0x00, 0x04, 0x00, 0x01, 0x00, 0x02, 0x00, 0, 0, 0, 0, 0, 0, 0, 0];
-// adaptif mod ve müzik çalarken konuşma algılama bu paket olmadan açılmıyor
+// adaptive mode and conversation awareness during music do not turn on without this packet
 pub const FEATURES: &[u8] = &[0x04, 0x00, 0x04, 0x00, 0x4d, 0x00, 0xd7, 0, 0, 0, 0, 0, 0, 0];
 pub const NOTIFY: &[u8] = &[0x04, 0x00, 0x04, 0x00, 0x0f, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff];
 pub const REQUEST_KEYS: &[u8] = &[0x04, 0x00, 0x04, 0x00, 0x30, 0x00, 0x05, 0x00];
@@ -19,16 +19,16 @@ pub const HEAD_STOP: &[u8] = &[
     0x02, 0x1A, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00,
 ];
 
-// LibrePods'tan: kulaklığın mikrofonunu A2DP'yi bozmadan 0x58 paketleriyle yollatır
+// from LibrePods: makes the buds send their mic as 0x58 packets without leaving A2DP
 pub const MIC_START: &[u8] = &[
     0x04, 0x00, 0x04, 0x00, 0x58, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x01, 0x82, 0x00, 0x00, 0x00, 0x04, 0x96, 0x00,
 ];
 pub const MIC_STOP: &[u8] = &[0x04, 0x00, 0x04, 0x00, 0x58, 0x00, 0x00, 0x00, 0x02, 0x00, 0x03, 0x01];
-/// Mikrofon karelerinin AAC-ELD yapılandırması. 48 kHz yazıyor ama kareler 64 kHz hızında geliyor.
+/// AAC-ELD config of the mic frames. It says 48 kHz but frames arrive at a 64 kHz rate.
 pub const MIC_ASC: [u8; 4] = [0xF8, 0xE6, 0x30, 0x00];
 pub const MIC_RATE: u32 = 64_000;
 
-/// 0x58 ses paketindeki AAC-ELD kareleri: 22 bayt başlık, sonra [zaman:u32][uzunluk:u8][kare] dizisi.
+/// AAC-ELD frames in a 0x58 audio packet: a 22 byte header, then [time:u32][len:u8][frame] entries.
 pub fn mic_frames(d: &[u8]) -> impl Iterator<Item = &[u8]> {
     let audio = d.len() > 22 && d[..4] == HDR && d[4..8] == [0x58, 0x00, 0x01, 0x00];
     let mut off = if audio { 22 } else { d.len() };
@@ -58,7 +58,7 @@ pub mod cmd {
     pub const HEARING_ASSIST: u8 = 0x33;
     pub const ALLOW_OFF: u8 = 0x34;
     pub const SLEEP_DETECTION: u8 = 0x35;
-    /// bit maskesi: 2 çift, 4 üçlü, 8 uzun basış; işaretli basışlar bize iletilir
+    /// bit mask: 2 double, 4 triple, 8 long press; marked presses are forwarded to us
     pub const STEM_CONFIG: u8 = 0x39;
 }
 
@@ -149,15 +149,15 @@ pub struct DeviceInfo {
 pub enum Packet {
     HandshakeAck,
     Battery(Vec<BatteryEntry>),
-    /// birincil ve ikincil kulaklık
+    /// primary and secondary bud
     Ear(Pod, Pod),
     Control { id: u8, data: [u8; 4] },
     Speaking(u8),
     Info(DeviceInfo),
     Keys { irk: [u8; 16], enc: [u8; 16] },
-    /// üç yönelim ve iki ivme değeri
+    /// three orientation and two acceleration values
     Head([i16; 5]),
-    /// sap basışı: 5 tek, 6 çift, 7 üçlü, 8 uzun
+    /// stem press: 5 single, 6 double, 7 triple, 8 long
     Stem { press: u8, left: bool },
     Other(u16),
 }
@@ -169,7 +169,7 @@ pub fn control(id: u8, data: [u8; 4]) -> Vec<u8> {
     p
 }
 
-/// Kulaklığın kabul ettiği ad: 1-32 bayt, kontrol karakteri yok.
+/// A name the buds accept: 1 to 32 bytes, no control characters.
 pub fn valid_name(name: &str) -> bool {
     !name.is_empty() && name.len() <= 32 && !name.chars().any(char::is_control)
 }
@@ -207,7 +207,7 @@ pub fn parse(d: &[u8]) -> Option<Packet> {
                     component,
                     level: e[2],
                     charging: e[3] == 0x01,
-                    // bazı yazılımlarda bilinmeyen değer 127 geliyor, %127 gösterme
+                    // some firmware sends 127 for unknown, never show 127%
                     connected: e[3] != 0x04 && e[2] <= 100,
                 });
             }
@@ -235,7 +235,7 @@ pub fn parse(d: &[u8]) -> Option<Packet> {
 }
 
 fn parse_info(body: &[u8]) -> DeviceInfo {
-    // başta 4 baytlık bilinmeyen alan var, sonra sıfırla biten metinler
+    // 4 unknown bytes first, then zero terminated strings
     let start = body.iter().position(|b| b.is_ascii_alphabetic()).unwrap_or(0);
     let s: Vec<String> = body[start..]
         .split(|b| *b == 0)
@@ -335,7 +335,7 @@ mod tests {
         assert_eq!(mic_frames(&d[..24]).count(), 0);
     }
 
-    // kulaklıktan ya da havadan gelen her bayt dizisi güvenle ayrıştırılmalı
+    // any bytes from the buds or the air must parse safely
     #[test]
     fn fuzz_parse() {
         let mut x: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -349,7 +349,7 @@ mod tests {
         for i in 0..300_000 {
             let len = (next() % 96) as usize;
             let mut d: Vec<u8> = (0..len).map(|_| next() as u8).collect();
-            // yarısında geçerli başlık olsun ki derin dallara da girilsin
+            // half of them get a valid header so deeper branches are reached too
             if i % 2 == 0 && d.len() >= 6 {
                 d[..4].copy_from_slice(&HDR);
                 d[4] = [0x04, 0x06, 0x09, 0x1D, 0x31, 0x4B, 0x17][(next() % 7) as usize];

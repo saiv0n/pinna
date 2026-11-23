@@ -1,8 +1,8 @@
-# Uygulamadaki kulaklık ve kutu görsellerini üretir.
+# Renders the bud and case images used in the app.
 # Model: "AirPods Pro", Jed Falcone, CC-BY 4.0, https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c
-# Modelin kendisi repoda yok, Sketchfab'den indirilen fbx'in yolu verilir.
+# The model is not in the repo; pass the path of the fbx downloaded from Sketchfab.
 #
-# blender -b -P art/render.py -- <fbx> <çıktı klasörü> [örnek sayısı] [bud|set|all]
+# blender -b -P art/render.py -- <fbx> <output dir> [samples] [bud|set|all]
 import bpy
 import bmesh
 import math
@@ -17,7 +17,7 @@ SAMPLES = int(argv[2]) if len(argv) > 2 else 512
 WHICH = argv[3] if len(argv) > 3 else "all"
 os.makedirs(OUT, exist_ok=True)
 
-# fbx içindeki iki kulaklık x ekseninde bu değerin iki yanında duruyor
+# the two buds in the fbx sit on either side of this x value
 MID_X = 1.43
 
 
@@ -52,7 +52,7 @@ def scene():
 
 
 def studio_world(s):
-    # yansımalarda stüdyo havası olsun diye yukarısı açık, aşağısı koyu bir gradyan
+    # light top, dark bottom gradient for studio style reflections
     w = bpy.data.worlds.new("studio")
     s.world = w
     w.use_nodes = True
@@ -97,7 +97,7 @@ def principled(name, color, rough, coat=0.0, coat_rough=0.05, metal=0.0, sss=0.0
 
 def materials():
     return {
-        # Apple'ın beyazı: saf beyaza yakın, üstünde ince vernik parlaklığı
+        # near pure white with a thin clear coat
         "shell": principled("shell", (0.92, 0.92, 0.925), 0.22, coat=0.6, coat_rough=0.06, sss=0.06),
         "tip": principled("tip", (0.86, 0.865, 0.87), 0.48, sss=0.35, spec=0.35),
         "black": principled("black", (0.012, 0.012, 0.014), 0.42, spec=0.4),
@@ -109,7 +109,7 @@ def materials():
     }
 
 
-# fbx malzeme adı ile bizim malzememiz arasındaki eşleme
+# maps fbx material names to ours
 MAP_BUD = {"Mat.1": "shell", "Mat.2": "tip", "Mat.3": "black", "Speaker Grille": "mesh", "Mat.9": "steel", None: "black"}
 MAP_CASE = {"Mat.1": "shell", "Mat.5": "hinge", "Mat.10": "port", "Mat.4": "led", None: "shell"}
 
@@ -160,7 +160,7 @@ def bounds(objs):
 
 
 def right_bud(M):
-    """Sağ kulaklığın parçalarını ayırır; sol kulaklığın sapı modelde eksik olduğu için onu kullanmıyoruz."""
+    """Splits out the parts of the right bud; the left stem is missing in the model so it is not used."""
     parts = [o for o in bpy.data.objects if o.type == "MESH" and root_of(o) == "Airpods"]
     keep = []
     for o in parts:
@@ -214,7 +214,7 @@ def lights(center, s):
     t = bpy.data.objects.new("target", None)
     t.location = center
     bpy.context.collection.objects.link(t)
-    # büyük üst softbox beyazı taşır, yanlar kenarlarda uzun parlak şeritler çizer
+    # a big top softbox carries the white, side lights draw long edge highlights
     softbox("top", center + Vector((0, -0.6, 4.5)) * s, 6 * s, 900 * s * s, t, 4 * s)
     softbox("left", center + Vector((-4.2, -2.6, 1.2)) * s, 1.4 * s, 380 * s * s, t, 6 * s)
     softbox("right", center + Vector((4.4, -1.8, 0.8)) * s, 1.2 * s, 300 * s * s, t, 6 * s)
@@ -241,7 +241,7 @@ def camera(loc, look, lens, res):
 def render(name):
     bpy.context.scene.render.filepath = os.path.join(OUT, name)
     bpy.ops.render.render(write_still=True)
-    print("yazıldı:", name)
+    print("wrote:", name)
 
 
 def duplicate(pivot, name):
@@ -269,8 +269,8 @@ def render_bud():
 
 
 def render_pair():
-    """İki kulaklık yan yana, kulak uçları birbirine dönük; bağlantı ekranı ve açılır kart için.
-    Modelin kutusunun önünde simetriden kalma bir girinti olduğu için kutuyu göstermiyoruz."""
+    """Two buds side by side, tips facing each other; for the connect screen and the popup.
+    The case is left out since the model has a dent on its front."""
     scene()
     M = materials()
     import_model()
@@ -290,7 +290,7 @@ def render_pair():
 
 
 def render_case():
-    """Kutu arkadan 3/4 açıyla: modelin önündeki girinti görünmesin, menteşe ve düğme gerçekteki gibi görünsün."""
+    """The case from a rear 3/4 angle: hides the dent in front and shows the hinge and button."""
     scene()
     M = materials()
     import_model()

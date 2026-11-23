@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Pinna
 
-// Bir satır: solda ad ve açıklama, sağda denetim.
+// One row: name and description on the left, the control on the right.
 Item {
     id: root
     property string title
@@ -54,7 +54,7 @@ Item {
             wrapMode: Text.Wrap
         }
     }
-    // Row üstten hizalıyor, farklı yükseklikteki denetimler ortada dursun
+    // Row aligns to the top; keep controls of different heights centered
     RowLayout {
         id: slot
         anchors.right: parent.right

@@ -1,5 +1,5 @@
-// BlueZ'e pil sağlayıcısı olarak kaydolur; böylece UPower, GNOME, KDE ve bar uygulamaları
-// AirPods pilini kendi göstergelerinde görür.
+// Registers with BlueZ as a battery provider so UPower, GNOME, KDE and bars
+// show the AirPods battery in their own indicators.
 
 use crate::daemon::{Daemon, Event};
 use log::{debug, info};
@@ -29,7 +29,7 @@ impl Provider {
     }
 }
 
-/// Kulaklık pili: iki taraftan düşük olanı, sistem tek sayı gösteriyor.
+/// Headphone battery: the lower bud, since the system shows one number.
 fn level(v: &serde_json::Value) -> Option<u8> {
     let b = &v["battery"];
     ["left", "right"].iter().filter_map(|k| b[k]["level"].as_u64()).min().map(|n| n.min(100) as u8)
@@ -42,7 +42,7 @@ pub async fn run(d: Daemon) -> anyhow::Result<()> {
     let adapter = format!("/org/bluez/{}", d.adapter_name());
     let mgr = zbus::Proxy::new(&conn, "org.bluez", adapter.as_str(), "org.bluez.BatteryProviderManager1").await?;
     mgr.call_method("RegisterBatteryProvider", &(zbus::ObjectPath::try_from(ROOT)?,)).await?;
-    info!("pil sağlayıcısı kaydedildi");
+    info!("battery provider registered");
     let mut rx = d.events.subscribe();
     let mut shown: Option<(String, u8)> = None;
     loop {
@@ -76,7 +76,7 @@ pub async fn run(d: Daemon) -> anyhow::Result<()> {
                 }
             }
         }
-        debug!("sistem pili: {want:?}");
+        debug!("system battery: {want:?}");
         shown = want;
     }
 }

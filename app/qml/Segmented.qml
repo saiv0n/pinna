@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Yan yana seçenekler; oklarla da gezilir.
+// Options side by side; arrow keys work too.
 Rectangle {
     id: root
     property var options: []

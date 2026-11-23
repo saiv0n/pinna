@@ -1,4 +1,4 @@
-// Son 24 saatin pil kayıtları. Satır başına: unix zamanı, sol, sağ, kutu (-1 bilinmiyor).
+// Battery records of the last 24 hours. Per line: unix time, left, right, case (-1 unknown).
 
 use pinna_core::state::Battery;
 use std::io::Write;
@@ -33,7 +33,7 @@ impl History {
             return;
         }
         let t = now();
-        // değer aynıysa beş dakikada bir yaz, grafik boş kalmasın ama dosya şişmesin
+        // same value: write every five minutes so the chart has data but the file stays small
         if let Some((lt, lv)) = self.last
             && (lv == v && t - lt < 300 || t - lt < 30)
         {

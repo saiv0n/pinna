@@ -1,7 +1,7 @@
 pragma Singleton
 import QtQuick
 
-// Masaüstü belirteçleri. Renkler nötr gri, tek vurgu rengi mavi.
+// Desktop tokens. Neutral greys with a single blue accent.
 QtObject {
     readonly property string forced: typeof pinnaTheme === "string" ? pinnaTheme : ""
     readonly property bool dark: forced === "dark" || (forced !== "light" && Qt.styleHints.colorScheme !== Qt.ColorScheme.Light)
@@ -28,7 +28,7 @@ QtObject {
     readonly property color focus: Qt.alpha(accent, 0.55)
     readonly property color shade: dark ? "#80000000" : "#26000000"
 
-    // eski bileşenlerin adları
+    // names older components use
     readonly property color group: card
     readonly property color groupPress: press
     readonly property color fill: control

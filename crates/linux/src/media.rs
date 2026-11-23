@@ -1,4 +1,4 @@
-// Kulaklık takılıp çıkarılınca MPRIS oynatıcılarını durdurma, konuşunca sesi kısma ve bildirimler.
+// Pausing MPRIS players on ear removal, ducking while you speak, and notifications.
 
 use std::collections::HashMap;
 use tokio::process::Command;
@@ -54,7 +54,7 @@ impl Media {
         }
     }
 
-    /// Çalan oynatıcıya, yoksa ilk oynatıcıya MPRIS komutu gönderir.
+    /// Sends an MPRIS command to the playing player, or the first one.
     pub async fn player(&self, method: &str) {
         let all = self.players().await;
         let mut pick = all.first().cloned();
@@ -86,8 +86,8 @@ impl Media {
             .await;
     }
 
-    /// level: kulaklığın bildirdiği konuşma seviyesi. 1-2 konuşuyor, 3-7 ara değer, 8-9 normal.
-    /// Ses ara değerlerde kademeli geri gelir, ani sıçramasın diye.
+    /// level: speech level from the buds. 1-2 speaking, 3-7 in between, 8-9 normal.
+    /// Volume comes back gradually in between so it does not jump.
     pub async fn speech(&mut self, level: u8, duck_to: u8) {
         if level >= 8 {
             if let Some(v) = self.ducked_from.take() {
@@ -127,4 +127,19 @@ impl Media {
             .call_method("Notify", &("Pinna", 0u32, icon, title, body, actions, hints, 5000i32))
             .await;
     }
+}
+
+/// Notifications follow the language picked in the app, else the session locale.
+pub fn turkish() -> bool {
+    let conf = dirs::config_dir().map(|d| d.join("pinna").join("Pinna.conf"));
+    let picked = conf
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| s.lines().find_map(|l| l.strip_prefix("language=").map(|v| v.trim().to_string())))
+        .filter(|v| !v.is_empty());
+    let lang = picked.or_else(|| ["LC_ALL", "LC_MESSAGES", "LANG"].iter().find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty())));
+    lang.is_some_and(|l| l.starts_with("tr"))
+}
+
+pub fn t<'a>(en: &'a str, tr: &'a str) -> &'a str {
+    if turkish() { tr } else { en }
 }

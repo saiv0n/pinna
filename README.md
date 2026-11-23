@@ -1,96 +1,96 @@
 # Pinna
 
-Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup olmadığını gösterir, iPhone'daki ayarların neredeyse hepsini buradan değiştirmeni sağlar.
+An AirPods manager for Linux. It connects your AirPods, shows the battery and whether they are in your ears, and lets you change almost every setting you would find on an iPhone.
 
 ![Pinna](docs/screenshot.png)
 
-## Neler yapıyor
+## What it does
 
-- Sol, sağ ve kutu pilini gösteriyor, son 24 saatin pil grafiğini tutuyor. Kutu kapalıyken son bilinen değerini, kulaklık bağlı değilken en son ne zaman görüldüğünü yazıyor. Pil azalınca (eşiği sen seçiyorsun) ve şarj bitince bildirim gönderiyor.
-- Gürültü engelleme, şeffaf, uyarlanabilir ve kapalı modları arasında anında geçiyor. Uyarlanabilir modda ne kadar ortam sesi gireceğini 0 ile 100 arasında ayarlayabiliyorsun.
-- Konuşma algılama, kişiselleştirilmiş ses düzeyi, tek kulaklıkla gürültü engelleme, ses kaydırma, basma hızı, basılı tutma süresi, kutu hoparlörünün sesi, uyku algılama, işitme desteği.
-- Sapı basılı tutunca hangi modlar arasında geçileceğini ve sol ile sağ kulaklığın ne yapacağını seçebiliyorsun. Kulaklık bunları her yeni cihazda unuttuğu için Pinna her bağlantıda yeniden yazıyor.
-- Bağlanınca kulaklığı varsayılan ses çıkışı yapıyor. Ses düzeyi ve profil uygulamanın içinden.
-- Görüşmede mikrofon olarak üç seçenek var. Bilgisayarın mikrofonu ya da AirPods'un yüksek kaliteli mikrofonu seçiliyken kulaklık müzik kalitesinde (AAC) kalıyor. İkincisi deneysel: kulaklığın mikrofonu AAC-ELD olarak ayrı bir kanaldan geliyor, Pinna bunu çözüp "(Pinna)" adlı bir mikrofon olarak sunuyor ve bir uygulama dinleyince kendiliğinden açıyor. Üçüncüsü Bluetooth'un telefon profili; orada ses de mikrofon da telefon kalitesine düşüyor (bu kulaklıkta LC3, 24 kHz).
-- Birden fazla eşli AirPods ya da Beats varsa aralarında geçebiliyor, yenisini eşleştirebiliyor, eskisini unutabiliyorsun.
-- Sistem tepsisinde duruyor: pil, mod değiştirme, bağlan ve kes. Pencereyi kapatınca tepside kalıyor, istersen oturum açılınca tepside başlıyor.
-- Bir kulaklığı çıkarınca çalan şey duruyor, takınca devam ediyor (MPRIS destekleyen her oynatıcıda). Konuşmaya başlayınca bilgisayarın sesini de kısıyor.
-- Kutuyu açınca ya da kulaklık bağlanınca köşede küçük bir kart çıkıyor.
-- Kulaklık pilini BlueZ üzerinden sisteme de bildiriyor, böylece UPower, GNOME, KDE ve bar uygulamaları kendi pil göstergelerinde gösteriyor.
-- Kulaklık bağlı değilken yayınının sinyal gücüyle yakındaki kulaklığı bulmana yardım ediyor.
-- İstersen tek kulaklık takılıyken konuşma algılamayı kapatıyor, ikisi takılınca geri açıyor.
-- Türkçe ve İngilizce. Varsayılan olarak sistem dilini izliyor, Bu Bilgisayar sayfasından değiştirilebiliyor.
-- Baş takibini canlı gösteriyor: başını çevirdikçe ve eğdikçe açılar güncelleniyor.
-- Uzamsal ses: stereo ses önündeki iki hoparlörden geliyormuş gibi duyuluyor (PipeWire'ın HRTF süzgeci). Baş takipli modda başını çevirince ses yerinde kalıyor. Bunun için `libmysofa` ve `/usr/share/libmysofa/default.sofa` gerekiyor.
-- Sapa çift, üç kez ya da uzun basışı her kulaklık için ayrı ayrı bilgisayarda bir işe bağlayabiliyorsun: mikrofonu susturmak, ses düzeyi, parça değiştirmek ya da kendi yazdığın bir komut. Atanmamış basışlar kulaklığın her zamanki işini yapıyor.
+- Shows left, right and case battery and keeps a battery chart of the last 24 hours. While the case is closed it shows the last known case level, and while the buds are away it says when they were last seen. It notifies you when the battery runs low (you pick the threshold) and when charging is done.
+- Switches between noise cancellation, transparency, adaptive and off right away. In adaptive mode you can set how much outside sound gets in, from 0 to 100.
+- Conversation awareness, personalized volume, noise cancellation with one AirPod, volume swipe, press speed, press and hold duration, case speaker volume, sleep detection, hearing assistance.
+- You choose which modes press and hold cycles through and what the left and right bud do. The buds forget this on every new device, so Pinna writes it again on each connection.
+- Makes the buds the default output on connect. Volume and profile are in the app.
+- Three mic choices for calls. With the computer mic or the high quality AirPods mic the buds stay in music quality (AAC). The second one is experimental: the bud mic arrives as AAC-ELD over a separate channel, Pinna decodes it into a mic named "(Pinna)" and opens it when an app starts listening. The third is the Bluetooth headset profile, where both sound and mic drop to phone quality (LC3 at 24 kHz on these buds).
+- With several paired AirPods or Beats you can switch between them, pair new ones and forget old ones.
+- Lives in the system tray: battery, mode switching, connect and disconnect. Closing the window keeps it in the tray, and it can start in the tray when you log in.
+- Pauses what is playing when you take a bud out and resumes when you put it back (any MPRIS player). Lowers the computer volume while you talk.
+- A small card pops up in a corner when you open the case or the buds connect.
+- Reports the headphone battery to the system through BlueZ, so UPower, GNOME, KDE and bars show it in their own battery indicators.
+- While the buds are disconnected, helps you find them nearby from the signal strength of their advert.
+- Can turn off conversation awareness while only one bud is in and turn it back on when both are.
+- Turkish and English. Follows the system language by default, and you can change it on the This Computer page.
+- Shows head tracking live: the angles follow as you turn and tilt your head.
+- Spatial audio (experimental): stereo sounds like it comes from two speakers in front of you, using the PipeWire HRTF filter. In head tracked mode the sound stays put when you turn your head. Needs `libmysofa` and `/usr/share/libmysofa/default.sofa`.
+- Press shortcuts (experimental): bind a double, triple or long press on each bud to something on the computer, like muting the mic, volume, changing tracks or a command of your own. Unassigned presses do what the buds normally do.
 
-Kulaklık uyarlama, şeffaflık modunu özelleştirme, mikrofon seçimi ve kulak algılamayı kapatma şimdilik yok. Kulaklık bu ayarların değerini geri bildirmediği için doğru çalıştıklarından emin olamadım.
+Headphone accommodation, custom transparency, mic selection and turning off ear detection are not there yet. The buds never report these values back, so I could not make sure they work.
 
-Şu an AirPods Pro 2 (USB-C) üzerinde denendi. Diğer AirPods ve Beats modelleri de aynı protokolü konuştuğu için çoğu ayar çalışmalı, ama kulaklık bir özelliği desteklemiyorsa o ayar bir şey yapmaz.
+Tested on AirPods Pro 2 (USB-C). Other AirPods and Beats speak the same protocol, so most settings should work, but a setting does nothing if the model does not support it.
 
-## Kurulum
+## Install
 
-Gerekenler: Rust (1.85 ya da yenisi), Qt 6.8 ya da yenisi (Widgets, Quick, QuickControls2, QuickEffects, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` ve `pactl`), FFmpeg'in libavcodec geliştirme paketi (Ubuntu'da `libavcodec-dev`). Çeviri için `lrelease` gerekiyor; yoksa arayüz Türkçe kalır.
+You need Rust (1.85 or newer), Qt 6.8 or newer (Widgets, Quick, QuickControls2, QuickEffects, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` and `pactl`) and the FFmpeg libavcodec development package (`libavcodec-dev` on Ubuntu). The Turkish translation needs `lrelease`; without it the app is English only.
 
 ```bash
 ./install.sh
 ```
 
-Betik her şeyi `~/.local` altına kurar, `pinnad` servisini `systemctl --user` ile açar. sudo istemez. Servis kısıtlı bir ortamda çalışır: sadece `~/.config/pinna`, `~/.local/state/pinna`, kendi çalışma klasörü ve görüşme ayarı için `~/.config/wireplumber/wireplumber.conf.d` altına yazabilir, ağa çıkamaz. BLE anahtarlarının durduğu ayar dosyası 0600 izinle yazılır.
+The script installs everything under `~/.local` and enables the `pinnad` service with `systemctl --user`. No sudo. The service runs sandboxed: it can only write to `~/.config/pinna`, `~/.local/state/pinna`, its runtime folder and `~/.config/wireplumber/wireplumber.conf.d` for the call setting, and it has no network access. The config file that holds the BLE keys is written with 0600 permissions.
 
-Kulaklığı önce sistemin Bluetooth ayarlarından bir kez eşleştirmen yeterli. Sonrasında Pinna kendisi bulur.
+Pair the buds once from your system Bluetooth settings. Pinna finds them after that.
 
-Bazı özellikler kulaklığın karşısında bir Apple cihazı olduğunu görmek istiyor. Bu Bilgisayar sayfasındaki DeviceID ayarı `/etc/bluetooth/main.conf` dosyasına şu satırı ekleyip Bluetooth'u yeniden başlatıyor. Çalıştırmadan önce komutu gösterip parola soruyor. Elle yapmak istersen:
+Some features want to see an Apple device on the other end. The DeviceID setting on the This Computer page adds this line to `/etc/bluetooth/main.conf` and restarts Bluetooth. It shows the command and asks for your password first. To do it by hand:
 
 ```
 DeviceID = bluetooth:004C:0000:0000
 ```
 
-Hyprland'de pencerenin yüzmesi ve kartın sağ üstte açılması için:
+On Hyprland, to float the window and open the card at the top right:
 
 ```lua
 hl.window_rule({ name = "pinna", match = { class = "^(dev.pinna.Pinna)$" }, float = true, center = true, size = "900 620" })
-hl.window_rule({ name = "pinna-kart", match = { class = "^(dev.pinna.Popup)$" }, float = true, pin = true, move = "(monitor_w-window_w-16) 16", no_initial_focus = true })
+hl.window_rule({ name = "pinna-card", match = { class = "^(dev.pinna.Popup)$" }, float = true, pin = true, move = "(monitor_w-window_w-16) 16", no_initial_focus = true })
 ```
 
-## Komut satırı
+## Command line
 
 ```bash
-pinnactl                     # durum
+pinnactl                     # status
 pinnactl mode adaptive       # off, anc, transparency, adaptive
-pinnactl cycle               # modlar arasında sırayla geç
+pinnactl cycle               # step through the modes
 pinnactl set conversationAwareness on
-pinnactl watch               # her değişiklikte bir satır JSON
+pinnactl watch               # one JSON line per change
 ```
 
-`pinnactl cycle` Hyprland'de bir kısayola bağlamak için uygun:
+`pinnactl cycle` works well on a Hyprland shortcut:
 
 ```
 bind = SUPER, A, exec, pinnactl cycle
 ```
 
-## Caelestia barı
+## Caelestia bar
 
-`shell/caelestia/PinnaStatus.qml` barda kulaklık simgesini, en düşük pili ve modu gösterir. Sol tık modu değiştirir, sağ tık uygulamayı açar. Dosyayı `modules/bar/components/status/` altına koyup `StatusIcons.qml` içine bir `DelegateChoice` eklemen yeterli.
+`shell/caelestia/PinnaStatus.qml` shows a headphone icon, the lowest battery and the mode in the bar. Left click changes the mode, right click opens the app. Put the file under `modules/bar/components/status/` and add a `DelegateChoice` to `StatusIcons.qml`.
 
-## Nasıl çalışıyor
+## How it works
 
-Proje üç parça:
+Three parts:
 
-- `crates/core` protokolün kendisi: paketler, BLE reklamlarının çözümü, ayar tablosu. İşletim sisteminden bağımsız, ileride Windows ve Android sürümleri de bunu kullanacak.
-- `crates/linux` BlueZ ile konuşan `pinnad` servisi ve `pinnactl`. Servis durumu D-Bus üzerinden `dev.pinna.Daemon` adıyla yayınlıyor.
-- `app` Qt Quick ile yazılmış arayüz. Yeni metin ekleyince `app/i18n/update.py` çeviri dosyasını günceller.
+- `crates/core` is the protocol itself: packets, BLE advert parsing, the settings table. It does not depend on the OS, so Windows and Android versions can use it later.
+- `crates/linux` is the `pinnad` service that talks to BlueZ, plus `pinnactl`. The service publishes its state on D-Bus as `dev.pinna.Daemon`.
+- `app` is the Qt Quick interface. Source strings are English; after adding new ones, `app/i18n/update.py` updates the Turkish translation file.
 
-Kulaklık görselleri Blender'da render ediliyor. Model Jed Falcone'un [AirPods Pro](https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c) çalışması, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) lisanslı. Modelin kendisi repoda yok; Sketchfab'den indirip görselleri şöyle yeniden üretebilirsin:
+The headphone images are rendered in Blender. The model is Jed Falcone's [AirPods Pro](https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model is not in the repo; download it from Sketchfab and rebuild the images with:
 
 ```bash
 art/build.sh ~/Downloads/airpods-pro/source/Airpods_ForSketchfab.fbx
 ```
 
-Işık, malzeme ve kadraj `art/render.py` içinde. Modeldeki sol kulaklığın sapı eksik olduğu için sağ kulaklık aynalanarak kullanılıyor.
+Lighting, materials and framing live in `art/render.py`. The left stem is missing in the model, so the right bud is mirrored.
 
-Protokol konusundaki çalışmaları için [LibrePods](https://github.com/kavishdevar/librepods) ekibine teşekkürler.
+Thanks to the [LibrePods](https://github.com/kavishdevar/librepods) team for their protocol work.
 
-## Lisans
+## License
 
-GPL-3.0. AirPods, Apple'ın ticari markasıdır; Pinna'nın Apple ile bir bağı yok.
+GPL-3.0. AirPods is a trademark of Apple; Pinna has no connection to Apple.

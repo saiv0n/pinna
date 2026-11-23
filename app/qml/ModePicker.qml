@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Dört dinleme modu yan yana. Seçim Backend'de anında değişir, hareket yok.
+// The four listening modes side by side. The choice changes right away in Backend.
 Row {
     id: root
     property string mode: Store.s.mode || ""

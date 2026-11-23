@@ -1337,4 +1337,75 @@
         <translation>Çık</translation>
     </message>
 </context>
+<context>
+    <name>Daemon</name>
+    <message>
+        <source>The headphones are not connected.</source>
+        <translation>Kulaklık bağlı değil.</translation>
+    </message>
+    <message>
+        <source>The connection to the headphones just dropped.</source>
+        <translation>Kulaklıkla bağlantı az önce koptu.</translation>
+    </message>
+    <message>
+        <source>Unknown mode.</source>
+        <translation>Bilinmeyen mod.</translation>
+    </message>
+    <message>
+        <source>The value must be 1 or 5.</source>
+        <translation>Değer 1 ya da 5 olmalı.</translation>
+    </message>
+    <message>
+        <source>Unknown setting.</source>
+        <translation>Bilinmeyen ayar.</translation>
+    </message>
+    <message>
+        <source>Invalid value for this setting.</source>
+        <translation>Bu ayar için geçersiz değer.</translation>
+    </message>
+    <message>
+        <source>The name must be 1 to 32 bytes with no control characters.</source>
+        <translation>Ad 1 ile 32 bayt arasında olmalı ve kontrol karakteri içermemeli.</translation>
+    </message>
+    <message>
+        <source>No AirPods are paired with this computer.</source>
+        <translation>Bu bilgisayarla eşli bir AirPods yok.</translation>
+    </message>
+    <message>
+        <source>Bluetooth is off.</source>
+        <translation>Bluetooth kapalı.</translation>
+    </message>
+    <message>
+        <source>The headphones did not answer. Take them out of the case or open the lid and keep them close.</source>
+        <translation>Kulaklık yanıt vermedi. Kutudan çıkar ya da kapağını aç ve yakında tut.</translation>
+    </message>
+    <message>
+        <source>Bluetooth is busy with something else, try again in a few seconds.</source>
+        <translation>Bluetooth başka bir işle meşgul, birkaç saniye sonra yeniden dene.</translation>
+    </message>
+    <message>
+        <source>There are no headphones at this address.</source>
+        <translation>Bu adreste bir kulaklık yok.</translation>
+    </message>
+    <message>
+        <source>Pairing did not finish. With the lid open, hold the button on the back until the light flashes white.</source>
+        <translation>Eşleşme tamamlanmadı. Kutu açıkken arkasındaki düğmeyi ışık beyaz yanıp sönene kadar basılı tut.</translation>
+    </message>
+    <message>
+        <source>Invalid audio setting.</source>
+        <translation>Geçersiz ses ayarı.</translation>
+    </message>
+    <message>
+        <source>PipeWire has no audio device for these headphones.</source>
+        <translation>PipeWire bu kulaklık için bir ses aygıtı açmadı.</translation>
+    </message>
+    <message>
+        <source>PipeWire did not accept this change.</source>
+        <translation>PipeWire bu değişikliği kabul etmedi.</translation>
+    </message>
+    <message>
+        <source>Value is too long or invalid.</source>
+        <translation>Değer çok uzun ya da geçersiz.</translation>
+    </message>
+</context>
 </TS>

@@ -12,9 +12,9 @@ async fn main() -> anyhow::Result<()> {
     let b = d.clone();
     tokio::spawn(async move {
         if let Err(e) = pinna_linux::battery::run(b).await {
-            log::warn!("sistem pil göstergesine bağlanılamadı: {e}");
+            log::warn!("could not register with the system battery indicator: {e}");
         }
     });
-    log::info!("pinnad hazır");
+    log::info!("pinnad ready");
     d.run().await
 }

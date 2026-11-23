@@ -20,19 +20,19 @@ Window {
         if (focusPage) stack.children[i].forceActiveFocus()
     }
 
-    // kapatınca tepside kalsın; tepsi yoksa ya da istenmiyorsa çık
+    // stay in the tray on close; quit when there is no tray or it is not wanted
     onClosing: close => {
         if (Backend.trayAvailable && Backend.closeToTray) {
             close.accepted = false
             win.hide()
-            // tepsideyken arayüzün belleği boşa durmasın
+            // do not keep UI memory around while in the tray
             Backend.releaseWindow()
         } else {
             Qt.quit()
         }
     }
 
-    // içerik alanının hangi durumu göstereceği; Bu Bilgisayar ve Hakkında her zaman açılır
+    // what the content area shows; This Computer and About always open
     readonly property bool devicePage: page <= 4
     readonly property string blocker: !devicePage ? ""
         : !Backend.daemon ? "service"
@@ -52,7 +52,7 @@ Window {
     Shortcut { sequence: "Ctrl+PgDown"; onActivated: win.go((win.page + 1) % 7, true) }
     Shortcut { sequence: "Ctrl+PgUp"; onActivated: win.go((win.page + 6) % 7, true) }
 
-    // kenar çubuğu da son bilinen kutu pilini buradan okuyor
+    // the sidebar reads the last known case battery from here too
     Timer {
         interval: 60000
         repeat: true
@@ -76,7 +76,7 @@ Window {
         width: parent.width - side.width
         height: parent.height
 
-        // servis ya da bağlantı yoksa sayfanın üstünde dürüst bir şerit
+        // an honest banner on top when the service or connection is missing
         Rectangle {
             id: strip
             width: parent.width
@@ -164,7 +164,7 @@ Window {
         function onNotice(m) { toast.show(m, "", false) }
     }
 
-    // ekran görüntüsü için doğrudan bir sayfayla açılabilsin
+    // allow opening on a given page for screenshots
     Component.onCompleted: {
         const p = typeof pinnaPage === "string" ? parseInt(pinnaPage) : NaN
         if (!isNaN(p)) page = p

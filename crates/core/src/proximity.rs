@@ -1,5 +1,5 @@
-// Kutu kapağı açıldığında AirPods'un yaydığı BLE "proximity pairing" reklamı.
-// Şifresiz kısım 10'luk adımlarla pil verir, şifreli 16 bayt kulaklıktan alınan anahtarla çözülünce tam yüzde verir.
+// The BLE "proximity pairing" advert AirPods send when the case lid opens.
+// The plain part has battery in steps of 10; the encrypted 16 bytes give exact percentages once decrypted with the key from the buds.
 
 use aes::Aes128;
 use aes::cipher::{BlockCipherDecrypt, BlockCipherEncrypt, KeyInit};
@@ -43,7 +43,7 @@ pub fn parse(data: &[u8], enc_key: Option<&[u8; 16]>) -> Option<Advert> {
         left_charging: if flipped { flags & 0x02 != 0 } else { flags & 0x01 != 0 },
         right_charging: if flipped { flags & 0x01 != 0 } else { flags & 0x02 != 0 },
         case_charging: flags & 0x04 != 0,
-        // kapak biti sadece kutudaki kulaklığın yayınında anlamlı
+        // the lid bit only means something in the advert of a bud that sits in the case
         lid_open: this_in_case && (data[8] >> 3) & 1 == 0,
         left_in_ear: if xor { status & 0x08 != 0 } else { status & 0x02 != 0 },
         right_in_ear: if xor { status & 0x02 != 0 } else { status & 0x08 != 0 },
@@ -72,9 +72,9 @@ pub fn parse(data: &[u8], enc_key: Option<&[u8; 16]>) -> Option<Advert> {
     Some(a)
 }
 
-/// Rastgele BLE adresinin bu kulaklığa ait olup olmadığını IRK ile doğrular (Bluetooth çekirdek şartnamesindeki ah fonksiyonu).
+/// Checks with the IRK whether a random BLE address belongs to these buds (the ah function from the Bluetooth core spec).
 pub fn rpa_matches(addr: [u8; 6], irk: &[u8; 16]) -> bool {
-    // addr en anlamlı bayttan başlıyor; prand üst 3 bayt, hash alt 3 bayt
+    // addr starts at the most significant byte; prand is the top 3 bytes, hash the low 3
     let prand = [addr[2], addr[1], addr[0]];
     let hash = [addr[5], addr[4], addr[3]];
     let mut key = *irk;
@@ -112,7 +112,7 @@ mod tests {
     #[test]
     fn rpa_spec_vector() {
         // Bluetooth Core 5.x, Vol 3 Part H, D.7: irk ec0234a3..., prand 708194, hash 0dfbaa
-        // kulaklık anahtarı küçük uçlu verdiği için şartnamedeki değeri ters çeviriyoruz
+        // the buds send the key little endian, so the spec value is reversed
         let mut irk = [
             0xec, 0x02, 0x34, 0xa3, 0x57, 0xc8, 0xad, 0x05, 0x34, 0x10, 0x10, 0xa6, 0x0a, 0x39, 0x7d, 0x9b,
         ];
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn plain_advert() {
-        // sol birincil, kutu açık, sol %90 sağ %80 kutu %50 şarjda
+        // left primary, lid open, left 90%, right 80%, case 50% charging
         let d = [0x07, 0x19, 0x01, 0x20, 0x24, 0x75, 0x89, 0x45, 0x00, 0x00, 0x01];
         let a = parse(&d, None).unwrap();
         assert_eq!(a.model, 0x2024);

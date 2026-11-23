@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// iOS'un sekiz çubuklu bekleme göstergesi.
+// An eight spoke activity indicator.
 Item {
     id: root
     property real size: 20

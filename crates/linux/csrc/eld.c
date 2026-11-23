@@ -1,4 +1,4 @@
-// AAC-ELD çözücü. libavcodec yapılarının düzeni sürüme göre değiştiği için Rust'tan doğrudan dokunulmuyor.
+// AAC-ELD decoder. libavcodec struct layouts change between versions, so Rust does not touch them directly.
 #include <libavcodec/avcodec.h>
 #include <string.h>
 
@@ -42,7 +42,7 @@ fail:
     return NULL;
 }
 
-// Bir kareyi çözüp out'a mono float yazar; yazılan örnek sayısını, hata olursa -1 döner.
+// Decodes one frame into out as mono float; returns the sample count, or -1 on error.
 int eld_decode(Eld *e, const unsigned char *au, int len, float *out, int max) {
     if (av_new_packet(e->pkt, len) < 0)
         return -1;

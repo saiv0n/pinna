@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Tüm içerik alanını kaplayan durum ekranı: ne oldu, ne yapmalı ve tek bir düğme.
+// A status screen over the content area: what happened, what to do, and one button.
 Item {
     id: root
     property string title

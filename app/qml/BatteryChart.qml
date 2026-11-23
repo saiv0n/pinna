@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Pil çizgileri. Aralık veriye göre 1 ile 24 saat arasında seçilir, az veri sağ uca sıkışmasın.
+// Battery lines. The range picks 1 to 24 hours from the data so little data is not squeezed to the right edge.
 Item {
     id: root
     property var rows: Backend.history
@@ -50,7 +50,7 @@ Item {
                 const dot = () => { if (lone) { ctx.moveTo(lone[0] + 1.5, lone[1]); ctx.arc(lone[0], lone[1], 1.5, 0, 2 * Math.PI) } }
                 for (const r of rows) {
                     const v = r[s.i]
-                    // 20 dakikadan uzun boşlukta çizgi koparılır
+                    // gaps longer than 20 minutes break the line
                     if (v < 0 || (open && r[0] - last > 1200)) { dot(); lone = null; open = false; if (v < 0) continue }
                     if (r[0] < from) continue
                     const x = (r[0] - from) / root.span * w
@@ -70,7 +70,7 @@ Item {
             onPositionChanged: m => root.hoverX = m.x
             onExited: root.hoverX = -1
         }
-        // imlecin altındaki kayıt
+        // the record under the cursor
         readonly property var picked: {
             if (root.hoverX < 0 || !root.rows || !root.rows.length) return null
             const t = Date.now() / 1000 - root.span + root.hoverX / width * root.span

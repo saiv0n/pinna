@@ -9,7 +9,7 @@ class QDBusServiceWatcher;
 class QQmlEngine;
 class QJSEngine;
 
-// pinnad ile D-Bus üzerinden konuşan köprü. Durumun tamamı tek bir harita olarak QML'e açılıyor.
+// Bridge that talks to pinnad over D-Bus. The whole state is exposed to QML as one map.
 class Backend : public QObject
 {
     Q_OBJECT
@@ -29,7 +29,7 @@ class Backend : public QObject
 
 public:
     static Backend *instance();
-    // QML de tepsiyle aynı nesneyi kullansın; motor silinince nesne yaşamaya devam eder
+    // QML uses the same object as the tray; it outlives the engine
     static Backend *create(QQmlEngine *, QJSEngine *);
 
     QVariantMap state() const { return m_state; }

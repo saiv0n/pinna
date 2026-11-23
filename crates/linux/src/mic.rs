@@ -1,5 +1,5 @@
-// Kulaklığın yüksek kaliteli mikrofonu: 0x58 paketlerindeki AAC-ELD karelerini çözüp
-// PipeWire'daki sanal bir kaynağa yazar. Kulaklık bu sırada A2DP'de kalır.
+// The high quality mic of the buds: decodes the AAC-ELD frames in 0x58 packets
+// into a virtual PipeWire source. The buds stay on A2DP meanwhile.
 
 use pinna_core::aap;
 use serde_json::Value;
@@ -21,7 +21,7 @@ unsafe extern "C" {
 
 struct Decoder(*mut c_void);
 
-// çözücü yalnız Mic'in kilidi altında kullanılıyor
+// the decoder is only used under the Mic lock
 unsafe impl Send for Decoder {}
 
 impl Decoder {
@@ -45,7 +45,7 @@ pub struct Mic {
     path: PathBuf,
     pcm: Vec<f32>,
     bytes: Vec<u8>,
-    /// son ses paketinin geldiği an
+    /// when the last audio packet arrived
     pub last: Option<std::time::Instant>,
 }
 
@@ -58,9 +58,9 @@ async fn pactl(args: &[&str]) -> Option<String> {
     out.status.success().then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
-/// Önceki çalışmadan kalan sanal kaynakları kaldırır.
+/// Removes virtual sources left from a previous run.
 pub async fn cleanup() {
-    // JSON çıktısında modül numarası yok, kısa listeden okunuyor
+    // the JSON output has no module ids, so the short list is used
     let Some(s) = pactl(&["list", "modules", "short"]).await else { return };
     let tag = format!("source_name={SOURCE} ");
     for l in s.lines().filter(|l| l.contains("module-pipe-source") && l.contains(&tag)) {
@@ -76,7 +76,7 @@ impl Mic {
         let dec = Decoder::new()?;
         let path = fifo_path();
         std::fs::create_dir_all(path.parent()?).ok()?;
-        // pactl'in argüman ayrıştırıcısı tırnak ve kesme işaretinde bozuluyor
+        // the pactl argument parser breaks on quotes and apostrophes
         let desc: String = format!("{name} (Pinna)").chars().filter(|c| c.is_alphanumeric() || " ()-.".contains(*c)).collect();
         let module = pactl(&[
             "load-module",
@@ -96,19 +96,19 @@ impl Mic {
         pactl(&["unload-module", &self.module]).await;
     }
 
-    /// Bir 0x58 paketini çözüp sanal kaynağa yazar. Okuyan yetişemezse ses atılır, oturum beklemez.
+    /// Decodes a 0x58 packet into the virtual source. If the reader lags, audio is dropped; the session never waits.
     pub fn feed(&mut self, sdu: &[u8]) {
         self.last = Some(std::time::Instant::now());
         for au in aap::mic_frames(sdu) {
             let max = self.pcm.len() as i32;
             let n = unsafe { eld_decode(self.dec.0, au.as_ptr(), au.len() as i32, self.pcm.as_mut_ptr(), max) };
             if n <= 0 {
-                log::debug!("mikrofon karesi çözülemedi ({} bayt)", au.len());
+                log::debug!("could not decode mic frame ({} bytes)", au.len());
                 continue;
             }
             self.bytes.clear();
             for s in &self.pcm[..n as usize] {
-                // kulaklık sesi çok kısık yolluyor, uygulamalar konuşmayı duymuyordu
+                // the buds send very quiet audio, apps could not hear speech
                 let v = (s * GAIN).tanh();
                 self.bytes.extend_from_slice(&v.to_le_bytes());
             }
@@ -116,10 +116,10 @@ impl Mic {
         }
     }
 
-    // 480 örnek 1920 bayt, PIPE_BUF altında kaldığı için yazma ya tam olur ya hiç olmaz
+    // 480 samples are 1920 bytes, under PIPE_BUF, so a write is all or nothing
     fn write(&mut self) {
         if self.fifo.is_none() {
-            // O_NONBLOCK: PipeWire okumayı bırakırsa yazma takılmasın
+            // O_NONBLOCK: a write must not hang if PipeWire stops reading
             self.fifo = std::fs::OpenOptions::new()
                 .write(true)
                 .custom_flags(0o4000)
@@ -136,7 +136,7 @@ impl Mic {
     }
 }
 
-/// Sanal kaynağı kayıt yapan bir uygulama var mı
+/// Whether some app is recording from the virtual source
 pub async fn in_use() -> bool {
     let Some(s) = pactl(&["-f", "json", "list", "sources"]).await else { return false };
     let Ok(Value::Array(list)) = serde_json::from_str::<Value>(&s) else { return false };

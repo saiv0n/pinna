@@ -7,7 +7,7 @@ Page {
     title: qsTr("General")
     function startPairing() { Backend.discover(true) }
 
-    // pil özeti
+    // battery summary
     Section {
         Block {
             Row {
@@ -58,7 +58,7 @@ Page {
         }
     }
 
-    // bağlı değilken BLE yayınının gücüyle sıcak soğuk oyunu
+    // hot and cold with the BLE advert strength while disconnected
     Section {
         id: finder
         title: qsTr("Find Your Headphones")

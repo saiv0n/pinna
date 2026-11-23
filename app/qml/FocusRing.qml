@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Klavyeyle gelinen öğenin çevresinde halka.
+// A ring around the item reached by keyboard.
 Rectangle {
     property Item target: parent
     property real r: Theme.small

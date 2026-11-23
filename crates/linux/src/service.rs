@@ -13,10 +13,10 @@ fn err(e: anyhow::Error) -> fdo::Error {
     fdo::Error::Failed(format!("{e:#}"))
 }
 
-/// D-Bus'tan gelen her metin için üst sınır; asıl doğrulama daemon tarafında.
+/// Upper bound for any string from D-Bus; real validation happens in the daemon.
 fn short(s: &str) -> fdo::Result<&str> {
     if s.len() > 64 || s.chars().any(char::is_control) {
-        return Err(fdo::Error::InvalidArgs("invalid: Değer çok uzun ya da geçersiz.".into()));
+        return Err(fdo::Error::InvalidArgs("invalid: Value is too long or invalid.".into()));
     }
     Ok(s)
 }
@@ -79,7 +79,7 @@ impl Service {
         self.d.head_tracking(on).await.map_err(err)
     }
 
-    /// Son 24 saatin pil kayıtları: [[unix, sol, sağ, kutu], ...]
+    /// Battery records of the last 24 hours: [[unix, left, right, case], ...]
     async fn battery_history(&self) -> String {
         serde_json::to_string(&crate::history::read()).unwrap_or_default()
     }
@@ -94,8 +94,8 @@ impl Service {
     async fn case_opened(emitter: &SignalEmitter<'_>, json: &str) -> zbus::Result<()>;
 }
 
-/// Durum değişikliklerini D-Bus sinyaline çevirir. Beklemeden gönderir, kuyrukta biriken değişiklikleri
-/// birleştirir ve sinyalde yalnızca değişen üst düzey alanlar gider; istemci elindeki duruma katar.
+/// Turns state changes into D-Bus signals. Sends right away, merges changes that pile up in the queue
+/// and only sends the top level fields that changed; the client merges them into its state.
 pub async fn pump(conn: zbus::Connection, d: Daemon) -> zbus::Result<()> {
     let iface = conn.object_server().interface::<_, Service>(PATH).await?;
     let emitter = iface.signal_emitter();
@@ -115,7 +115,7 @@ pub async fn pump(conn: zbus::Connection, d: Daemon) -> zbus::Result<()> {
         match ev {
             Event::State => {
                 tokio::task::yield_now().await;
-                // araya giren başka bir olayı kaybetme
+                // do not lose another event that slipped in
                 while let Ok(e) = rx.try_recv() {
                     if !matches!(e, Event::State) {
                         held = Some(e);
@@ -131,7 +131,7 @@ pub async fn pump(conn: zbus::Connection, d: Daemon) -> zbus::Result<()> {
                 }
             }
             Event::Head(v) => {
-                // kulaklık saniyede yüzlerce paket yolluyor, arayüze 30 Hz yeter
+                // the buds send many packets a second, 30 Hz is enough for the UI
                 if last_head.elapsed().as_millis() >= 33 {
                     last_head = std::time::Instant::now();
                     Service::head(emitter, &v).await?;

@@ -6,7 +6,7 @@
 class QSystemTrayIcon;
 class QMenu;
 
-// StatusNotifierItem olarak görünen tepsi simgesi; menüsü servis durumundan kurulur.
+// Tray icon as a StatusNotifierItem; its menu is built from the service state.
 class Tray : public QObject
 {
     Q_OBJECT

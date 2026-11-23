@@ -1,11 +1,14 @@
 [Desktop Entry]
 Type=Application
 Name=Pinna
-GenericName=AirPods Ayarları
-Comment=AirPods'u bağla, pilini gör, tüm ayarlarını değiştir
+GenericName=AirPods Settings
+GenericName[tr]=AirPods Ayarları
+Comment=Connect AirPods, see the battery, change every setting
+Comment[tr]=AirPods'u bağla, pilini gör, tüm ayarlarını değiştir
 Exec=pinna
 Icon=dev.pinna.Pinna
 Terminal=false
 Categories=Settings;HardwareSettings;AudioVideo;
-Keywords=airpods;kulaklık;bluetooth;anc;pil;
+Keywords=airpods;headphones;bluetooth;anc;battery;
+Keywords[tr]=airpods;kulaklık;bluetooth;anc;pil;
 StartupWMClass=dev.pinna.Pinna

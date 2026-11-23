@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Başlıklı ayar grubu: ince kenarlı kart, içinde satırlar.
+// A titled settings group: a thin bordered card with rows.
 Column {
     id: root
     property string title

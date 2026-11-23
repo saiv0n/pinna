@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Masaüstü boyunda anahtar. Değer Backend'de hemen değiştiği için yerel durum tutmuyor.
+// Desktop sized switch. No local state since Backend changes the value right away.
 Item {
     id: root
     property bool checked

@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Bu bilgisayarla eşli hiç AirPods yokken: adım adım eşleştirme.
+// When no AirPods are paired yet: step by step pairing.
 StatusView {
     id: root
     readonly property bool searching: !!Store.s.discovering

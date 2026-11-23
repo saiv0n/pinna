@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Alt ortada kısa süreli mesaj. Hatalarda ne olduğunu, ne yapılacağını ve bir düğmeyi gösterir.
+// A short message at the bottom. Errors say what happened, what to do, and offer a button.
 Rectangle {
     id: root
     property bool bad: false

@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls.Basic as C
 import Pinna
 
-// Sağ tık menüsü.
+// Right click menu.
 C.Menu {
     id: root
     padding: 4

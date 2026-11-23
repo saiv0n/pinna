@@ -2,13 +2,13 @@ import QtQuick
 import QtQuick.Shapes
 import Pinna
 
-// Kenar çubuğundaki küçük pil göstergesi: ince çubuk, yüzde ve ad.
+// Small battery gauge for the sidebar: a thin bar, percent and name.
 Item {
     id: root
     property string name
     property var level: null
     property bool charging: false
-    // son bilinen değer, şu an okunmuyor
+    // last known value, not live
     property bool stale: false
     implicitHeight: 42
 

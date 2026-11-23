@@ -50,7 +50,7 @@ Backend::Backend(QObject *parent) : QObject(parent)
 {
     m_clock.start();
     m_trace = qEnvironmentVariableIsSet("PINNA_TRACE");
-    // ekran görüntüsü ve tasarım denemeleri için servis yerine dosyadan oku
+    // read from a file instead of the service, for screenshots and design work
     m_fake = qEnvironmentVariable("PINNA_STATE");
     if (!m_fake.isEmpty()) {
         QFile f(m_fake);
@@ -142,11 +142,11 @@ void Backend::frameShown()
 {
     if (m_traceAt < 0)
         return;
-    qInfo("pinna: tıklamadan ekrana %.2f ms", (m_clock.nsecsElapsed() - m_traceAt) / 1e6);
+    qInfo("pinna: click to frame %.2f ms", (m_clock.nsecsElapsed() - m_traceAt) / 1e6);
     m_traceAt = -1;
 }
 
-// servis sinyalde sadece değişen alanları yolluyor
+// the service only sends changed fields in the signal
 void Backend::onState(const QString &json)
 {
     auto next = m_state;
@@ -163,7 +163,7 @@ void Backend::replaceState(const QString &json)
 
 void Backend::apply(QVariantMap next)
 {
-    // tıklanan değer kulaklıktan onay gelene kadar ekranda kalsın, eski bir yankı geri çevirmesin
+    // keep the clicked value until the buds confirm, so a stale echo does not flip it back
     const qint64 now = m_clock.elapsed();
     for (auto it = m_pending.begin(); it != m_pending.end();) {
         if (now - it->at > 2500 || same(getAt(next, it->group, it->key), it->value)) {
@@ -203,12 +203,12 @@ void Backend::call(const QString &method, const QVariantList &args)
         QDBusPendingReply<> r = *w;
         if (r.isError()) {
             m_pending.clear();
-            // servisten "kod: açıklama" biçiminde gelir; D-Bus'ın kendi hataları servise ulaşılamadı demek
+            // the service sends "code: message"; plain D-Bus errors mean it is unreachable
             const QString msg = r.error().message();
             const int colon = msg.indexOf(QLatin1String(": "));
             const bool coded = r.error().type() == QDBusError::Failed || r.error().type() == QDBusError::InvalidArgs;
             if (coded && colon > 0 && colon < 16)
-                emit error(msg.left(colon), msg.mid(colon + 2));
+                emit error(msg.left(colon), QCoreApplication::translate("Daemon", msg.mid(colon + 2).toUtf8().constData()));
             else
                 emit error(QStringLiteral("service"), tr("Couldn't reach the Pinna service."));
             refresh();
@@ -297,7 +297,7 @@ void Backend::setCloseToTray(bool on)
     emit appChanged();
 }
 
-// boş değer sistem dili demek
+// empty means the system language
 QString Backend::language() const { return QSettings().value(QStringLiteral("language")).toString(); }
 
 void Backend::setLanguage(const QString &lang)
@@ -337,7 +337,7 @@ bool Backend::deviceIdOk() const
     return false;
 }
 
-// kullanıcıya gösterilen metin; çalıştırılan komut kabuk kullanmıyor
+// text shown to the user; the command that runs uses no shell
 QString Backend::deviceIdCommand() const
 {
     return QStringLiteral("pkexec sed -i '/^\\[General\\]/a DeviceID = bluetooth:004C:0000:0000' /etc/bluetooth/main.conf");
@@ -351,13 +351,13 @@ void Backend::setupDeviceId()
     connect(p, &QProcess::finished, this, [this, p](int code) {
         p->deleteLater();
         if (code != 0) {
-            // 126/127 pkexec'te iptal ya da yetki yok demek
+            // 126/127 from pkexec mean cancelled or not authorized
             emit error(QStringLiteral("deviceid"), code == 126 || code == 127 ? tr("The password prompt was closed; nothing changed.")
                                                                                : tr("Couldn't add the line (exit code %1).").arg(code));
             return;
         }
         emit appChanged();
-        // BlueZ ayarı yalnızca yeniden başlayınca okur; bunu polkit kendisi soruyor
+        // BlueZ only reads the setting on restart; polkit asks for this itself
         auto *r = new QProcess(this);
         connect(r, &QProcess::finished, this, [this, r](int c) {
             r->deleteLater();
@@ -398,12 +398,12 @@ void Backend::copy(const QString &text)
     QGuiApplication::clipboard()->setText(text);
 }
 
-// tepsi sonradan da gelebilir, o yüzden her seferinde sorulur
+// the tray may show up later, so ask every time
 bool Backend::trayAvailable() const
 {
     if (!m_tray)
         return false;
-    // Qt bazı oturumlarda tepsiyi görmüyor; StatusNotifier sunucusuna doğrudan sor
+    // Qt misses the tray in some sessions; ask the StatusNotifier host directly
     auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.kde.StatusNotifierWatcher"), QStringLiteral("/StatusNotifierWatcher"),
                                               QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
     msg.setArguments({QStringLiteral("org.kde.StatusNotifierWatcher"), QStringLiteral("IsStatusNotifierHostRegistered")});
@@ -416,7 +416,7 @@ QString Backend::version() const { return QCoreApplication::applicationVersion()
 
 void Backend::startDaemon()
 {
-    // önce systemd servisi, yoksa doğrudan çalıştır
+    // the systemd service first, otherwise run it directly
     if (QProcess::execute(QStringLiteral("systemctl"), {"--user", "restart", "pinnad.service"}) != 0)
         QProcess::startDetached(QStringLiteral("pinnad"), {});
 }

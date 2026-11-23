@@ -4,7 +4,7 @@ import Pinna
 Page {
     id: page
     title: qsTr("Controls")
-    // pencere kapanınca akış açık kalıp pil yemesin
+    // do not leave the stream on and drain the battery when the window closes
     Component.onDestruction: if (Store.s.headTracking) Backend.headTracking(false)
 
     Section {
@@ -41,7 +41,7 @@ Page {
         }
     }
 
-    // kulaklık işaretli basışları kendisi işlemez, bize iletir; bilgisayarda istenen her şeye bağlanabilir
+    // marked presses are forwarded to us instead of handled by the buds, so they can do anything here
     Section {
         id: press
         title: qsTr("Press Shortcuts")

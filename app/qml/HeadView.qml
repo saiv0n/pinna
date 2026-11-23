@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Baş takibinin canlı görünümü. İlk örnekler düz bakış kabul edilir, açılar ona göre hesaplanır.
+// Live head tracking view. The first samples count as looking straight ahead.
 Item {
     id: root
     readonly property var v: Backend.head

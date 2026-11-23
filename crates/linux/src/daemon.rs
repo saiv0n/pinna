@@ -3,7 +3,7 @@ use crate::audio;
 use crate::mic;
 use crate::spatial::{self, Spatial};
 use crate::history::History;
-use crate::media::Media;
+use crate::media::{Media, t};
 use pinna_core::proximity::{self, Advert};
 use pinna_core::state::{self, Cell, Config, Device, State};
 use anyhow::{Context, Result, anyhow, bail};
@@ -33,20 +33,20 @@ struct Inner {
     warned: [u8; 2],
     last_popup: Option<Instant>,
     history: History,
-    /// şarj bitti bildirimi gönderildi mi: sol, sağ, kutu
+    /// whether the charged notification went out: left, right, case
     full: [bool; 3],
     audio_set: bool,
     a2dp_fixed: bool,
-    /// Bluetooth kapanırken bağlıydı, açılınca geri bağlan
+    /// was connected when Bluetooth went off, reconnect when it is back
     reconnect: bool,
     dropped: Option<Instant>,
-    /// kulaklığa mikrofonu aç dendi
+    /// the buds were told to open the mic
     mic_on: bool,
-    /// mikrofon açıkken konuşma algılama kapatıldı, kapanınca geri açılacak
+    /// conversation awareness was paused for the mic, restore it afterwards
     ca_paused: bool,
-    /// uzamsal ses için baş takibi akışı açık
+    /// head tracking stream is on for spatial audio
     spatial_head: bool,
-    /// konuşma algılamayı tek kulaklık yüzünden biz kapattık
+    /// we turned conversation awareness off because only one bud is in
     ca_held: bool,
 }
 
@@ -58,9 +58,9 @@ pub struct Daemon {
     adapter: Adapter,
     scan: watch::Sender<bool>,
     pairing: watch::Sender<bool>,
-    /// BlueZ'den bir değişiklik gelince ana döngüyü uyandırır
+    /// wakes the main loop when BlueZ reports a change
     wake: Arc<Notify>,
-    /// oturum döngüsü her ses paketinde buna yazıyor, async kilit gerekmesin
+    /// the session loop writes here on every audio packet, so no async lock
     mic: Arc<std::sync::Mutex<Option<mic::Mic>>>,
     spatial: Arc<Mutex<Option<Spatial>>>,
 }
@@ -70,7 +70,7 @@ impl Daemon {
         let session = bluer::Session::new().await?;
         let adapter = session.default_adapter().await?;
         let mut config = Config::load();
-        // eski sürümlerden kalan, artık bilinmeyen ayarları kulaklığa yazmaya çalışma
+        // do not try to write settings from old versions that no longer exist
         config.sticky.retain(|k, _| state::STICKY.contains(&k.as_str()));
         let mut st = State { prefs: config.prefs.clone(), ..Default::default() };
         st.has_keys = Config::key16(&config.enc_key).is_some();
@@ -126,14 +126,14 @@ impl Daemon {
 
     async fn send(&self, p: Vec<u8>) -> Result<()> {
         let g = self.inner.lock().await;
-        let tx = g.tx.as_ref().ok_or_else(|| anyhow!("not-connected: Kulaklık bağlı değil."))?;
-        tx.send(p).map_err(|_| anyhow!("not-connected: Kulaklıkla bağlantı az önce koptu."))
+        let tx = g.tx.as_ref().ok_or_else(|| anyhow!("not-connected: The headphones are not connected."))?;
+        tx.send(p).map_err(|_| anyhow!("not-connected: The connection to the headphones just dropped."))
     }
 
     pub async fn set_mode(&self, m: &str) -> Result<()> {
-        let mode = Mode::parse(m).ok_or_else(|| anyhow!("invalid: Bilinmeyen mod."))?;
+        let mode = Mode::parse(m).ok_or_else(|| anyhow!("invalid: Unknown mode."))?;
         self.send(aap::control(aap::cmd::LISTENING_MODE, [mode.byte(), 0, 0, 0])).await?;
-        // kulaklık onayı gelince zaten güncellenecek, arayüz beklemesin
+        // the ack from the buds updates it anyway, the UI should not wait
         self.inner.lock().await.state.mode = Some(mode);
         self.changed();
         Ok(())
@@ -145,14 +145,14 @@ impl Daemon {
         {
             let g = self.inner.lock().await;
             if key == "holdLeft" || key == "holdRight" {
-                let n: u8 = v.parse().ok().filter(|n| *n == 1 || *n == 5).context("invalid: Değer 1 ya da 5 olmalı.")?;
+                let n: u8 = v.parse().ok().filter(|n| *n == 1 || *n == 5).context("invalid: The value must be 1 or 5.")?;
                 let cur = |k: &str| g.state.settings.get(k).and_then(|x| x.as_u64()).unwrap_or(1) as u8;
                 let (l, r) = if key == "holdLeft" { (n, cur("holdRight")) } else { (cur("holdLeft"), n) };
                 packet = aap::control(aap::cmd::HOLD_MODE, [r, l, 0, 0]);
                 value = Value::from(n);
             } else {
-                let (id, kind) = state::lookup(key).ok_or_else(|| anyhow!("invalid: Bilinmeyen ayar."))?;
-                let b = state::encode(kind, v).ok_or_else(|| anyhow!("invalid: Bu ayar için geçersiz değer."))?;
+                let (id, kind) = state::lookup(key).ok_or_else(|| anyhow!("invalid: Unknown setting."))?;
+                let b = state::encode(kind, v).ok_or_else(|| anyhow!("invalid: Invalid value for this setting."))?;
                 let d2 = if id == aap::cmd::CHIME_VOLUME { b } else { 0 };
                 packet = aap::control(id, [b, d2, 0, 0]);
                 value = state::decode(kind, b).unwrap_or(Value::Null);
@@ -194,7 +194,7 @@ impl Daemon {
     pub async fn rename(&self, name: &str) -> Result<()> {
         let name = name.trim();
         if !aap::valid_name(name) {
-            bail!("invalid: Ad 1 ile 32 bayt arasında olmalı ve kontrol karakteri içermemeli.");
+            bail!("invalid: The name must be 1 to 32 bytes with no control characters.");
         }
         self.send(aap::rename(name)).await?;
         let addr = {
@@ -202,7 +202,7 @@ impl Daemon {
             g.state.name = name.to_string();
             g.state.address.clone()
         };
-        // BlueZ tarafındaki takma ad da değişsin ki ses çıkışında yeni isim görünsün
+        // change the BlueZ alias too so the audio output shows the new name
         if let Some(a) = addr.and_then(|a| a.parse::<Address>().ok())
             && let Ok(d) = self.adapter.device(a)
         {
@@ -214,24 +214,24 @@ impl Daemon {
 
     async fn target(&self) -> Result<Address> {
         let g = self.inner.lock().await;
-        let a = g.state.address.clone().or(g.config.address.clone()).ok_or_else(|| anyhow!("no-device: Bu bilgisayarla eşli bir AirPods yok."))?;
+        let a = g.state.address.clone().or(g.config.address.clone()).ok_or_else(|| anyhow!("no-device: No AirPods are paired with this computer."))?;
         Ok(a.parse()?)
     }
 
     async fn powered(&self) -> Result<()> {
         if !self.adapter.is_powered().await.unwrap_or(false) {
-            bail!("bluetooth-off: Bluetooth kapalı.");
+            bail!("bluetooth-off: Bluetooth is off.");
         }
         Ok(())
     }
 
     fn reason(e: bluer::Error) -> anyhow::Error {
-        // BlueZ'in teknik iletisini kullanıcıya anlaşılır bir nedene çevir
+        // turn the technical BlueZ error into a reason people understand
         let m = e.message.to_lowercase();
         if m.contains("page timeout") || m.contains("host is down") || m.contains("timeout") {
-            anyhow!("unreachable: Kulaklık yanıt vermedi. Kutudan çıkar ya da kapağını aç ve yakında tut.")
+            anyhow!("unreachable: The headphones did not answer. Take them out of the case or open the lid and keep them close.")
         } else if m.contains("in progress") || m.contains("busy") {
-            anyhow!("busy: Bluetooth başka bir işle meşgul, birkaç saniye sonra yeniden dene.")
+            anyhow!("busy: Bluetooth is busy with something else, try again in a few seconds.")
         } else {
             anyhow!("bluetooth: {}", e.message)
         }
@@ -247,12 +247,12 @@ impl Daemon {
         let a = self.target().await?;
         self.powered().await?;
         let d = self.adapter.device(a)?;
-        // kutu taraması açıkken BlueZ LE ile bağlanmayı deneyip düşüyor; klasik ses profiliyle tekrar dene
+        // with the case scan running BlueZ tries LE and fails; retry with the classic audio profile
         if let Err(e) = d.connect().await {
-            debug!("bağlanılamadı ({e}), A2DP ile deneniyor");
+            debug!("connect failed ({e}), trying A2DP");
             d.connect_profile(&A2DP_SINK).await.map_err(Self::reason)?;
         }
-        // profil bağlantısında Connected olayı bazen gelmiyor, ana döngüyü kendimiz uyandıralım
+        // a profile connect sometimes sends no Connected event, so wake the main loop ourselves
         self.wake.notify_one();
         Ok(())
     }
@@ -267,12 +267,12 @@ impl Daemon {
         let g = self.inner.lock().await;
         let list = if nearby { &g.state.nearby } else { &g.state.devices };
         if !list.iter().any(|d| d.address == addr) {
-            bail!("invalid: Bu adreste bir kulaklık yok.");
+            bail!("invalid: There are no headphones at this address.");
         }
         Ok(addr.parse()?)
     }
 
-    /// Başka bir eşli kulaklığa geçer: tercih edileni değiştirir, açık oturumu kapatıp yenisine bağlanır.
+    /// Switches to another paired headphone: updates the preference, closes the session and connects the new one.
     pub async fn select(&self, addr: &str) -> Result<()> {
         let a = self.known(addr, false).await?;
         self.powered().await?;
@@ -282,7 +282,7 @@ impl Daemon {
             g.config.address = Some(addr.to_string());
             g.config.save();
             if old.is_some() || !g.state.connected {
-                // yeni cihazın bilgileri gelene kadar eskisini gösterme
+                // do not show the old device until the new one reports
                 g.state.address = Some(addr.to_string());
                 g.state.model_id = 0;
                 g.state.name.clear();
@@ -318,7 +318,7 @@ impl Daemon {
         Ok(())
     }
 
-    /// Eşleştirme modundaki kulaklıkları 30 saniye arar.
+    /// Looks for headphones in pairing mode for 30 seconds.
     pub async fn discover(&self, on: bool) -> Result<()> {
         if on {
             self.powered().await?;
@@ -331,7 +331,7 @@ impl Daemon {
         let a = self.known(addr, true).await?;
         let d = self.adapter.device(a)?;
         if !d.is_paired().await.unwrap_or(false) {
-            d.pair().await.map_err(|_| anyhow!("pair-failed: Eşleşme tamamlanmadı. Kutu açıkken arkasındaki düğmeyi ışık beyaz yanıp sönene kadar basılı tut."))?;
+            d.pair().await.map_err(|_| anyhow!("pair-failed: Pairing did not finish. With the lid open, hold the button on the back until the light flashes white."))?;
         }
         d.set_trusted(true).await?;
         let _ = self.pairing.send(false);
@@ -351,14 +351,14 @@ impl Daemon {
             let g = self.inner.lock().await;
             g.state.address.clone().filter(|_| g.state.connected)
         }
-        .ok_or_else(|| anyhow!("not-connected: Kulaklık bağlı değil."))?;
+        .ok_or_else(|| anyhow!("not-connected: The headphones are not connected."))?;
         let ok = match key {
             "profile" if v == "a2dp" || v == "hfp" => true,
             "volume" if v.parse::<u8>().is_ok_and(|n| n <= 100) => true,
             "default" if v == "true" => true,
-            _ => bail!("invalid: Geçersiz ses ayarı."),
+            _ => bail!("invalid: Invalid audio setting."),
         };
-        let (t, _) = audio::find(&addr).await.ok_or_else(|| anyhow!("audio: PipeWire bu kulaklık için bir ses aygıtı açmadı."))?;
+        let (t, _) = audio::find(&addr).await.ok_or_else(|| anyhow!("audio: PipeWire has no audio device for these headphones."))?;
         let ok = ok
             && match key {
                 "profile" => t.set_profile(v).await,
@@ -366,7 +366,7 @@ impl Daemon {
                 _ => t.make_default().await,
             };
         if !ok {
-            bail!("audio: PipeWire bu değişikliği kabul etmedi.");
+            bail!("audio: PipeWire did not accept this change.");
         }
         self.refresh_audio().await;
         Ok(())
@@ -386,14 +386,14 @@ impl Daemon {
             None => (None, Default::default()),
         };
         let mut g = self.inner.lock().await;
-        // ilk kez çıkış görününce varsayılan yap, sonra kullanıcının seçimine karışma
+        // make it default the first time the output shows up, then respect the user choice
         let fix_a2dp = target.as_ref().is_some_and(|t| t.lost_a2dp()) && !g.a2dp_fixed;
         if fix_a2dp {
             g.a2dp_fixed = true;
             let d = addr.as_deref().and_then(|a| a.parse::<Address>().ok()).and_then(|a| self.adapter.device(a).ok());
             drop(g);
             if let Some(d) = d {
-                info!("A2DP bağlı değil, yeniden isteniyor");
+                info!("A2DP missing, asking for it again");
                 let _ = d.connect_profile(&A2DP_SINK).await;
             }
             g = self.inner.lock().await;
@@ -431,7 +431,7 @@ impl Daemon {
             if let Some(k) = &sink {
                 *sp = Spatial::start(k, &name).await;
                 if sp.is_none() {
-                    warn!("uzamsal ses açılamadı");
+                    warn!("could not start spatial audio");
                 }
             }
         }
@@ -443,7 +443,7 @@ impl Daemon {
         let mut g = self.inner.lock().await;
         if g.state.ready && head != g.spatial_head {
             g.spatial_head = head;
-            // canlı görünüm de akışı kullanıyor olabilir
+            // the live view may be using the stream too
             let send = !g.state.head_tracking;
             drop(g);
             if send {
@@ -452,7 +452,7 @@ impl Daemon {
         }
     }
 
-    /// Görüşme ayarını uygular: WirePlumber'ın HFP geçişi ve Pinna'nın sanal mikrofonu.
+    /// Applies the call setting: WirePlumber HFP switching and the Pinna virtual mic.
     async fn apply_call(&self) {
         let (mode, connected, name) = {
             let g = self.inner.lock().await;
@@ -467,7 +467,7 @@ impl Daemon {
                     *self.mic.lock().unwrap_or_else(|e| e.into_inner()) = Some(m);
                     mic::make_default().await;
                 }
-                None => warn!("sanal mikrofon açılamadı"),
+                None => warn!("could not open the virtual mic"),
             }
         } else if !want && has {
             let m = self.mic.lock().unwrap_or_else(|e| e.into_inner()).take();
@@ -478,13 +478,13 @@ impl Daemon {
         }
     }
 
-    /// Bir uygulama sanal mikrofonu dinlemeye başlayınca kulaklığın mikrofonunu açar, bırakınca kapatır.
+    /// Opens the headset mic when an app starts listening to the virtual mic and closes it after.
     async fn mic_activity(&self) {
         let open = self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some();
         let want = open && mic::in_use().await;
         if self.inner.lock().await.mic_on && !want {
-            // Discord gibi uygulamalar aygıtı kapatıp hemen açıyor, kulaklık da arka arkaya
-            // gelen STOP ve START'tan sonra ses yollamıyor; kapatmayı biraz bekletiyoruz
+            // apps like Discord close and reopen the device right away, and the buds stop sending
+            // audio after a quick STOP and START, so closing is delayed a bit
             let me = self.clone();
             tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_secs(3)).await;
@@ -504,13 +504,13 @@ impl Daemon {
         }
         g.mic_on = want;
         g.state.audio.mic_active = want;
-        // konuşma algılama açıksa kulaklık konuşurken karşı tarafın sesini kısıyor
+        // with conversation awareness on the buds duck the other side while you talk
         let ca = g.state.settings.get("conversationAwareness").and_then(Value::as_bool) == Some(true);
         let pause = want && ca;
         let resume = !want && std::mem::take(&mut g.ca_paused);
         g.ca_paused |= pause;
         drop(g);
-        info!("kulaklık mikrofonu {}", if want { "açılıyor" } else { "kapanıyor" });
+        info!("headset mic {}", if want { "opening" } else { "closing" });
         if let Some(m) = self.mic.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
             m.last = Some(Instant::now());
         }
@@ -521,7 +521,7 @@ impl Daemon {
         self.changed();
     }
 
-    /// Mikrofon açıkken kulaklık ses yollamayı bırakırsa yeniden başlatır.
+    /// Restarts the mic if the buds stop sending audio while it is open.
     async fn mic_watchdog(self) {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
@@ -539,7 +539,7 @@ impl Daemon {
                 }
             };
             if stale {
-                info!("kulaklık mikrofonu ses yollamıyor, yeniden başlatılıyor");
+                info!("headset mic went silent, restarting");
                 let _ = self.send(aap::MIC_STOP.to_vec()).await;
                 tokio::time::sleep(Duration::from_millis(500)).await;
                 let _ = self.send(aap::MIC_START.to_vec()).await;
@@ -548,7 +548,7 @@ impl Daemon {
     }
 
     pub async fn head_tracking(&self, on: bool) -> Result<()> {
-        // uzamsal ses akışa hâlâ ihtiyaç duyuyorsa kapatma
+        // keep the stream if spatial audio still needs it
         if on || !self.inner.lock().await.spatial_head {
             self.send(if on { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await?;
         }
@@ -557,7 +557,7 @@ impl Daemon {
         Ok(())
     }
 
-    /// Eşli Apple kulaklıklarının listesini yeniler.
+    /// Refreshes the list of paired Apple headphones.
     async fn refresh_devices(&self) -> Vec<Device> {
         let mut list = Vec::new();
         for a in self.adapter.device_addresses().await.unwrap_or_default() {
@@ -597,16 +597,16 @@ impl Daemon {
         g.last_popup = Some(Instant::now());
         drop(g);
         let cmd = std::env::var("PINNA_POPUP").unwrap_or_else(|_| "pinna --popup".into());
-        // servis kısıtlı bir ortamda çalışıyor; kart kullanıcı oturumunda ayrı bir birim olarak açılsın
+        // the service is sandboxed; run the card as its own unit in the user session
         let mut c = tokio::process::Command::new("systemd-run");
         c.args(["--user", "--quiet", "--collect", "--"]).args(cmd.split_whitespace());
         match c.status().await {
-            Ok(s) if s.success() => debug!("açılır kart başlatıldı"),
-            r => warn!("açılır kart başlatılamadı: {r:?}"),
+            Ok(s) if s.success() => debug!("popup started"),
+            r => warn!("could not start popup: {r:?}"),
         }
     }
 
-    /// Bağlı kulaklığı seçer; birden çoksa tercih edileni.
+    /// Picks the connected headphones; the preferred one if there are several.
     async fn find(&self) -> Option<Address> {
         let list = self.refresh_devices().await;
         let preferred = self.inner.lock().await.config.address.clone();
@@ -653,20 +653,20 @@ impl Daemon {
             }
             if let Some(addr) = self.find().await {
                 let _ = self.scan.send(false);
-                info!("{addr} bağlı, AAP oturumu açılıyor");
+                info!("{addr} connected, opening AAP session");
                 if let Err(e) = self.session(addr).await {
-                    warn!("oturum bitti: {e:#}");
+                    warn!("session ended: {e:#}");
                 }
                 self.on_disconnect().await;
             } else {
                 let scan = self.inner.lock().await.state.prefs.case_scan && powered;
                 let _ = self.scan.send(scan);
-                // önceki durumda bağlıydıysa temizle
+                // clean up if we were connected before
                 if self.inner.lock().await.state.connected {
                     self.on_disconnect().await;
                 }
             }
-            // yoklama yok: BlueZ'den bir olay gelene kadar uyu, yine de arada bir kendini kontrol et
+            // no polling: sleep until BlueZ sends an event, but check now and then anyway
             tokio::select! {
                 _ = self.wake.notified() => {}
                 _ = tokio::time::sleep(Duration::from_secs(60)) => {}
@@ -674,11 +674,11 @@ impl Daemon {
         }
     }
 
-    /// Adaptör ve eşli kulaklıklardaki değişiklikleri dinler.
+    /// Listens for changes on the adapter and paired headphones.
     async fn bluez_events(self) {
         loop {
             if let Err(e) = self.watch_adapter().await {
-                debug!("BlueZ olayları: {e}");
+                debug!("BlueZ events: {e}");
             }
             tokio::time::sleep(Duration::from_secs(3)).await;
         }
@@ -697,7 +697,7 @@ impl Daemon {
                 }
                 AdapterEvent::PropertyChanged(bluer::AdapterProperty::Powered(on)) => {
                     let mut g = self.inner.lock().await;
-                    // bağlantı kapanma olayından hemen önce ya da sonra düşebilir
+                    // this can arrive just before or after the disconnect event
                     let just_dropped = g.dropped.is_some_and(|t| t.elapsed() < Duration::from_secs(5));
                     if !on && (g.state.connected || just_dropped) {
                         g.reconnect = true;
@@ -712,7 +712,7 @@ impl Daemon {
                     }
                     self.wake.notify_one();
                     if reconnect {
-                        // uykudan dönüşte de bu yoldan geçiyor; kulaklık hazır olana kadar birkaç kez dene
+                        // resume from sleep goes this way too; retry a few times until the buds are ready
                         let me = self.clone();
                         tokio::spawn(async move {
                             for _ in 0..3 {
@@ -734,7 +734,7 @@ impl Daemon {
         let me = self.clone();
         tokio::spawn(async move {
             let Ok(d) = me.adapter.device(a) else { return };
-            // sadece Apple aygıtlarını izle, tarama sırasında gelen yüzlerce yabancı aygıtı değil
+            // only watch Apple devices, not the hundreds of others a scan finds
             if !matches!(d.modalias().await, Ok(Some(m)) if m.vendor == APPLE) {
                 return;
             }
@@ -749,7 +749,7 @@ impl Daemon {
         });
     }
 
-    /// PipeWire'daki değişiklikleri pactl subscribe ile dinler; ses durumu yoklanmaz.
+    /// Listens to PipeWire changes with pactl subscribe; audio state is never polled.
     async fn audio_events(self) {
         use tokio::io::AsyncBufReadExt;
         loop {
@@ -772,7 +772,7 @@ impl Daemon {
                 if !(l.contains(" sink ") || l.contains(" card ") || l.contains(" server")) {
                     continue;
                 }
-                // art arda gelen olayları tek yenilemede topla
+                // fold bursts of events into one refresh
                 while let Ok(Ok(Some(_))) = tokio::time::timeout(Duration::from_millis(80), lines.next_line()).await {}
                 if self.inner.lock().await.state.connected {
                     self.refresh_audio().await;
@@ -833,13 +833,13 @@ impl Daemon {
                     debug!("L2CAP denemesi {i}: {e}");
                     tokio::time::sleep(Duration::from_millis(800)).await;
                     if !self.adapter.device(addr)?.is_connected().await.unwrap_or(false) {
-                        bail!("cihaz bağlantıyı kesti");
+                        bail!("device closed the connection");
                     }
                 }
             }
         }
-        let sock = sock.ok_or_else(|| anyhow!("AAP kanalı açılamadı"))?;
-        // bluer bazen bağlantı kurulmadan dönüyor, ENOTCONN bitene kadar bekle
+        let sock = sock.ok_or_else(|| anyhow!("could not open the AAP channel"))?;
+        // bluer sometimes returns before the link is up, wait until ENOTCONN clears
         let mut tries = 0;
         loop {
             match sock.send(aap::HANDSHAKE).await {
@@ -854,7 +854,7 @@ impl Daemon {
 
         let me = self.clone();
         tokio::spawn(async move {
-            // PipeWire kartı bağlantıdan biraz sonra açar; olay kaçarsa diye iki kez bak
+            // PipeWire opens the card a bit after connecting; look twice in case an event is missed
             for s in [2, 6] {
                 tokio::time::sleep(Duration::from_secs(s)).await;
                 me.refresh_audio().await;
@@ -870,7 +870,7 @@ impl Daemon {
             tokio::select! {
                 r = sock.recv(&mut buf) => {
                     let n = r?;
-                    if n == 0 { bail!("kanal kapandı"); }
+                    if n == 0 { bail!("channel closed"); }
                     let data = &buf[..n];
                     if data.len() > 8 && data[4] == 0x58 {
                         if let Some(m) = self.mic.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
@@ -916,7 +916,7 @@ impl Daemon {
                 other => other.to_string(),
             };
             if let Err(e) = self.set_setting(&k, &s).await {
-                debug!("{k} geri yüklenemedi: {e}");
+                debug!("could not restore {k}: {e}");
             }
         }
         self.send_stem_mask().await;
@@ -945,10 +945,10 @@ impl Daemon {
                 drop(g);
                 let m = self.media.lock().await;
                 if let Some(msg) = low {
-                    m.notify("AirPods pili azaldı", &msg, "battery-caution").await;
+                    m.notify(t("AirPods battery low", "AirPods pili azaldı"), &msg, "battery-caution").await;
                 }
                 if let Some(msg) = full {
-                    m.notify("Şarj tamamlandı", &msg, "battery-full-charged").await;
+                    m.notify(t("Charging complete", "Şarj tamamlandı"), &msg, "battery-full-charged").await;
                 }
             }
             Packet::Ear(primary, secondary) => {
@@ -961,7 +961,7 @@ impl Daemon {
                 let prefs = g.state.prefs.clone();
                 let all_in_case = l == Pod::Case && r == Pod::Case;
                 let ca_on = g.state.settings.get("conversationAwareness").and_then(|v| v.as_bool()) == Some(true);
-                // tek kulakla konuşma algılama her sesi kısıyor; ikisi takılınca geri açılır
+                // with one bud in, conversation awareness ducks everything; it comes back with both in
                 let ca = if prefs.ca_one_bud && after == 1 && ca_on && !g.ca_held {
                     g.ca_held = true;
                     Some(2)
@@ -1003,7 +1003,7 @@ impl Daemon {
                 let prefs = g.state.prefs.clone();
                 let g_mic = g.mic_on;
                 drop(g);
-                // görüşmede kendi sesin bilgisayarı kısmasın
+                // your own voice in a call should not duck the computer
                 if prefs.duck_on_speech && !g_mic {
                     self.media.lock().await.speech(level, prefs.duck_level).await;
                 }
@@ -1017,7 +1017,7 @@ impl Daemon {
                 g.state.serial_right = i.serial_right;
             }
             Packet::Keys { irk, enc } => {
-                info!("BLE anahtarları alındı");
+                info!("got BLE keys");
                 g.config.irk = Some(Config::hex(&irk));
                 g.config.enc_key = Some(Config::hex(&enc));
                 g.state.has_keys = true;
@@ -1045,11 +1045,11 @@ impl Daemon {
     async fn send_stem_mask(&self) {
         let mask = self.inner.lock().await.state.prefs.stem_mask();
         if let Err(e) = self.send(aap::control(aap::cmd::STEM_CONFIG, [mask, 0, 0, 0])).await {
-            debug!("sap ayarı gönderilemedi: {e}");
+            debug!("could not send stem config: {e}");
         }
     }
 
-    /// Kulaklık bir basışı bize ilettiğinde. Atanmamış taraf kulaklığın kendi davranışını taklit eder.
+    /// When the buds forward a press. An unassigned side mimics what the buds would do.
     async fn stem(&self, press: u8, left: bool) {
         let (name, fallback) = match press {
             6 => ("double", "next"),
@@ -1067,7 +1067,7 @@ impl Daemon {
             let allow_off = g.state.settings.get("allowOff").and_then(|v| v.as_bool()).unwrap_or(false);
             (a, cycle, g.state.mode, allow_off)
         };
-        info!("sap basışı: {name} {side}, {action}");
+        info!("stem press: {name} {side}, {action}");
         let wpctl = |args: &[&str]| {
             let mut c = tokio::process::Command::new("wpctl");
             c.args(args);
@@ -1083,18 +1083,18 @@ impl Daemon {
                 let _ = wpctl(&["set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]).status().await;
                 let out = wpctl(&["get-volume", "@DEFAULT_AUDIO_SOURCE@"]).output().await;
                 let muted = out.is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains("MUTED"));
-                let (t, i) = if muted { ("Mikrofon kapalı", "microphone-sensitivity-muted") } else { ("Mikrofon açık", "audio-input-microphone") };
-                self.media.lock().await.notify(t, "", i).await;
+                let (title, icon) = if muted { (t("Microphone muted", "Mikrofon kapalı"), "microphone-sensitivity-muted") } else { (t("Microphone on", "Mikrofon açık"), "audio-input-microphone") };
+                self.media.lock().await.notify(title, "", icon).await;
             }
             "ancTransparency" => {
                 let next = if mode == Some(Mode::Anc) { Mode::Transparency } else { Mode::Anc };
                 if let Err(e) = self.send(aap::control(aap::cmd::LISTENING_MODE, [next.byte(), 0, 0, 0])).await {
-                    warn!("mod değiştirilemedi: {e}");
+                    warn!("could not change mode: {e}");
                 }
             }
             "mode" => {
                 let order = [(Mode::Anc, 2), (Mode::Transparency, 4), (Mode::Adaptive, 8), (Mode::Off, 1)];
-                // kapalı mod izni yoksa kulaklık reddediyor ve döngü takılıyor
+                // without the off option the buds refuse it and the cycle gets stuck
                 let list: Vec<Mode> = order
                     .iter()
                     .filter(|(m, b)| cycle & b != 0 && (*m != Mode::Off || allow_off))
@@ -1104,18 +1104,18 @@ impl Daemon {
                 if let Some(next) = at.map_or(list.first(), |i| list.get((i + 1) % list.len()))
                     && let Err(e) = self.send(aap::control(aap::cmd::LISTENING_MODE, [next.byte(), 0, 0, 0])).await
                 {
-                    warn!("mod değiştirilemedi: {e}");
+                    warn!("could not change mode: {e}");
                 }
             }
             c => {
                 if let Some(cmd) = c.strip_prefix("cmd:") {
-                    // servis kısıtlı ortamda; komut kullanıcı oturumunda çalışsın
+                    // the service is sandboxed; run the command in the user session
                     let r = tokio::process::Command::new("systemd-run")
                         .args(["--user", "--quiet", "--collect", "--", "sh", "-c", cmd])
                         .status()
                         .await;
                     if !r.is_ok_and(|s| s.success()) {
-                        warn!("sap komutu çalışmadı: {cmd}");
+                        warn!("stem command failed: {cmd}");
                     }
                 }
             }
@@ -1127,7 +1127,7 @@ impl Daemon {
             return None;
         }
         let mut msg = None;
-        for (i, (cell, side)) in [(g.state.battery.left, "Sol"), (g.state.battery.right, "Sağ")].iter().enumerate() {
+        for (i, (cell, side)) in [(g.state.battery.left, t("Left", "Sol")), (g.state.battery.right, t("Right", "Sağ"))].iter().enumerate() {
             let Some(lvl) = cell.level else { continue };
             let limit = g.state.prefs.low_battery;
             if cell.charging || lvl > limit {
@@ -1137,7 +1137,7 @@ impl Daemon {
             let step = if lvl <= limit / 2 { limit / 2 } else { limit };
             if step < g.warned[i] {
                 g.warned[i] = step;
-                msg = Some(format!("{side} AirPod %{lvl}"));
+                msg = Some(format!("{side} AirPod {lvl}%"));
             }
         }
         msg
@@ -1145,12 +1145,12 @@ impl Daemon {
 
     fn charged(&self, g: &mut Inner) -> Option<String> {
         let b = &g.state.battery;
-        let cells = [(b.left, "Sol AirPod"), (b.right, "Sağ AirPod"), (b.case_, "Kutu")];
+        let cells = [(b.left, t("Left AirPod", "Sol AirPod")), (b.right, t("Right AirPod", "Sağ AirPod")), (b.case_, t("Case", "Kutu"))];
         let mut done = Vec::new();
         for (i, (c, name)) in cells.iter().enumerate() {
             match c.level {
-                // tam dolu başlarsa bildirme; %95 altından 100'e çıkan şarj olmuştur,
-                // dolunca şarj bitini kapatan kulaklıkta da bildirim gelsin diye bite bakılmıyor
+                // no notification if it starts full; going from below 95% to 100 means it charged,
+                // the charging bit is ignored since some buds clear it once full
                 Some(100) if !g.full[i] => {
                     g.full[i] = true;
                     done.push(*name);
@@ -1159,7 +1159,7 @@ impl Daemon {
                 _ => {}
             }
         }
-        (g.state.prefs.charged_notify && !done.is_empty()).then(|| done.join(", ") + " %100")
+        (g.state.prefs.charged_notify && !done.is_empty()).then(|| done.join(", ") + " 100%")
     }
 
     async fn pair_loop(self) {
@@ -1174,7 +1174,7 @@ impl Daemon {
             self.changed();
             let r = tokio::time::timeout(Duration::from_secs(30), self.pair_scan(&mut want)).await;
             if let Ok(Err(e)) = r {
-                debug!("eşleştirme taraması: {e}");
+                debug!("pairing scan: {e}");
             }
             let _ = self.pairing.send(false);
             let mut g = self.inner.lock().await;
@@ -1204,7 +1204,7 @@ impl Daemon {
                     }
                     let name = d.alias().await.unwrap_or_default();
                     let apple = matches!(d.modalias().await, Ok(Some(m)) if m.vendor == APPLE);
-                    // eşleştirme modundaki AirPods çoğu zaman modalias vermiyor, adına bak
+                    // AirPods in pairing mode often have no modalias, check the name
                     if !apple && !name.contains("AirPods") && !name.contains("Beats") {
                         continue;
                     }
@@ -1228,7 +1228,7 @@ impl Daemon {
                 }
             }
             if let Err(e) = self.scan_once(&mut want).await {
-                debug!("tarama hatası: {e}");
+                debug!("scan error: {e}");
                 tokio::time::sleep(Duration::from_secs(5)).await;
             }
         }
@@ -1243,12 +1243,12 @@ impl Daemon {
             })
             .await?;
         let mut stream = self.adapter.discover_devices_with_changes().await?;
-        debug!("kutu taraması başladı");
+        debug!("case scan started");
         let mut lid_open = false;
         loop {
             tokio::select! {
                 _ = want.changed() => {
-                    if !*want.borrow() { debug!("kutu taraması durdu"); return Ok(()); }
+                    if !*want.borrow() { debug!("case scan stopped"); return Ok(()); }
                 }
                 ev = stream.next() => {
                     let Some(AdapterEvent::DeviceAdded(a)) = ev else {
@@ -1269,7 +1269,7 @@ impl Daemon {
                     }
                     self.changed();
                     if opened {
-                        info!("kutu açıldı");
+                        info!("case opened");
                         let _ = self.events.send(Event::CaseOpened(adv));
                         self.popup().await;
                     }
@@ -1307,6 +1307,6 @@ fn in_ear(p: &Pod) -> u8 {
 }
 
 fn is_headphone(product: u16) -> bool {
-    // AirPods ve Beats ürün kimlikleri 0x20xx aralığında
+    // AirPods and Beats product ids are in the 0x20xx range
     product & 0xff00 == 0x2000
 }

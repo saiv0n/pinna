@@ -1,7 +1,7 @@
 pragma Singleton
 import QtQuick
 
-// Servis durumuna kısa yollar; sayfalar aynı şeyi tekrar tekrar ayıklamasın.
+// Shortcuts into the service state so pages do not parse the same thing again and again.
 QtObject {
     readonly property var s: Backend.state
     readonly property var settings: s.settings || ({})
@@ -25,7 +25,7 @@ QtObject {
     }
     function charging(k) { return !!(battery[k] && battery[k].charging) }
 
-    // pil geçmişinden son bilinen değerler; kutu kapalıyken ya da kulaklık yokken bunlar gösterilir
+    // last known values from the battery history, shown when the case is closed or the buds are away
     readonly property var history: Backend.history || []
     function lastKnown(i) {
         for (let n = history.length - 1; n >= 0; n--)

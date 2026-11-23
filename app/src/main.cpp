@@ -18,7 +18,7 @@
 
 static QElapsedTimer startClock;
 
-// Ayar penceresi. Tepsiye inince QML motoru tamamen bırakılır, bellekte sadece tepsi kalır.
+// The settings window. When it goes to the tray the QML engine is dropped and only the tray stays in memory.
 class App : public QObject
 {
     Q_OBJECT
@@ -62,14 +62,14 @@ public:
     void release()
     {
         if (qEnvironmentVariableIsSet("PINNA_TRACE"))
-            qInfo("pinna: pencere bırakılıyor (%s)", engine ? "motor var" : "motor yok");
+            qInfo("pinna: releasing window (%s)", engine ? "engine alive" : "no engine");
         if (!engine)
             return;
         engine->deleteLater();
         engine = nullptr;
         window = nullptr;
         Backend::instance()->windowShown(false);
-        // silinen arayüzün belleği işletim sistemine geri dönsün
+        // give the memory of the dropped UI back to the OS
         QTimer::singleShot(1000, [] { malloc_trim(0); });
     }
 
@@ -87,7 +87,7 @@ public slots:
 int main(int argc, char *argv[])
 {
     startClock.start();
-    // tepsi menüsü için Widgets gerekiyor
+    // the tray menu needs Widgets
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Pinna"));
     app.setApplicationVersion(QStringLiteral(PINNA_VERSION));
@@ -97,12 +97,12 @@ int main(int argc, char *argv[])
     const bool popup = app.arguments().contains(QStringLiteral("--popup"));
     const bool hidden = app.arguments().contains(QStringLiteral("--tray"));
     const bool shot = !qEnvironmentVariable("PINNA_SHOT").isEmpty();
-    // Hyprland kuralları sınıfa bakıyor, kart ayrı bir sınıfla açılsın
+    // Hyprland rules match the class, so the card gets its own
     app.setDesktopFileName(popup ? QStringLiteral("dev.pinna.Popup") : QStringLiteral("dev.pinna.Pinna"));
 
     App instance;
     instance.component = popup ? QStringLiteral("Popup") : QStringLiteral("Main");
-    // ikinci kez açılınca yeni pencere yerine var olanı öne getir
+    // a second launch raises the existing window
     if (!popup && !shot) {
         auto bus = QDBusConnection::sessionBus();
         if (!bus.registerService(QStringLiteral("dev.pinna.App"))) {
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
         bus.registerObject(QStringLiteral("/"), &instance, QDBusConnection::ExportScriptableSlots);
     }
 
-    // kaynak metinler Türkçe; başka dillerde İngilizce çeviri yüklenir
+    // source strings are English; Turkish loads from the translation
     QTranslator translator;
     auto applyLanguage = [&translator] {
         QString lang = qEnvironmentVariable("PINNA_LANG", Backend::instance()->language());
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         app.setFont(f);
     }
 
-    // GNOME'da animasyonlar kapalıysa hareketleri sadeleştir; açılışı bekletmesin diye arka planda sorulur
+    // reduce motion when GNOME animations are off; asked in the background so startup does not wait
     if (qEnvironmentVariableIsSet("PINNA_REDUCE_MOTION")) {
         instance.reduce = qEnvironmentVariableIntValue("PINNA_REDUCE_MOTION") != 0;
     } else {
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
         tray->close = [&instance] { instance.release(); };
         Backend::instance()->setTray(true);
         app.setQuitOnLastWindowClosed(false);
-        // QML pencereyi tepsiye indirince motoru bırak
+        // drop the engine when QML sends the window to the tray
         QObject::connect(Backend::instance(), &Backend::windowReleased, &instance, [&instance] { instance.release(); });
         if (hidden && tray->available())
             return app.exec();
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
         return 1;
     window->show();
 
-    // README görselleri için: PINNA_SHOT=dosya.png ile pencereyi kaydedip çık
+    // for README images: PINNA_SHOT=file.png saves the window and quits
     if (shot) {
         const QString path = qEnvironmentVariable("PINNA_SHOT");
         QTimer::singleShot(qEnvironmentVariableIntValue("PINNA_SHOT_DELAY") ?: 2500, window, [window, path] {

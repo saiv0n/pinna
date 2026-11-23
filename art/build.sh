@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Görselleri baştan üretir: render, kırpma, ikon.
-# Kullanım: art/build.sh <Airpods_ForSketchfab.fbx> [örnek sayısı]
+# Rebuilds the images: render, crop, icon.
+# Usage: art/build.sh <Airpods_ForSketchfab.fbx> [samples]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 fbx="$1"
@@ -23,7 +23,7 @@ def crop(im, margin=0.04):
     out.alpha_composite(im, (m, m))
     return out
 
-# render sağ kulaklığı çiziyor, uygulama soldakini bekliyor
+# the render draws the right bud, the app expects the left
 bud = crop(Image.open(f"{src}/bud.png").convert("RGBA")).transpose(Image.FLIP_LEFT_RIGHT)
 bud.thumbnail((700, 900), Image.LANCZOS)
 bud.save(f"{dst}/bud.png", optimize=True)
@@ -33,7 +33,7 @@ pair.save(f"{dst}/set.png", optimize=True)
 case = crop(Image.open(f"{src}/case.png").convert("RGBA"))
 case.thumbnail((700, 700), Image.LANCZOS)
 case.save(f"{dst}/case.png", optimize=True)
-print("görseller yazıldı")
+print("images written")
 PY
 
 python3 art/icon.py app/assets/bud.png dist/icon.png

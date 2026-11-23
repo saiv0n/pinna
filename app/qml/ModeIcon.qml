@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import Pinna
 
-// Dinleme modu glifleri: dolu büst ve çevresinde modu anlatan işaret. Çizgiler eşit kalınlıkta.
+// Listening mode glyphs: a filled bust and a mark around it. Even stroke widths.
 Shape {
     id: root
     property string mode: "anc"
@@ -13,18 +13,18 @@ Shape {
 
     readonly property color none: "transparent"
     readonly property real line: 1.7
-    // uyarlanabilirde büst parıltıya yer açmak için sola kayar
+    // in adaptive the bust shifts left to make room for the sparkles
     readonly property real bx: mode === "adaptive" ? 11.5 : 14
     readonly property real by: mode === "anc" ? 1 : 2
 
-    // baş
+    // head
     ShapePath {
         strokeColor: root.mode === "off" ? root.color : root.none
         strokeWidth: root.line
         fillColor: root.mode === "off" ? root.none : root.color
         PathAngleArc { centerX: root.bx; centerY: 9.6 + root.by; radiusX: 3.6; radiusY: 3.6; startAngle: 0; sweepAngle: 360 }
     }
-    // omuzlar
+    // shoulders
     ShapePath {
         strokeColor: root.mode === "off" ? root.color : root.none
         strokeWidth: root.line
@@ -38,7 +38,7 @@ Shape {
         PathQuad { controlX: root.bx - 6.4; controlY: 21.4 + root.by; x: root.bx - 6.4; y: 20.4 + root.by }
     }
 
-    // gürültü engelleme: büstü saran kapalı halka
+    // noise cancellation: a closed ring around the bust
     ShapePath {
         strokeColor: root.mode === "anc" ? root.color : root.none
         strokeWidth: root.line
@@ -46,7 +46,7 @@ Shape {
         PathAngleArc { centerX: 14; centerY: 14; radiusX: 12.2; radiusY: 12.2; startAngle: 0; sweepAngle: 360 }
     }
 
-    // şeffaflık: başın çevresinde dışarıdan gelen ses ışınları
+    // transparency: sound rays reaching the head from outside
     ShapePath {
         strokeColor: root.mode === "transparency" ? root.color : root.none
         strokeWidth: root.line
@@ -69,7 +69,7 @@ Shape {
         PathLine { x: 23.20; y: 11.80 }
     }
 
-    // uyarlanabilir: biri büyük biri küçük iki parıltı
+    // adaptive: one big and one small sparkle
     ShapePath {
         strokeColor: root.none
         fillColor: root.mode === "adaptive" ? root.color : root.none

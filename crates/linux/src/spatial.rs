@@ -1,5 +1,5 @@
-// Uzamsal ses: PipeWire filter-chain içinde iki sanal hoparlör (HRTF), baş dönünce ters yöne çevrilir
-// ki ses odada sabit kalsın.
+// Spatial audio: two virtual speakers (HRTF) in a PipeWire filter-chain, turned against head motion
+// so the sound stays put in the room.
 
 use std::path::Path;
 use std::process::Stdio;
@@ -8,7 +8,7 @@ use tokio::process::{Child, Command};
 
 pub const NODE: &str = "pinna_spatial";
 const SOFA: &str = "/usr/share/libmysofa/default.sofa";
-/// hoparlörlerin önden açısı, stüdyo monitörü gibi
+/// speaker angle from the front, like studio monitors
 const SPREAD: f32 = 30.0;
 
 pub fn available() -> bool {
@@ -52,9 +52,9 @@ fn conf(sink: &str, desc: &str) -> String {
 }
 
 impl Spatial {
-    /// Sanal çıkışı açar ve varsayılan yapar. Kulaklık varsayılan değilse dokunmaz.
+    /// Opens the virtual output and makes it default, unless the buds were not the default.
     pub async fn start(sink: &str, name: &str) -> Option<Spatial> {
-        let desc: String = format!("{name} (Uzamsal)").chars().filter(|c| c.is_alphanumeric() || " ()-.".contains(*c)).collect();
+        let desc: String = format!("{name} (Spatial)").chars().filter(|c| c.is_alphanumeric() || " ()-.".contains(*c)).collect();
         let child = Command::new("pw-cli")
             .args(["-m", "load-module", "libpipewire-module-filter-chain", &conf(sink, &desc)])
             .stdout(Stdio::null())
@@ -76,8 +76,8 @@ impl Spatial {
         if pactl(&["get-default-sink"]).await.as_deref() == Some(sink) {
             pactl(&["set-default-sink", NODE]).await;
         }
-        // akışları elle taşımıyoruz: taşınan akışın hedefi WirePlumber'da kalıcı olur, uzamsal ses kapanınca sessiz kalabilir.
-        // Varsayılanı izleyen akışlar kendiliğinden geçer.
+        // streams are not moved by hand: WirePlumber would remember the target and they could go silent later.
+        // Streams that follow the default move on their own.
         let now = Instant::now();
         Some(Spatial { child, sink: sink.into(), base: None, last_t: now, sent: 0.0, sent_at: now })
     }
@@ -90,7 +90,7 @@ impl Spatial {
         if pactl(&["get-default-sink"]).await.as_deref() == Some(NODE) {
             pactl(&["set-default-sink", &self.sink]).await;
         }
-        // modül kapanınca akışlar varsayılana döner
+        // streams fall back to the default when the module goes away
         let _ = self.child.kill().await;
     }
 
@@ -102,8 +102,8 @@ impl Spatial {
         self.sent_at = Instant::now();
     }
 
-    /// Baş takibi örneği. Başlangıç yönü yavaşça başın ortalamasına kayar; uzun süre yana bakınca
-    /// ses de oraya yerleşir, sensör kayması birikmez.
+    /// A head tracking sample. The reference slowly drifts to the average heading, so looking aside for long
+    /// moves the sound there too and sensor drift never builds up.
     pub async fn head(&mut self, v: [i16; 5]) {
         let yaw = (v[1] as f32 - v[2] as f32) / 2.0 / 32000.0 * 180.0;
         let now = Instant::now();
@@ -117,7 +117,7 @@ impl Spatial {
         }
     }
 
-    /// Takip kapanınca ses öne döner.
+    /// Re-centers when tracking stops.
     pub async fn center(&mut self) {
         self.base = None;
         if self.sent != 0.0 {

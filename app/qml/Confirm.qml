@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Pencere içi onay penceresi. Arkası karartılır, Esc ile kapanır.
+// In window confirmation dialog. Dims the background, Esc closes it.
 Rectangle {
     id: root
     property string title

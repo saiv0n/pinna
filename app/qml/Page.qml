@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls.Basic as C
 import Pinna
 
-// Sağ taraftaki kaydırılabilir sayfa. İçerik geniş pencerede ortada durur.
+// The scrollable page on the right. Content stays centered in wide windows.
 Flickable {
     id: root
     property string title

@@ -36,7 +36,7 @@ pub struct State {
     pub adapter: bool,
     pub address: Option<String>,
     pub connected: bool,
-    /// AAP kanalı açık mı, ayarlar sadece bu durumda değiştirilebilir
+    /// whether the AAP channel is open; settings can only change then
     pub ready: bool,
     pub name: String,
     pub model: String,
@@ -53,14 +53,14 @@ pub struct State {
     pub settings: BTreeMap<String, Value>,
     pub prefs: Prefs,
     pub has_keys: bool,
-    /// eşli bütün Apple kulaklıkları
+    /// every paired Apple headphone
     pub devices: Vec<Device>,
-    /// eşleştirme taraması sırasında görülen yeni kulaklıklar
+    /// new headphones seen while scanning for pairing
     pub nearby: Vec<Device>,
     pub discovering: bool,
     pub audio: Audio,
     pub head_tracking: bool,
-    /// bağlı değilken son BLE yayınının sinyal gücü (dBm) ve zamanı; yakındaki kulaklığı bulmak için
+    /// signal strength (dBm) and time of the last BLE advert while disconnected, for finding nearby buds
     pub signal: Option<i16>,
     pub signal_at: u64,
 }
@@ -78,16 +78,16 @@ pub struct Device {
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Audio {
-    /// PipeWire bu kulaklık için bir çıkış açtı mı
+    /// whether PipeWire opened an output for these headphones
     pub available: bool,
-    /// a2dp, hfp ya da off
+    /// a2dp, hfp or off
     pub profile: String,
     pub volume: u8,
     pub muted: bool,
     pub is_default: bool,
-    /// etkin profilin kodeği, AAC ya da LC3-24kHz gibi
+    /// codec of the active profile, like AAC or LC3-24kHz
     pub codec: String,
-    /// Pinna'nın sanal mikrofonu şu an bir uygulamaya ses veriyor mu
+    /// whether the Pinna virtual mic is feeding an app right now
     pub mic_active: bool,
 }
 
@@ -101,18 +101,18 @@ pub struct Prefs {
     pub low_battery_notify: bool,
     pub popup: bool,
     pub case_scan: bool,
-    /// yüzde; bu düzeyin altına inince uyarı verilir
+    /// percent; a warning fires below this level
     pub low_battery: u8,
     pub charged_notify: bool,
-    /// bağlanınca varsayılan ses çıkışı yap
+    /// make it the default output on connect
     pub auto_output: bool,
-    /// görüşmede hangi mikrofon: computer, airpods (yüksek kalite, A2DP'de kalır) ya da hfp
+    /// which mic in calls: computer, airpods (high quality, stays on A2DP) or hfp
     pub call_mic: String,
-    /// "double.left" gibi anahtar, eylem adı ya da "cmd:<komut>"; boşsa kulaklık kendi bildiğini yapar
+    /// keys like "double.left", an action name or "cmd:<command>"; when unset the buds do their own thing
     pub stem: BTreeMap<String, String>,
-    /// tek kulaklık takılıyken konuşma algılamayı kapat
+    /// turn off conversation awareness while only one bud is in
     pub ca_one_bud: bool,
-    /// off, fixed (sanal hoparlör) ya da head (baş takipli)
+    /// off, fixed (virtual speakers) or head (head tracked)
     pub spatial: String,
 }
 
@@ -139,7 +139,7 @@ impl Default for Prefs {
 
 impl Prefs {
     pub fn set(&mut self, key: &str, v: &str) -> anyhow::Result<()> {
-        let b = || parse_bool(v).ok_or_else(|| anyhow::anyhow!("geçersiz değer: {v}"));
+        let b = || parse_bool(v).ok_or_else(|| anyhow::anyhow!("invalid value: {v}"));
         match key {
             "autoPause" => self.auto_pause = b()?,
             "autoResume" => self.auto_resume = b()?,
@@ -153,24 +153,24 @@ impl Prefs {
             "autoOutput" => self.auto_output = b()?,
             "caOneBud" => self.ca_one_bud = b()?,
             "callMic" if ["computer", "airpods", "hfp"].contains(&v) => self.call_mic = v.into(),
-            "callMic" => anyhow::bail!("geçersiz değer: {v}"),
+            "callMic" => anyhow::bail!("invalid value: {v}"),
             "spatial" if ["off", "fixed", "head"].contains(&v) => self.spatial = v.into(),
-            "spatial" => anyhow::bail!("geçersiz değer: {v}"),
+            "spatial" => anyhow::bail!("invalid value: {v}"),
             k if k.starts_with("stem.") => {
                 let slot = &k[5..];
                 let ok_slot = matches!(slot.split_once('.'), Some(("double" | "triple" | "long", "left" | "right")));
                 let ok_val = v.is_empty()
                     || STEM_ACTIONS.contains(&v)
                     || v.strip_prefix("cmd:").is_some_and(|c| !c.trim().is_empty());
-                anyhow::ensure!(ok_slot, "bilinmeyen tercih: {key}");
-                anyhow::ensure!(ok_val, "geçersiz değer: {v}");
+                anyhow::ensure!(ok_slot, "unknown preference: {key}");
+                anyhow::ensure!(ok_val, "invalid value: {v}");
                 if v.is_empty() {
                     self.stem.remove(slot);
                 } else {
                     self.stem.insert(slot.into(), v.into());
                 }
             }
-            _ => anyhow::bail!("bilinmeyen tercih: {key}"),
+            _ => anyhow::bail!("unknown preference: {key}"),
         }
         Ok(())
     }
@@ -180,7 +180,7 @@ pub const STEM_ACTIONS: &[&str] =
     &["playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "ancTransparency", "nothing"];
 
 impl Prefs {
-    /// Kulaklığa hangi basışları bize iletmesini söyleyeceğimiz.
+    /// Which presses we ask the buds to forward to us.
     pub fn stem_mask(&self) -> u8 {
         [("double.", 0x02), ("triple.", 0x04), ("long.", 0x08)]
             .iter()
@@ -199,13 +199,13 @@ pub fn parse_bool(v: &str) -> Option<bool> {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Kind {
-    /// 1 açık, 2 kapalı
+    /// 1 on, 2 off
     Toggle,
-    /// tek bayt sayı
+    /// a single byte number
     Number(u8, u8),
 }
 
-/// Arayüzün gördüğü ayar adı ile kontrol komutu arasındaki eşleme.
+/// Maps the setting names the UI uses to control commands.
 pub const SETTINGS: &[(&str, u8, Kind)] = &[
     ("conversationAwareness", cmd::CONVERSATION, Kind::Toggle),
     ("adaptiveVolume", cmd::ADAPTIVE_VOLUME, Kind::Toggle),
@@ -223,7 +223,7 @@ pub const SETTINGS: &[(&str, u8, Kind)] = &[
     ("listeningCycle", cmd::LISTENING_CYCLE, Kind::Number(1, 15)),
 ];
 
-/// Kulaklığın bildirmediği, her bağlantıda bizim yeniden göndermemiz gereken ayarlar.
+/// Settings the buds never report, so we resend them on every connection.
 pub const STICKY: &[&str] = &["listeningCycle", "allowOff", "holdLeft", "holdRight"];
 
 pub fn lookup(key: &str) -> Option<(u8, Kind)> {
@@ -259,18 +259,18 @@ pub struct Config {
     pub irk: Option<String>,
     pub enc_key: Option<String>,
     pub prefs: Prefs,
-    /// kulaklığa her bağlantıda yeniden yazılan ayarlar
+    /// settings rewritten to the buds on every connection
     pub sticky: BTreeMap<String, Value>,
 }
 
-/// BLE anahtarları da bu dosyada; sadece kullanıcı okuyabilsin.
+/// The BLE keys live in this file too, so only the user may read it.
 pub fn write_private(p: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
     use std::io::Write;
     use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
     if let Some(d) = p.parent() {
         std::fs::DirBuilder::new().recursive(true).mode(0o700).create(d)?;
     }
-    // önce geçici dosyaya yaz, yarım kalmış ayar dosyası olmasın
+    // write a temp file first so a half written config never exists
     let tmp = p.with_extension("tmp");
     let mut f = std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(&tmp)?;
     f.set_permissions(std::fs::Permissions::from_mode(0o600))?;

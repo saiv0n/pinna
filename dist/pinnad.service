@@ -10,18 +10,18 @@ RestartSec=3
 Environment=RUST_LOG=info
 Environment="PINNA_POPUP=%h/.local/bin/pinna --popup"
 
-# ayar ve pil geçmişi dışında hiçbir yere yazamasın
+# may only write its config and battery history
 ConfigurationDirectory=pinna
 ConfigurationDirectoryMode=0700
 StateDirectory=pinna
 StateDirectoryMode=0700
-# sanal mikrofonun fifo dosyası; PipeWire modülü açıkken silinmesin
+# fifo of the virtual mic; must survive while the PipeWire module is loaded
 RuntimeDirectory=pinna
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes
 ProtectSystem=strict
 ProtectHome=read-only
-# görüşme ayarı için tek istisna
+# the one exception, for the call setting
 ReadWritePaths=-%h/.config/wireplumber/wireplumber.conf.d
 PrivateTmp=yes
 NoNewPrivileges=yes
@@ -34,7 +34,7 @@ RestrictRealtime=yes
 RestrictNamespaces=yes
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
-# D-Bus, PipeWire ve L2CAP için yeterli
+# enough for D-Bus, PipeWire and L2CAP
 RestrictAddressFamilies=AF_UNIX AF_BLUETOOTH
 
 [Install]

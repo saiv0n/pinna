@@ -1,6 +1,6 @@
 [package]
 name = "pinna-linux"
-description = "Linux servisi (BlueZ) ve komut satırı aracı"
+description = "Linux service (BlueZ) and command line tool"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import Pinna
 
-// Solda cihaz kartı, bölümler ve servis durumu.
+// Device card, sections and service status on the left.
 Rectangle {
     id: root
     property int current: 0
@@ -15,7 +15,7 @@ Rectangle {
 
     Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.line }
 
-    // cihaz kartı: görsel, tam ad, durum ve üç pil
+    // device card: picture, full name, status and three batteries
     readonly property bool hasLevels: Store.level("left") !== null || Store.level("right") !== null
     readonly property string status: !Backend.daemon ? qsTr("Service not running")
         : Store.s.adapter === false ? qsTr("Bluetooth is off")
@@ -52,7 +52,7 @@ Rectangle {
                     spacing: -3
                     opacity: Store.live ? 1 : 0.5
                     Behavior on opacity { NumberAnimation { duration: Theme.medium } }
-                    // beyaz kulaklık açık zeminde kaybolmasın
+                    // keep white buds visible on a light background
                     layer.enabled: !Theme.dark
                     layer.effect: MultiEffect {
                         shadowEnabled: true
@@ -169,7 +169,7 @@ Rectangle {
         MenuItemLike { text: qsTr("Copy Address"); enabled: !!Store.s.address; onTriggered: Backend.copy(Store.s.address) }
     }
 
-    // bölümler
+    // sections
     ListView {
         id: nav
         x: 10
@@ -228,7 +228,7 @@ Rectangle {
         }
     }
 
-    // servis durumu
+    // service status
     Row {
         x: 20
         anchors.bottom: parent.bottom

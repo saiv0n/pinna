@@ -1,4 +1,4 @@
-// PipeWire tarafı: pactl'in JSON çıktısıyla kulaklığın kartını ve çıkışını bulur.
+// PipeWire side: finds the card and output of the buds from pactl JSON output.
 
 use pinna_core::state::Audio;
 use serde_json::Value;
@@ -77,14 +77,14 @@ fn kind(profile: &str) -> &'static str {
 
 impl Target {
     pub async fn set_profile(&self, want: &str) -> bool {
-        // aynı türden birden çok kodek var; PipeWire'ın en yüksek önceliği verdiği en iyisi (AAC, LC3)
+        // several codecs per kind; the one PipeWire ranks highest is best (AAC, LC3)
         let Some((p, _)) = self.profiles.iter().filter(|(p, _)| kind(p) == want).max_by_key(|(_, prio)| *prio) else {
             return false;
         };
         if pactl(&["set-card-profile", &self.card, p]).await.is_none() {
             return false;
         }
-        // mikrofonu seçince uygulamalar da onu kullansın, bırakınca dahili mikrofona dön
+        // apps should use the headset mic when picked, and the internal one after
         let src = pactl(&["get-default-source"]).await.unwrap_or_default();
         if want == "hfp" {
             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -99,7 +99,7 @@ impl Target {
         true
     }
 
-    /// WirePlumber yeniden başlayınca kulaklık bazen yalnız HFP ile bağlanıyor.
+    /// After a WirePlumber restart the buds sometimes come back with HFP only.
     pub fn lost_a2dp(&self) -> bool {
         !self.profiles.iter().any(|(p, _)| kind(p) == "a2dp")
     }
@@ -117,8 +117,8 @@ impl Target {
 
 const AUTOSWITCH: &str = "bluetooth.autoswitch-to-headset-profile";
 
-/// Açıkken kayıt başlayınca WirePlumber kulaklığı HFP'ye geçirmez.
-/// Ayar hem WirePlumber'ın kendi kaydına hem de yapılandırma dosyasına yazılır.
+/// While on, WirePlumber does not switch the buds to HFP when recording starts.
+/// Written both to WirePlumber state and to a config file.
 pub async fn call_quality(on: bool) {
     let want = (!on).to_string();
     let now = Command::new("wpctl").args(["settings", AUTOSWITCH]).output().await.ok();
@@ -128,10 +128,10 @@ pub async fn call_quality(on: bool) {
     }
     let Some(dir) = dirs::config_dir().map(|d| d.join("wireplumber/wireplumber.conf.d")) else { return };
     let file = dir.join("51-pinna.conf");
-    let body = format!("# pinna yazdı, uygulamadaki görüşme ayarıyla değişir\nwireplumber.settings = {{\n  {AUTOSWITCH} = {want}\n}}\n");
+    let body = format!("# written by pinna, follows the call setting in the app\nwireplumber.settings = {{\n  {AUTOSWITCH} = {want}\n}}\n");
     if std::fs::read_to_string(&file).ok().as_deref() != Some(body.as_str())
         && let Err(e) = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(&file, body))
     {
-        log::warn!("wireplumber ayarı yazılamadı: {e}");
+        log::warn!("could not write the wireplumber setting: {e}");
     }
 }

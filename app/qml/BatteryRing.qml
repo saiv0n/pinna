@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import Pinna
 
-// Pil halkası. Yazıyı çağıran yer koyar; şarjdayken ortada şimşek.
+// Battery ring. The caller adds the label; a bolt shows while charging.
 Item {
     id: root
     property var level: null

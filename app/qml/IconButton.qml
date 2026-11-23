@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import Pinna
 
-// Küçük yuvarlak simge düğmesi: kapat ya da üç nokta.
+// Small round icon button: close or more.
 Rectangle {
     id: root
     property string icon: "close"

@@ -1,5 +1,5 @@
-# Uygulama ikonunu kulaklık render'ından üretir.
-# Kullanım: python3 art/icon.py app/assets/bud.png dist/icon.png
+# Makes the app icon from the bud render.
+# Usage: python3 art/icon.py app/assets/bud.png dist/icon.png
 import sys
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
@@ -8,7 +8,7 @@ src, out = sys.argv[1], sys.argv[2]
 
 
 def squircle(size, n=5.0):
-    # Apple ikonlarındaki süper elips köşe
+    # superellipse corner like app icons
     m = Image.new("L", (size, size), 0)
     px = m.load()
     r = size / 2
@@ -58,9 +58,9 @@ mask = squircle(SIZE).resize((big, big), Image.LANCZOS)
 canvas.putalpha(ImageChops.multiply(canvas.split()[3], mask))
 canvas = canvas.resize((SIZE, SIZE), Image.LANCZOS)
 
-# kenar boşluğu: ikon kılavuzlarındaki gibi %10
+# margin: 10% like icon guidelines
 final = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 inner = int(SIZE * 0.82)
 final.alpha_composite(canvas.resize((inner, inner), Image.LANCZOS), ((SIZE - inner) // 2, (SIZE - inner) // 2))
 final.resize((512, 512), Image.LANCZOS).save(out)
-print("yazıldı:", out)
+print("wrote:", out)

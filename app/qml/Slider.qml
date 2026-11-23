@@ -5,7 +5,7 @@ import Pinna
 C.Slider {
     id: root
     property real target
-    // sürüklerken değil bırakınca gönderilsin diye
+    // send on release, not while dragging
     signal committed(real value)
     onPressedChanged: if (!pressed) committed(value)
     Keys.onReleased: e => { if (e.key === Qt.Key_Left || e.key === Qt.Key_Right) committed(value) }

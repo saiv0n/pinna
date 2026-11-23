@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Kutu açılınca ya da bağlanınca köşede beliren bildirim kartı. Gölge ve konum pencere yöneticisinden gelir.
+// The card that pops up in a corner when the case opens or the buds connect. Shadow and position come from the window manager.
 Window {
     id: win
     width: 380
@@ -28,7 +28,7 @@ Window {
         onTriggered: Qt.quit()
     }
     Shortcut { sequence: "Escape"; onActivated: Qt.quit() }
-    // kutu kapalıyken son bilinen değeri göstermek için
+    // to show the last known value while the case is closed
     Component.onCompleted: Backend.loadHistory()
     Connections {
         target: Backend

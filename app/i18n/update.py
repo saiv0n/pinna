@@ -23,6 +23,17 @@ for f in sorted(list((app / "qml").glob("*.qml")) + list((app / "src").glob("*.c
         if s not in contexts[name]:
             contexts[name].append(s)
 
+# error messages from the service are translated by the app under the "Daemon" context
+crates = app.parent / "crates" / "linux" / "src"
+codes = re.compile(r'"(?:not-connected|invalid|no-device|bluetooth-off|unreachable|busy|pair-failed|audio): ((?:[^"\\]|\\.)*)"')
+for f in sorted(crates.glob("*.rs")):
+    for s in codes.findall(f.read_text()):
+        if re.fullmatch(r"\{\w*\}", s):
+            continue
+        contexts.setdefault("Daemon", [])
+        if s not in contexts["Daemon"]:
+            contexts["Daemon"].append(s)
+
 out = ['<?xml version="1.0" encoding="utf-8"?>', "<!DOCTYPE TS>", '<TS version="2.1" language="tr_TR" sourcelanguage="en_US">']
 missing = 0
 for ctx, msgs in contexts.items():

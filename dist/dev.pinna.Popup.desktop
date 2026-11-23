@@ -1,8 +1,11 @@
 [Desktop Entry]
 Type=Application
-Name=Pinna kartı
-GenericName=AirPods Ayarları
-Comment=AirPods'u bağla, pilini gör, tüm ayarlarını değiştir
+Name=Pinna card
+Name[tr]=Pinna kartı
+GenericName=AirPods Settings
+GenericName[tr]=AirPods Ayarları
+Comment=Connect AirPods, see the battery, change every setting
+Comment[tr]=AirPods'u bağla, pilini gör, tüm ayarlarını değiştir
 Exec=pinna --popup
 Icon=dev.pinna.Pinna
 Terminal=false

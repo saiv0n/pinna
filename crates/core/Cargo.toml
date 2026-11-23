@@ -1,6 +1,6 @@
 [package]
 name = "pinna-core"
-description = "AirPods protokolü, platformdan bağımsız"
+description = "AirPods protocol, platform independent"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

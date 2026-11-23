@@ -1,7 +1,7 @@
 import QtQuick
 import Pinna
 
-// Kartın içinde tam genişlik bir alan (kaydırıcı, grafik, seçici).
+// A full width area inside a card (slider, chart, picker).
 Item {
     id: root
     default property alias content: col.data
