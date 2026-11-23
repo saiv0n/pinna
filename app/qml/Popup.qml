@@ -28,6 +28,8 @@ Window {
         onTriggered: Qt.quit()
     }
     Shortcut { sequence: "Escape"; onActivated: Qt.quit() }
+    // kutu kapalıyken son bilinen değeri göstermek için
+    Component.onCompleted: Backend.loadHistory()
     Connections {
         target: Backend
         function onError() { win.connecting = false }
@@ -77,7 +79,9 @@ Window {
                 elide: Text.ElideRight
             }
             Text {
-                text: win.connecting ? qsTr("Bağlanıyor…") : win.connected ? qsTr("Bağlı") : qsTr("Kutu açık, bağlanmaya hazır")
+                text: win.connecting ? qsTr("Bağlanıyor…")
+                    : win.connected ? (Store.modeNames[win.s.mode] ? qsTr("Bağlı") + "  ·  " + Store.modeNames[win.s.mode] : qsTr("Bağlı"))
+                    : qsTr("Kutu açık, bağlanmaya hazır")
                 font: Theme.footnote
                 color: Theme.text2
             }
@@ -85,26 +89,19 @@ Window {
 
         Row {
             x: 122
-            y: 58
-            spacing: 14
+            y: 56
+            spacing: 12
             Repeater {
                 model: [["left", qsTr("Sol")], ["right", qsTr("Sağ")], ["case", qsTr("Kutu")]]
-                Row {
+                BatteryTile {
                     required property var modelData
-                    visible: win.level(modelData[0]) !== null
-                    spacing: 5
-                    BatteryRing {
-                        size: 22
-                        stroke: 2.4
-                        level: win.level(parent.modelData[0])
-                        charging: !!(win.bat[parent.modelData[0]] || {}).charging
-                    }
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: parent.modelData[1] + " " + win.level(parent.modelData[0]) + "%"
-                        font: Theme.footnote
-                        color: Theme.text
-                    }
+                    readonly property var now: win.level(modelData[0])
+                    readonly property var last: modelData[0] === "case" && now === null ? Store.lastCase : null
+                    width: 62
+                    name: modelData[1]
+                    level: now !== null ? now : last ? last.level : null
+                    stale: now === null
+                    charging: now !== null && !!(win.bat[modelData[0]] || {}).charging
                 }
             }
         }

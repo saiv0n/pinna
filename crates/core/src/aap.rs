@@ -207,7 +207,8 @@ pub fn parse(d: &[u8]) -> Option<Packet> {
                     component,
                     level: e[2],
                     charging: e[3] == 0x01,
-                    connected: e[3] != 0x04,
+                    // bazı yazılımlarda bilinmeyen değer 127 geliyor, %127 gösterme
+                    connected: e[3] != 0x04 && e[2] <= 100,
                 });
             }
             Packet::Battery(out)
@@ -280,6 +281,12 @@ mod tests {
 
     fn hex(s: &str) -> Vec<u8> {
         (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
+    }
+
+    #[test]
+    fn battery_out_of_range() {
+        let Some(Packet::Battery(b)) = parse(&hex("040004000400010201 7f0101".replace(' ', "").as_str())) else { panic!() };
+        assert!(!b[0].connected);
     }
 
     #[test]
