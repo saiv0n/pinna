@@ -105,6 +105,10 @@ pub struct Prefs {
     pub auto_output: bool,
     /// görüşmede hangi mikrofon: computer, airpods (yüksek kalite, A2DP'de kalır) ya da hfp
     pub call_mic: String,
+    /// "double.left" gibi anahtar, eylem adı ya da "cmd:<komut>"; boşsa kulaklık kendi bildiğini yapar
+    pub stem: BTreeMap<String, String>,
+    /// off, fixed (sanal hoparlör) ya da head (baş takipli)
+    pub spatial: String,
 }
 
 impl Default for Prefs {
@@ -121,6 +125,8 @@ impl Default for Prefs {
             charged_notify: true,
             auto_output: true,
             call_mic: "computer".into(),
+            stem: BTreeMap::new(),
+            spatial: "off".into(),
         }
     }
 }
@@ -141,9 +147,38 @@ impl Prefs {
             "autoOutput" => self.auto_output = b()?,
             "callMic" if ["computer", "airpods", "hfp"].contains(&v) => self.call_mic = v.into(),
             "callMic" => anyhow::bail!("geçersiz değer: {v}"),
+            "spatial" if ["off", "fixed", "head"].contains(&v) => self.spatial = v.into(),
+            "spatial" => anyhow::bail!("geçersiz değer: {v}"),
+            k if k.starts_with("stem.") => {
+                let slot = &k[5..];
+                let ok_slot = matches!(slot.split_once('.'), Some(("double" | "triple" | "long", "left" | "right")));
+                let ok_val = v.is_empty()
+                    || STEM_ACTIONS.contains(&v)
+                    || v.strip_prefix("cmd:").is_some_and(|c| !c.trim().is_empty());
+                anyhow::ensure!(ok_slot, "bilinmeyen tercih: {key}");
+                anyhow::ensure!(ok_val, "geçersiz değer: {v}");
+                if v.is_empty() {
+                    self.stem.remove(slot);
+                } else {
+                    self.stem.insert(slot.into(), v.into());
+                }
+            }
             _ => anyhow::bail!("bilinmeyen tercih: {key}"),
         }
         Ok(())
+    }
+}
+
+pub const STEM_ACTIONS: &[&str] =
+    &["playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "nothing"];
+
+impl Prefs {
+    /// Kulaklığa hangi basışları bize iletmesini söyleyeceğimiz.
+    pub fn stem_mask(&self) -> u8 {
+        [("double.", 0x02), ("triple.", 0x04), ("long.", 0x08)]
+            .iter()
+            .filter(|(p, _)| self.stem.keys().any(|k| k.starts_with(p)))
+            .fold(0, |m, (_, b)| m | b)
     }
 }
 
@@ -269,5 +304,24 @@ impl Config {
 
     pub fn hex(k: &[u8]) -> String {
         k.iter().map(|b| format!("{b:02x}")).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stem_prefs() {
+        let mut p = Prefs::default();
+        assert_eq!(p.stem_mask(), 0);
+        p.set("stem.double.left", "micMute").unwrap();
+        p.set("stem.long.right", "cmd:notify-send hi").unwrap();
+        assert_eq!(p.stem_mask(), 0x0A);
+        assert!(p.set("stem.single.left", "next").is_err());
+        assert!(p.set("stem.double.left", "rm").is_err());
+        assert!(p.set("stem.double.left", "cmd: ").is_err());
+        p.set("stem.double.left", "").unwrap();
+        assert_eq!(p.stem_mask(), 0x08);
     }
 }

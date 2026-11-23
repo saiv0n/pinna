@@ -110,6 +110,38 @@
         <translation>Volume</translation>
     </message>
     <message>
+        <source>Uzamsal Ses</source>
+        <translation>Spatial Audio</translation>
+    </message>
+    <message>
+        <source>Ses önündeki iki hoparlörden geliyormuş gibi duyulur ve başını çevirince yerinde kalır. Uzun süre yana bakarsan ses de yavaşça oraya yerleşir. Baş takibi pili biraz daha hızlı bitirir.</source>
+        <translation>Sound seems to come from two speakers in front of you and stays put when you turn your head. If you keep looking aside, it slowly settles there too. Head tracking uses a bit more battery.</translation>
+    </message>
+    <message>
+        <source>Stereo ses, kafanın içinde değil önündeki iki hoparlörden geliyormuş gibi duyulur.</source>
+        <translation>Stereo sounds like it comes from two speakers in front of you instead of inside your head.</translation>
+    </message>
+    <message>
+        <source>Uzamsal ses</source>
+        <translation>Spatial audio</translation>
+    </message>
+    <message>
+        <source>Ses çıkışı bekleniyor…</source>
+        <translation>Waiting for audio output…</translation>
+    </message>
+    <message>
+        <source>Kapalı</source>
+        <translation>Off</translation>
+    </message>
+    <message>
+        <source>Sabit</source>
+        <translation>Fixed</translation>
+    </message>
+    <message>
+        <source>Baş takipli</source>
+        <translation>Head tracked</translation>
+    </message>
+    <message>
         <source>Görüşmeler</source>
         <translation>Calls</translation>
     </message>
@@ -164,10 +196,6 @@
     <message>
         <source>Kulaklığın mikrofonu</source>
         <translation>Earbud microphone</translation>
-    </message>
-    <message>
-        <source>Kapalı</source>
-        <translation>Off</translation>
     </message>
     <message>
         <source>Açık</source>
@@ -463,6 +491,94 @@
     <message>
         <source>En kısa</source>
         <translation>Shortest</translation>
+    </message>
+    <message>
+        <source>Basış Kısayolları</source>
+        <translation>Press Shortcuts</translation>
+    </message>
+    <message>
+        <source>Basışları bu bilgisayarda bir işe bağla. Atanmamış basışlar her zamanki gibi çalışır.</source>
+        <translation>Bind presses to actions on this computer. Unassigned presses work as usual.</translation>
+    </message>
+    <message>
+        <source>Oynat / Duraklat</source>
+        <translation>Play / Pause</translation>
+    </message>
+    <message>
+        <source>Sonraki parça</source>
+        <translation>Next track</translation>
+    </message>
+    <message>
+        <source>Önceki parça</source>
+        <translation>Previous track</translation>
+    </message>
+    <message>
+        <source>Sesi aç</source>
+        <translation>Volume up</translation>
+    </message>
+    <message>
+        <source>Sesi kıs</source>
+        <translation>Volume down</translation>
+    </message>
+    <message>
+        <source>Mikrofonu sustur</source>
+        <translation>Mute microphone</translation>
+    </message>
+    <message>
+        <source>Dinleme modunu değiştir</source>
+        <translation>Change listening mode</translation>
+    </message>
+    <message>
+        <source>Hiçbir şey</source>
+        <translation>Nothing</translation>
+    </message>
+    <message>
+        <source>Komut çalıştır…</source>
+        <translation>Run command…</translation>
+    </message>
+    <message>
+        <source>Kulaklık</source>
+        <translation>Headphones</translation>
+    </message>
+    <message>
+        <source>Sol</source>
+        <translation>Left</translation>
+    </message>
+    <message>
+        <source>Sağ</source>
+        <translation>Right</translation>
+    </message>
+    <message>
+        <source>Çift basış</source>
+        <translation>Double press</translation>
+    </message>
+    <message>
+        <source>Varsayılan: sonraki parça</source>
+        <translation>Default: next track</translation>
+    </message>
+    <message>
+        <source>Üç kez basış</source>
+        <translation>Triple press</translation>
+    </message>
+    <message>
+        <source>Varsayılan: önceki parça</source>
+        <translation>Default: previous track</translation>
+    </message>
+    <message>
+        <source>Basılı tutma</source>
+        <translation>Press and hold</translation>
+    </message>
+    <message>
+        <source>Varsayılan: yukarıdaki ayar</source>
+        <translation>Default: setting above</translation>
+    </message>
+    <message>
+        <source>ör. grim ~/ekran.png</source>
+        <translation>e.g. grim ~/shot.png</translation>
+    </message>
+    <message>
+        <source>Komut</source>
+        <translation>Command</translation>
     </message>
     <message>
         <source>Ses Düzeyi Kaydırma</source>

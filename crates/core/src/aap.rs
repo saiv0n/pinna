@@ -58,6 +58,8 @@ pub mod cmd {
     pub const HEARING_ASSIST: u8 = 0x33;
     pub const ALLOW_OFF: u8 = 0x34;
     pub const SLEEP_DETECTION: u8 = 0x35;
+    /// bit maskesi: 2 çift, 4 üçlü, 8 uzun basış; işaretli basışlar bize iletilir
+    pub const STEM_CONFIG: u8 = 0x39;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -155,6 +157,8 @@ pub enum Packet {
     Keys { irk: [u8; 16], enc: [u8; 16] },
     /// üç yönelim ve iki ivme değeri
     Head([i16; 5]),
+    /// sap basışı: 5 tek, 6 çift, 7 üçlü, 8 uzun
+    Stem { press: u8, left: bool },
     Other(u16),
 }
 
@@ -218,6 +222,7 @@ pub fn parse(d: &[u8]) -> Option<Packet> {
             Packet::Control { id, data }
         }
         0x4B => Packet::Speaking(*body.get(3)?),
+        0x19 => Packet::Stem { press: *body.first()?, left: *body.get(1)? == 0x01 },
         0x1D => Packet::Info(parse_info(body)),
         0x31 => parse_keys(body)?,
         0x17 if d.len() >= 55 => {
@@ -275,6 +280,12 @@ mod tests {
 
     fn hex(s: &str) -> Vec<u8> {
         (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
+    }
+
+    #[test]
+    fn stem() {
+        assert!(matches!(parse(&hex("0400040019000602")), Some(Packet::Stem { press: 6, left: false })));
+        assert!(matches!(parse(&hex("0400040019000801")), Some(Packet::Stem { press: 8, left: true })));
     }
 
     #[test]

@@ -54,6 +54,21 @@ impl Media {
         }
     }
 
+    /// Çalan oynatıcıya, yoksa ilk oynatıcıya MPRIS komutu gönderir.
+    pub async fn player(&self, method: &str) {
+        let all = self.players().await;
+        let mut pick = all.first().cloned();
+        for n in &all {
+            if self.status(n).await.as_deref() == Some("Playing") {
+                pick = Some(n.clone());
+                break;
+            }
+        }
+        if let Some(n) = pick {
+            self.call(&n, method).await;
+        }
+    }
+
     pub fn forget(&mut self) {
         self.paused.clear();
     }

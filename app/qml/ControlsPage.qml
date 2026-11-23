@@ -41,6 +41,64 @@ Page {
         }
     }
 
+    // kulaklık işaretli basışları kendisi işlemez, bize iletir; bilgisayarda istenen her şeye bağlanabilir
+    Section {
+        id: press
+        title: qsTr("Basış Kısayolları")
+        footer: qsTr("Basışları bu bilgisayarda bir işe bağla. Atanmamış basışlar her zamanki gibi çalışır.")
+        enabled: Store.ready
+        property string side: "left"
+        readonly property var actions: ["", "playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "nothing", "cmd"]
+        readonly property var names: [qsTr("Oynat / Duraklat"), qsTr("Sonraki parça"), qsTr("Önceki parça"), qsTr("Sesi aç"),
+            qsTr("Sesi kıs"), qsTr("Mikrofonu sustur"), qsTr("Dinleme modunu değiştir"), qsTr("Hiçbir şey"), qsTr("Komut çalıştır…")]
+        function value(slot) {
+            const k = "stem." + slot
+            const v = Store.prefs[k]
+            return v !== undefined ? v : ((Store.prefs.stem || {})[slot] || "")
+        }
+        Setting {
+            title: qsTr("Kulaklık")
+            Segmented {
+                options: [qsTr("Sol"), qsTr("Sağ")]
+                current: press.side === "left" ? 0 : 1
+                onPicked: i => press.side = i === 0 ? "left" : "right"
+            }
+        }
+        Repeater {
+            model: [["double", qsTr("Çift basış"), qsTr("Varsayılan: sonraki parça")],
+                    ["triple", qsTr("Üç kez basış"), qsTr("Varsayılan: önceki parça")],
+                    ["long", qsTr("Basılı tutma"), qsTr("Varsayılan: yukarıdaki ayar")]]
+            Setting {
+                id: row
+                required property var modelData
+                readonly property string slot: modelData[0] + "." + press.side
+                readonly property string cur: press.value(slot)
+                readonly property bool isCmd: cur.startsWith("cmd:") || picker.currentIndex === 9
+                title: modelData[1]
+                subtitle: cur === "" ? modelData[2] : ""
+                Field {
+                    id: cmd
+                    visible: row.isCmd
+                    width: 180
+                    placeholderText: qsTr("ör. grim ~/ekran.png")
+                    text: row.cur.startsWith("cmd:") ? row.cur.slice(4) : ""
+                    Accessible.name: qsTr("Komut")
+                    onAccepted: { if (text.trim()) Backend.setPref("stem." + row.slot, "cmd:" + text.trim()); focus = false }
+                }
+                Dropdown {
+                    id: picker
+                    model: [qsTr("Varsayılan")].concat(press.names)
+                    currentIndex: row.cur.startsWith("cmd:") ? 9 : Math.max(0, press.actions.indexOf(row.cur))
+                    Accessible.name: row.title
+                    onPicked: i => {
+                        if (i === 9) { cmd.forceActiveFocus(); return }
+                        Backend.setPref("stem." + row.slot, press.actions[i])
+                    }
+                }
+            }
+        }
+    }
+
     Section {
         title: qsTr("Ses Düzeyi Kaydırma")
         enabled: Store.ready

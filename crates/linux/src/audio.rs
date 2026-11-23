@@ -50,7 +50,7 @@ pub async fn find(addr: &str) -> Option<(Target, Audio)> {
     if let Some(s) = &sink {
         let n = s["name"].as_str().unwrap_or("").to_string();
         a.available = true;
-        a.is_default = default.trim() == n;
+        a.is_default = default.trim() == n || default.trim() == crate::spatial::NODE;
         a.muted = s["mute"].as_bool().unwrap_or(false);
         a.volume = s["volume"]
             .as_object()

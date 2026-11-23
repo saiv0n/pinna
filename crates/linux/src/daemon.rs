@@ -1,6 +1,7 @@
 use pinna_core::aap::{self, Component, Mode, Packet, Pod};
 use crate::audio;
 use crate::mic;
+use crate::spatial::{self, Spatial};
 use crate::history::History;
 use crate::media::Media;
 use pinna_core::proximity::{self, Advert};
@@ -43,6 +44,8 @@ struct Inner {
     mic_on: bool,
     /// mikrofon açıkken konuşma algılama kapatıldı, kapanınca geri açılacak
     ca_paused: bool,
+    /// uzamsal ses için baş takibi akışı açık
+    spatial_head: bool,
 }
 
 #[derive(Clone)]
@@ -57,6 +60,7 @@ pub struct Daemon {
     wake: Arc<Notify>,
     /// oturum döngüsü her ses paketinde buna yazıyor, async kilit gerekmesin
     mic: Arc<std::sync::Mutex<Option<mic::Mic>>>,
+    spatial: Arc<Mutex<Option<Spatial>>>,
 }
 
 impl Daemon {
@@ -88,6 +92,7 @@ impl Daemon {
                 dropped: None,
                 mic_on: false,
                 ca_paused: false,
+                spatial_head: false,
             })),
             events,
             media: Arc::new(Mutex::new(Media::new(bus))),
@@ -96,6 +101,7 @@ impl Daemon {
             pairing,
             wake: Arc::new(Notify::new()),
             mic: Default::default(),
+            spatial: Default::default(),
         })
     }
 
@@ -166,6 +172,12 @@ impl Daemon {
         drop(g);
         if key == "callMic" {
             self.apply_call().await;
+        }
+        if key == "spatial" {
+            self.refresh_audio().await;
+        }
+        if key.starts_with("stem.") && self.inner.lock().await.state.ready {
+            self.send_stem_mask().await;
         }
         let _ = self.scan.send(scan);
         self.changed();
@@ -385,8 +397,44 @@ impl Daemon {
             t.make_default().await;
             return Box::pin(self.refresh_audio()).await;
         }
+        self.apply_spatial(target.and_then(|t| t.sink)).await;
         if changed {
             self.changed();
+        }
+    }
+
+    async fn apply_spatial(&self, sink: Option<String>) {
+        let (mode, name) = {
+            let g = self.inner.lock().await;
+            (g.state.prefs.spatial.clone(), g.state.name.clone())
+        };
+        let sink = sink.filter(|_| mode != "off" && spatial::available());
+        let mut sp = self.spatial.lock().await;
+        if sp.as_ref().map(|s| s.sink()) != sink.as_deref() {
+            if let Some(s) = sp.take() {
+                s.stop().await;
+            }
+            if let Some(k) = &sink {
+                *sp = Spatial::start(k, &name).await;
+                if sp.is_none() {
+                    warn!("uzamsal ses açılamadı");
+                }
+            }
+        }
+        let head = sp.is_some() && mode == "head";
+        if !head && let Some(s) = sp.as_mut() {
+            s.center().await;
+        }
+        drop(sp);
+        let mut g = self.inner.lock().await;
+        if g.state.ready && head != g.spatial_head {
+            g.spatial_head = head;
+            // canlı görünüm de akışı kullanıyor olabilir
+            let send = !g.state.head_tracking;
+            drop(g);
+            if send {
+                let _ = self.send(if head { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await;
+            }
         }
     }
 
@@ -486,7 +534,10 @@ impl Daemon {
     }
 
     pub async fn head_tracking(&self, on: bool) -> Result<()> {
-        self.send(if on { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await?;
+        // uzamsal ses akışa hâlâ ihtiyaç duyuyorsa kapatma
+        if on || !self.inner.lock().await.spatial_head {
+            self.send(if on { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await?;
+        }
         self.inner.lock().await.state.head_tracking = on;
         self.changed();
         Ok(())
@@ -727,6 +778,7 @@ impl Daemon {
         g.state.ear = Default::default();
         g.state.battery = Default::default();
         g.state.head_tracking = false;
+        g.spatial_head = false;
         g.state.audio = Default::default();
         g.audio_set = false;
         g.a2dp_fixed = false;
@@ -853,6 +905,7 @@ impl Daemon {
                 debug!("{k} geri yüklenemedi: {e}");
             }
         }
+        self.send_stem_mask().await;
         self.changed();
     }
 
@@ -943,13 +996,90 @@ impl Daemon {
                 g.config.save();
             }
             Packet::Head(v) => {
+                let feed = g.spatial_head;
                 drop(g);
+                if feed && let Some(s) = self.spatial.lock().await.as_mut() {
+                    s.head(v).await;
+                }
                 let _ = self.events.send(Event::Head(v));
+                return;
+            }
+            Packet::Stem { press, left } => {
+                drop(g);
+                self.stem(press, left).await;
                 return;
             }
             Packet::HandshakeAck | Packet::Other(_) => return,
         }
         self.changed();
+    }
+
+    async fn send_stem_mask(&self) {
+        let mask = self.inner.lock().await.state.prefs.stem_mask();
+        if let Err(e) = self.send(aap::control(aap::cmd::STEM_CONFIG, [mask, 0, 0, 0])).await {
+            debug!("sap ayarı gönderilemedi: {e}");
+        }
+    }
+
+    /// Kulaklık bir basışı bize ilettiğinde. Atanmamış taraf kulaklığın kendi davranışını taklit eder.
+    async fn stem(&self, press: u8, left: bool) {
+        let (name, fallback) = match press {
+            6 => ("double", "next"),
+            7 => ("triple", "previous"),
+            8 => ("long", "mode"),
+            _ => return,
+        };
+        let side = if left { "left" } else { "right" };
+        let (action, cycle, mode) = {
+            let g = self.inner.lock().await;
+            let hold = g.state.settings.get(if left { "holdLeft" } else { "holdRight" }).and_then(|v| v.as_u64());
+            let fb = if press == 8 && hold == Some(5) { "nothing" } else { fallback };
+            let a = g.state.prefs.stem.get(&format!("{name}.{side}")).cloned().unwrap_or_else(|| fb.into());
+            let cycle = g.state.settings.get("listeningCycle").and_then(|v| v.as_u64()).unwrap_or(0x0E) as u8;
+            (a, cycle, g.state.mode)
+        };
+        info!("sap basışı: {name} {side}, {action}");
+        let wpctl = |args: &[&str]| {
+            let mut c = tokio::process::Command::new("wpctl");
+            c.args(args);
+            c
+        };
+        match action.as_str() {
+            "playPause" => self.media.lock().await.player("PlayPause").await,
+            "next" => self.media.lock().await.player("Next").await,
+            "previous" => self.media.lock().await.player("Previous").await,
+            "volumeUp" => drop(wpctl(&["set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]).status().await),
+            "volumeDown" => drop(wpctl(&["set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]).status().await),
+            "micMute" => {
+                let _ = wpctl(&["set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]).status().await;
+                let out = wpctl(&["get-volume", "@DEFAULT_AUDIO_SOURCE@"]).output().await;
+                let muted = out.is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains("MUTED"));
+                let (t, i) = if muted { ("Mikrofon kapalı", "microphone-sensitivity-muted") } else { ("Mikrofon açık", "audio-input-microphone") };
+                self.media.lock().await.notify(t, "", i).await;
+            }
+            "mode" => {
+                let order = [(Mode::Anc, 2), (Mode::Transparency, 4), (Mode::Adaptive, 8), (Mode::Off, 1)];
+                let list: Vec<Mode> = order.iter().filter(|(_, b)| cycle & b != 0).map(|(m, _)| *m).collect();
+                let at = list.iter().position(|m| Some(*m) == mode);
+                if let Some(next) = at.map_or(list.first(), |i| list.get((i + 1) % list.len()))
+                    && let Err(e) = self.send(aap::control(aap::cmd::LISTENING_MODE, [next.byte(), 0, 0, 0])).await
+                {
+                    warn!("mod değiştirilemedi: {e}");
+                }
+            }
+            c => {
+                if let Some(cmd) = c.strip_prefix("cmd:") {
+                    // servis kısıtlı ortamda; komut kullanıcı oturumunda çalışsın
+                    let r = tokio::process::Command::new("systemd-run")
+                        .args(["--user", "--quiet", "--collect", "--", "sh", "-c", cmd])
+                        .status()
+                        .await;
+                    if !r.is_ok_and(|s| s.success()) {
+                        warn!("sap komutu çalışmadı: {cmd}");
+                    }
+                }
+            }
+        }
     }
 
     fn low_battery(&self, g: &mut Inner) -> Option<String> {

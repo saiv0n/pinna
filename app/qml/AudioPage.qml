@@ -36,6 +36,24 @@ Page {
     }
 
     Section {
+        title: qsTr("Uzamsal Ses")
+        footer: Store.pref("spatial", "off") === "head"
+            ? qsTr("Ses önündeki iki hoparlörden geliyormuş gibi duyulur ve başını çevirince yerinde kalır. Uzun süre yana bakarsan ses de yavaşça oraya yerleşir. Baş takibi pili biraz daha hızlı bitirir.")
+            : qsTr("Stereo ses, kafanın içinde değil önündeki iki hoparlörden geliyormuş gibi duyulur.")
+        enabled: Store.live
+        Setting {
+            title: qsTr("Uzamsal ses")
+            subtitle: Store.pref("spatial", "off") !== "off" && !Store.audio.available ? qsTr("Ses çıkışı bekleniyor…") : ""
+            Segmented {
+                readonly property var keys: ["off", "fixed", "head"]
+                options: [qsTr("Kapalı"), qsTr("Sabit"), qsTr("Baş takipli")]
+                current: Math.max(0, keys.indexOf(Store.pref("spatial", "off")))
+                onPicked: i => Backend.setPref("spatial", keys[i])
+            }
+        }
+    }
+
+    Section {
         id: calls
         title: qsTr("Görüşmeler")
         readonly property string mode: Store.pref("callMic", "computer")
