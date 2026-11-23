@@ -6,7 +6,9 @@ QtObject {
     readonly property var s: Backend.state
     readonly property var settings: s.settings || ({})
     readonly property var prefs: s.prefs || ({})
-    readonly property bool loaded: Backend.daemon && s.connected !== undefined
+    readonly property var battery: s.battery || ({})
+    readonly property var audio: s.audio || ({})
+    readonly property var devices: s.devices || []
     readonly property bool live: Backend.daemon && !!s.connected
     readonly property bool ready: live && s.ready !== false
     readonly property string name: s.name || "AirPods"
@@ -17,12 +19,17 @@ QtObject {
     function pref(key, fallback) {
         return prefs[key] !== undefined ? prefs[key] : fallback
     }
+    function level(k) {
+        const c = battery[k]
+        return c && c.level !== null && c.level !== undefined ? c.level : null
+    }
+    function charging(k) { return !!(battery[k] && battery[k].charging) }
 
     readonly property var modeNames: ({
-        off: "Kapalı",
-        transparency: "Şeffaflık",
-        adaptive: "Uyarlanabilir",
-        anc: "Gürültü Engelleme"
+        off: qsTr("Kapalı"),
+        transparency: qsTr("Şeffaflık"),
+        adaptive: qsTr("Uyarlanabilir"),
+        anc: qsTr("Gürültü Engelleme")
     })
     readonly property var cycleBits: [
         { bit: 1, key: "off" },
