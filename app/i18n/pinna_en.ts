@@ -106,28 +106,48 @@
         <translation>Use These</translation>
     </message>
     <message>
-        <source>Profil</source>
-        <translation>Profile</translation>
-    </message>
-    <message>
-        <source>Mikrofon açık, ses kalitesi düşük.</source>
-        <translation>Microphone on, lower audio quality.</translation>
-    </message>
-    <message>
-        <source>Yüksek kalite, mikrofon kapalı.</source>
-        <translation>High quality, microphone off.</translation>
-    </message>
-    <message>
-        <source>Yüksek kalite</source>
-        <translation>High quality</translation>
-    </message>
-    <message>
-        <source>Mikrofonlu</source>
-        <translation>With microphone</translation>
-    </message>
-    <message>
         <source>Ses düzeyi</source>
         <translation>Volume</translation>
+    </message>
+    <message>
+        <source>Görüşmeler</source>
+        <translation>Calls</translation>
+    </message>
+    <message>
+        <source>Kulaklığın mikrofonu açıkken Bluetooth ses kalitesini telefon düzeyine indirir (%1).</source>
+        <translation>While the earbud microphone is on, Bluetooth drops audio to phone quality (%1).</translation>
+    </message>
+    <message>
+        <source>Discord gibi uygulamalarda ses bozuluyorsa yüksek kaliteyi açık tut.</source>
+        <translation>If audio sounds bad in apps like Discord, keep high quality on.</translation>
+    </message>
+    <message>
+        <source>Görüşmede yüksek kaliteli ses</source>
+        <translation>High quality audio in calls</translation>
+    </message>
+    <message>
+        <source>Kulaklık müzik kalitesinde kalır, mikrofon olarak bilgisayarınki kullanılır.</source>
+        <translation>Earbuds stay at music quality and the computer's microphone is used.</translation>
+    </message>
+    <message>
+        <source>Kulaklığın mikrofonu</source>
+        <translation>Earbud microphone</translation>
+    </message>
+    <message>
+        <source>Açık, %1.</source>
+        <translation>On, %1.</translation>
+    </message>
+    <message>
+        <source>Kapalı, %1.</source>
+        <translation>Off, %1.</translation>
+    </message>
+    <message>
+        <source>Kapalı</source>
+        <translation>Off</translation>
+    </message>
+    <message>
+        <source>Açık</source>
+        <translation>On</translation>
     </message>
     <message>
         <source>Bağlanınca bu kulaklığa geç</source>

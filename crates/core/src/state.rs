@@ -82,6 +82,8 @@ pub struct Audio {
     pub volume: u8,
     pub muted: bool,
     pub is_default: bool,
+    /// etkin profilin kodeği, AAC ya da LC3-24kHz gibi
+    pub codec: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,6 +101,8 @@ pub struct Prefs {
     pub charged_notify: bool,
     /// bağlanınca varsayılan ses çıkışı yap
     pub auto_output: bool,
+    /// görüşmede kulaklık A2DP'de kalsın, mikrofon bilgisayarınki olsun
+    pub call_quality: bool,
 }
 
 impl Default for Prefs {
@@ -114,6 +118,7 @@ impl Default for Prefs {
             low_battery: 20,
             charged_notify: true,
             auto_output: true,
+            call_quality: true,
         }
     }
 }
@@ -132,6 +137,7 @@ impl Prefs {
             "lowBattery" => self.low_battery = v.parse::<u8>()?.clamp(5, 50),
             "chargedNotify" => self.charged_notify = b()?,
             "autoOutput" => self.auto_output = b()?,
+            "callQuality" => self.call_quality = b()?,
             _ => anyhow::bail!("bilinmeyen tercih: {key}"),
         }
         Ok(())

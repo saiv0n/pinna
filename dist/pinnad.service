@@ -17,6 +17,8 @@ StateDirectory=pinna
 StateDirectoryMode=0700
 ProtectSystem=strict
 ProtectHome=read-only
+# görüşme ayarı için tek istisna
+ReadWritePaths=-%h/.config/wireplumber/wireplumber.conf.d
 PrivateTmp=yes
 NoNewPrivileges=yes
 RestrictSUIDSGID=yes

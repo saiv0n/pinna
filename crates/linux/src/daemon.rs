@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, Notify, broadcast, mpsc, watch};
 
 const APPLE: u32 = 0x004C;
+const A2DP_SINK: bluer::Uuid = bluer::Uuid::from_u128(0x0000110b_0000_1000_8000_00805f9b34fb);
 
 #[derive(Debug, Clone)]
 pub enum Event {
@@ -33,6 +34,10 @@ struct Inner {
     /// şarj bitti bildirimi gönderildi mi: sol, sağ, kutu
     full: [bool; 3],
     audio_set: bool,
+    a2dp_fixed: bool,
+    /// Bluetooth kapanırken bağlıydı, açılınca geri bağlan
+    reconnect: bool,
+    dropped: Option<Instant>,
 }
 
 #[derive(Clone)]
@@ -71,6 +76,9 @@ impl Daemon {
                 history: History::default(),
                 full: [true; 3],
                 audio_set: false,
+                a2dp_fixed: false,
+                reconnect: false,
+                dropped: None,
             })),
             events,
             media: Arc::new(Mutex::new(Media::new(bus))),
@@ -144,8 +152,12 @@ impl Daemon {
         g.config.prefs.set(key, v).map_err(|e| anyhow!("invalid: {e}"))?;
         g.state.prefs = g.config.prefs.clone();
         let scan = g.config.prefs.case_scan && !g.state.connected;
+        let quality = g.config.prefs.call_quality;
         g.config.save();
         drop(g);
+        if key == "callQuality" {
+            audio::call_quality(quality).await;
+        }
         let _ = self.scan.send(scan);
         self.changed();
         Ok(())
@@ -330,8 +342,8 @@ impl Daemon {
             let g = self.inner.lock().await;
             (g.state.address.clone(), g.state.connected)
         };
-        let found = match addr {
-            Some(a) if connected => audio::find(&a).await,
+        let found = match &addr {
+            Some(a) if connected => audio::find(a).await,
             _ => None,
         };
         let (target, a) = match found {
@@ -340,6 +352,17 @@ impl Daemon {
         };
         let mut g = self.inner.lock().await;
         // ilk kez çıkış görününce varsayılan yap, sonra kullanıcının seçimine karışma
+        let fix_a2dp = target.as_ref().is_some_and(|t| t.lost_a2dp()) && !g.a2dp_fixed;
+        if fix_a2dp {
+            g.a2dp_fixed = true;
+            let d = addr.as_deref().and_then(|a| a.parse::<Address>().ok()).and_then(|a| self.adapter.device(a).ok());
+            drop(g);
+            if let Some(d) = d {
+                info!("A2DP bağlı değil, yeniden isteniyor");
+                let _ = d.connect_profile(&A2DP_SINK).await;
+            }
+            g = self.inner.lock().await;
+        }
         let make_default = a.available && !a.is_default && !g.audio_set && g.state.prefs.auto_output;
         if a.available {
             g.audio_set = true;
@@ -441,6 +464,8 @@ impl Daemon {
         tokio::spawn(self.clone().pair_loop());
         tokio::spawn(self.clone().bluez_events());
         tokio::spawn(self.clone().audio_events());
+        let quality = self.inner.lock().await.config.prefs.call_quality;
+        tokio::spawn(audio::call_quality(quality));
         loop {
             let powered = self.adapter.is_powered().await.unwrap_or(false);
             {
@@ -497,12 +522,32 @@ impl Daemon {
                 }
                 AdapterEvent::PropertyChanged(bluer::AdapterProperty::Powered(on)) => {
                     let mut g = self.inner.lock().await;
+                    // bağlantı kapanma olayından hemen önce ya da sonra düşebilir
+                    let just_dropped = g.dropped.is_some_and(|t| t.elapsed() < Duration::from_secs(5));
+                    if !on && (g.state.connected || just_dropped) {
+                        g.reconnect = true;
+                    }
+                    let reconnect = on && std::mem::take(&mut g.reconnect);
                     if g.state.adapter != on {
                         g.state.adapter = on;
                         drop(g);
                         self.changed();
+                    } else {
+                        drop(g);
                     }
                     self.wake.notify_one();
+                    if reconnect {
+                        // uykudan dönüşte de bu yoldan geçiyor; kulaklık hazır olana kadar birkaç kez dene
+                        let me = self.clone();
+                        tokio::spawn(async move {
+                            for _ in 0..3 {
+                                tokio::time::sleep(Duration::from_secs(2)).await;
+                                if me.inner.lock().await.state.connected || me.connect().await.is_ok() {
+                                    break;
+                                }
+                            }
+                        });
+                    }
                 }
                 _ => {}
             }
@@ -571,6 +616,8 @@ impl Daemon {
         g.state.head_tracking = false;
         g.state.audio = Default::default();
         g.audio_set = false;
+        g.a2dp_fixed = false;
+        g.dropped = Some(Instant::now());
         drop(g);
         self.media.lock().await.forget();
         self.changed();
@@ -807,8 +854,9 @@ impl Daemon {
         let mut done = Vec::new();
         for (i, (c, name)) in cells.iter().enumerate() {
             match c.level {
-                // tam dolu başlarsa bildirme, sadece şarj olurken dolanı söyle
-                Some(100) if c.charging && !g.full[i] => {
+                // tam dolu başlarsa bildirme; %95 altından 100'e çıkan şarj olmuştur,
+                // dolunca şarj bitini kapatan kulaklıkta da bildirim gelsin diye bite bakılmıyor
+                Some(100) if !g.full[i] => {
                     g.full[i] = true;
                     done.push(*name);
                 }

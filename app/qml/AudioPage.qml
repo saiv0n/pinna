@@ -18,15 +18,6 @@ Page {
                 onClicked: Backend.setAudio("default", true)
             }
         }
-        Setting {
-            title: qsTr("Profil")
-            subtitle: a.profile === "hfp" ? qsTr("Mikrofon açık, ses kalitesi düşük.") : qsTr("Yüksek kalite, mikrofon kapalı.")
-            Segmented {
-                options: [qsTr("Yüksek kalite"), qsTr("Mikrofonlu")]
-                current: a.profile === "hfp" ? 1 : 0
-                onPicked: i => Backend.setAudio("profile", i ? "hfp" : "a2dp")
-            }
-        }
         Block {
             Item {
                 width: parent.width
@@ -40,6 +31,32 @@ Page {
                 to: 100
                 target: a.volume || 0
                 onCommitted: v => Backend.setAudio("volume", Math.round(v))
+            }
+        }
+    }
+
+    Section {
+        title: qsTr("Görüşmeler")
+        footer: a.profile === "hfp"
+            ? qsTr("Kulaklığın mikrofonu açıkken Bluetooth ses kalitesini telefon düzeyine indirir (%1).").arg(a.codec || "HFP")
+            : qsTr("Discord gibi uygulamalarda ses bozuluyorsa yüksek kaliteyi açık tut.")
+        Setting {
+            title: qsTr("Görüşmede yüksek kaliteli ses")
+            subtitle: qsTr("Kulaklık müzik kalitesinde kalır, mikrofon olarak bilgisayarınki kullanılır.")
+            enabled: Backend.daemon
+            Switch {
+                checked: Store.pref("callQuality", true)
+                onToggled: v => Backend.setPref("callQuality", v)
+            }
+        }
+        Setting {
+            title: qsTr("Kulaklığın mikrofonu")
+            subtitle: a.profile === "hfp" ? qsTr("Açık, %1.").arg(a.codec || "HFP") : qsTr("Kapalı, %1.").arg(a.codec || "A2DP")
+            enabled: Store.live && !!a.available
+            Segmented {
+                options: [qsTr("Kapalı"), qsTr("Açık")]
+                current: a.profile === "hfp" ? 1 : 0
+                onPicked: i => Backend.setAudio("profile", i ? "hfp" : "a2dp")
             }
         }
     }

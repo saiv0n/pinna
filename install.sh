@@ -25,7 +25,7 @@ install -Dm644 dist/pinnad.service "$HOME/.config/systemd/user/pinnad.service"
 install -Dm644 dist/dev.pinna.Daemon.service "$prefix/share/dbus-1/services/dev.pinna.Daemon.service"
 
 # BLE anahtarları burada, başkası okuyamasın
-mkdir -p "$HOME/.config/pinna" "$HOME/.local/state/pinna"
+mkdir -p "$HOME/.config/pinna" "$HOME/.local/state/pinna" "$HOME/.config/wireplumber/wireplumber.conf.d"
 chmod 700 "$HOME/.config/pinna" "$HOME/.local/state/pinna"
 
 systemctl --user daemon-reload

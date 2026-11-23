@@ -24,6 +24,7 @@ fn ours(v: &Value, addr: &str) -> bool {
 
 pub struct Target {
     pub card: String,
+    addr: String,
     pub sink: Option<String>,
     profiles: Vec<(String, u64)>,
 }
@@ -42,7 +43,9 @@ pub async fn find(addr: &str) -> Option<(Target, Audio)> {
         .unwrap_or_default();
     let sink = list("sinks").await.into_iter().find(|s| ours(s, addr));
     let default = pactl(&["get-default-sink"]).await.unwrap_or_default();
-    let mut a = Audio { profile: kind(&active).into(), ..Default::default() };
+    let desc = card["profiles"][&active]["description"].as_str().unwrap_or("");
+    let codec = desc.split("codec ").nth(1).map(|c| c.trim_end_matches(')').to_string()).unwrap_or_default();
+    let mut a = Audio { profile: kind(&active).into(), codec, ..Default::default() };
     let mut name = None;
     if let Some(s) = &sink {
         let n = s["name"].as_str().unwrap_or("").to_string();
@@ -58,7 +61,8 @@ pub async fn find(addr: &str) -> Option<(Target, Audio)> {
             .min(150) as u8;
         name = Some(n);
     }
-    Some((Target { card: card["name"].as_str().unwrap_or("").into(), sink: name, profiles }, a))
+    let card = card["name"].as_str().unwrap_or("").into();
+    Some((Target { card, addr: addr.into(), sink: name, profiles }, a))
 }
 
 fn kind(profile: &str) -> &'static str {
@@ -77,7 +81,27 @@ impl Target {
         let Some((p, _)) = self.profiles.iter().filter(|(p, _)| kind(p) == want).max_by_key(|(_, prio)| *prio) else {
             return false;
         };
-        pactl(&["set-card-profile", &self.card, p]).await.is_some()
+        if pactl(&["set-card-profile", &self.card, p]).await.is_none() {
+            return false;
+        }
+        // mikrofonu seçince uygulamalar da onu kullansın, bırakınca dahili mikrofona dön
+        let src = pactl(&["get-default-source"]).await.unwrap_or_default();
+        if want == "hfp" {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            if let Some(s) = list("sources").await.into_iter().find(|s| s["name"].as_str().is_some_and(|n| n.starts_with("bluez_input.")) && ours(s, &self.addr)) {
+                pactl(&["set-default-source", s["name"].as_str().unwrap_or("")]).await;
+            }
+        } else if src.starts_with("bluez_input.")
+            && let Some(s) = list("sources").await.into_iter().find(|s| s["name"].as_str().is_some_and(|n| n.starts_with("alsa_input.")))
+        {
+            pactl(&["set-default-source", s["name"].as_str().unwrap_or("")]).await;
+        }
+        true
+    }
+
+    /// WirePlumber yeniden başlayınca kulaklık bazen yalnız HFP ile bağlanıyor.
+    pub fn lost_a2dp(&self) -> bool {
+        !self.profiles.iter().any(|(p, _)| kind(p) == "a2dp")
     }
 
     pub async fn set_volume(&self, v: u8) -> bool {
@@ -88,5 +112,26 @@ impl Target {
     pub async fn make_default(&self) -> bool {
         let Some(s) = &self.sink else { return false };
         pactl(&["set-default-sink", s]).await.is_some()
+    }
+}
+
+const AUTOSWITCH: &str = "bluetooth.autoswitch-to-headset-profile";
+
+/// Açıkken kayıt başlayınca WirePlumber kulaklığı HFP'ye geçirmez.
+/// Ayar hem WirePlumber'ın kendi kaydına hem de yapılandırma dosyasına yazılır.
+pub async fn call_quality(on: bool) {
+    let want = (!on).to_string();
+    let now = Command::new("wpctl").args(["settings", AUTOSWITCH]).output().await.ok();
+    let same = now.is_some_and(|o| String::from_utf8_lossy(&o.stdout).contains(&format!("Value: {want} (Saved: {want})")));
+    if !same {
+        let _ = Command::new("wpctl").args(["settings", "--save", AUTOSWITCH, &want]).output().await;
+    }
+    let Some(dir) = dirs::config_dir().map(|d| d.join("wireplumber/wireplumber.conf.d")) else { return };
+    let file = dir.join("51-pinna.conf");
+    let body = format!("# pinna yazdı, uygulamadaki görüşme ayarıyla değişir\nwireplumber.settings = {{\n  {AUTOSWITCH} = {want}\n}}\n");
+    if std::fs::read_to_string(&file).ok().as_deref() != Some(body.as_str())
+        && let Err(e) = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(&file, body))
+    {
+        log::warn!("wireplumber ayarı yazılamadı: {e}");
     }
 }
