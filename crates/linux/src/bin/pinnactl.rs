@@ -16,7 +16,6 @@ trait Daemon {
     async fn rename(&self, name: &str) -> zbus::Result<()>;
     async fn connect(&self) -> zbus::Result<()>;
     async fn disconnect(&self) -> zbus::Result<()>;
-    async fn send_raw(&self, id: u8, d1: u8, d2: u8) -> zbus::Result<()>;
     #[zbus(signal)]
     fn state_changed(&self, json: &str) -> zbus::Result<()>;
 }
@@ -49,20 +48,6 @@ enum Cmd {
     Rename { name: String },
     Connect,
     Disconnect,
-    /// Ham kontrol komutu gönder (deneme için)
-    Raw {
-        #[arg(value_parser = hex_u8)]
-        id: u8,
-        #[arg(value_parser = hex_u8)]
-        d1: u8,
-        #[arg(value_parser = hex_u8, default_value = "0")]
-        d2: u8,
-    },
-}
-
-fn hex_u8(s: &str) -> Result<u8, String> {
-    let s = s.trim_start_matches("0x");
-    u8::from_str_radix(s, 16).map_err(|e| e.to_string())
 }
 
 fn bat(v: &Value) -> String {
@@ -115,11 +100,16 @@ async fn main() -> anyhow::Result<()> {
             let mut st = p.receive_state_changed().await?;
             let mut out = std::io::stdout().lock();
             // okuyan taraf kapanınca sessizce çık
-            if writeln!(out, "{}", p.state().await?).and_then(|_| out.flush()).is_err() {
+            let mut full: Value = serde_json::from_str(&p.state().await?)?;
+            if writeln!(out, "{full}").and_then(|_| out.flush()).is_err() {
                 return Ok(());
             }
+            // servis sadece değişen alanları yolluyor, satır başına yine tam durum yazılsın
             while let Some(sig) = st.next().await {
-                if writeln!(out, "{}", sig.args()?.json).and_then(|_| out.flush()).is_err() {
+                if let (Value::Object(m), Ok(Value::Object(d))) = (&mut full, serde_json::from_str(sig.args()?.json)) {
+                    m.extend(d);
+                }
+                if writeln!(out, "{full}").and_then(|_| out.flush()).is_err() {
                     return Ok(());
                 }
             }
@@ -140,7 +130,6 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Rename { name } => p.rename(&name).await?,
         Cmd::Connect => p.connect().await?,
         Cmd::Disconnect => p.disconnect().await?,
-        Cmd::Raw { id, d1, d2 } => p.send_raw(id, d1, d2).await?,
     }
     Ok(())
 }

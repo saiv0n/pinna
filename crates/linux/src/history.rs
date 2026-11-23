@@ -44,14 +44,15 @@ impl History {
         if let Some(d) = p.parent() {
             let _ = std::fs::create_dir_all(d);
         }
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&p) {
+        use std::os::unix::fs::OpenOptionsExt;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).mode(0o600).open(&p) {
             let _ = writeln!(f, "{t},{},{},{}", v[0], v[1], v[2]);
         }
         self.lines += 1;
         if self.lines > 500 {
             self.lines = 0;
             let keep: Vec<String> = read().into_iter().map(|r| format!("{},{},{},{}", r[0], r[1], r[2], r[3])).collect();
-            let _ = std::fs::write(&p, keep.join("\n") + "\n");
+            let _ = pinna_core::state::write_private(&p, (keep.join("\n") + "\n").as_bytes());
         }
     }
 }

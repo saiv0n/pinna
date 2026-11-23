@@ -25,7 +25,7 @@ fn ours(v: &Value, addr: &str) -> bool {
 pub struct Target {
     pub card: String,
     pub sink: Option<String>,
-    profiles: Vec<String>,
+    profiles: Vec<(String, u64)>,
 }
 
 pub async fn find(addr: &str) -> Option<(Target, Audio)> {
@@ -36,7 +36,7 @@ pub async fn find(addr: &str) -> Option<(Target, Audio)> {
         .map(|m| {
             m.iter()
                 .filter(|(_, p)| p["available"].as_bool().unwrap_or(true))
-                .map(|(k, _)| k.clone())
+                .map(|(k, p)| (k.clone(), p["priority"].as_u64().unwrap_or(0)))
                 .collect()
         })
         .unwrap_or_default();
@@ -73,8 +73,10 @@ fn kind(profile: &str) -> &'static str {
 
 impl Target {
     pub async fn set_profile(&self, want: &str) -> bool {
-        // aynı türden birden çok profil olabilir (aac, msbc); ilki yeter
-        let Some(p) = self.profiles.iter().filter(|p| kind(p) == want).max_by_key(|p| p.len()) else { return false };
+        // aynı türden birden çok kodek var; PipeWire'ın en yüksek önceliği verdiği en iyisi (AAC, LC3)
+        let Some((p, _)) = self.profiles.iter().filter(|(p, _)| kind(p) == want).max_by_key(|(_, prio)| *prio) else {
+            return false;
+        };
         pactl(&["set-card-profile", &self.card, p]).await.is_some()
     }
 
