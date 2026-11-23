@@ -6,21 +6,24 @@ Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup ol
 
 ## Neler yapıyor
 
-- Sol, sağ ve kutu pilini yüzde olarak gösteriyor, şarj olanı ayırıyor.
-- Gürültü engelleme, şeffaf, uyarlanabilir ve kapalı modları arasında geçiyor. Uyarlanabilir modda ne kadar ortam sesi gireceğini 0 ile 100 arasında ayarlayabiliyorsun.
-- Konuşma algılama, kişiselleştirilmiş ses düzeyi, tek kulaklıkla gürültü engelleme, ses kaydırma, basma hızı, basılı tutma süresi, kutu hoparlörünün sesi, uyku algılama.
+- Sol, sağ ve kutu pilini gösteriyor, son 24 saatin pil grafiğini tutuyor. Pil azalınca (eşiği sen seçiyorsun) ve şarj bitince bildirim gönderiyor.
+- Gürültü engelleme, şeffaf, uyarlanabilir ve kapalı modları arasında anında geçiyor. Uyarlanabilir modda ne kadar ortam sesi gireceğini 0 ile 100 arasında ayarlayabiliyorsun.
+- Konuşma algılama, kişiselleştirilmiş ses düzeyi, tek kulaklıkla gürültü engelleme, ses kaydırma, basma hızı, basılı tutma süresi, mikrofon seçimi, kulak algılama, kutu hoparlörünün sesi, uyku algılama, işitme desteği.
 - Sapı basılı tutunca hangi modlar arasında geçileceğini ve sol ile sağ kulaklığın ne yapacağını seçebiliyorsun. Kulaklık bunları her yeni cihazda unuttuğu için Pinna her bağlantıda yeniden yazıyor.
-- Kulaklığın adını değiştirebiliyorsun.
-- Bir kulaklığı çıkarınca çalan şey duruyor, takınca devam ediyor (MPRIS destekleyen her oynatıcıda).
-- Konuşmaya başlayınca bilgisayarın sesini de kısıyor.
-- Kutuyu açınca ya da kulaklık bağlanınca iPhone'daki gibi küçük bir kart çıkıyor.
-- Pil azalınca bildirim gönderiyor.
+- Bağlanınca kulaklığı varsayılan ses çıkışı yapıyor. Yüksek kalite ile mikrofonlu profil arasında geçiş ve ses düzeyi uygulamanın içinden.
+- Birden fazla eşli AirPods ya da Beats varsa aralarında geçebiliyor, yenisini eşleştirebiliyor, eskisini unutabiliyorsun.
+- Sistem tepsisinde duruyor: pil, mod değiştirme, bağlan ve kes. Pencereyi kapatınca tepside kalıyor, istersen oturum açılınca tepside başlıyor.
+- Bir kulaklığı çıkarınca çalan şey duruyor, takınca devam ediyor (MPRIS destekleyen her oynatıcıda). Konuşmaya başlayınca bilgisayarın sesini de kısıyor.
+- Kutuyu açınca ya da kulaklık bağlanınca köşede küçük bir kart çıkıyor.
+- Türkçe ve İngilizce. Varsayılan olarak sistem dilini izliyor, Bu Bilgisayar sayfasından değiştirilebiliyor.
+
+Baş takibi deneysel: Pinna akışı başlatan paketi gönderiyor ama denediğim kulaklık veri göndermedi. Kulaklık uyarlama ve şeffaflık modunu özelleştirme henüz yok, arayüzde de öyle yazıyor.
 
 Şu an AirPods Pro 2 (USB-C) üzerinde denendi. Diğer AirPods ve Beats modelleri de aynı protokolü konuştuğu için çoğu ayar çalışmalı, ama kulaklık bir özelliği desteklemiyorsa o ayar bir şey yapmaz.
 
 ## Kurulum
 
-Gerekenler: Rust (1.85 ya da yenisi), Qt 6.8 ya da yenisi (Quick, QuickControls2, QuickEffects, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl`).
+Gerekenler: Rust (1.85 ya da yenisi), Qt 6.8 ya da yenisi (Widgets, Quick, QuickControls2, QuickEffects, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` ve `pactl`). Çeviri için `lrelease` gerekiyor; yoksa arayüz Türkçe kalır.
 
 ```bash
 ./install.sh
@@ -30,10 +33,17 @@ Betik her şeyi `~/.local` altına kurar, `pinnad` servisini `systemctl --user` 
 
 Kulaklığı önce sistemin Bluetooth ayarlarından bir kez eşleştirmen yeterli. Sonrasında Pinna kendisi bulur.
 
-Bazı özellikler kulaklığın karşısında bir Apple cihazı olduğunu görmek istiyor. Bunun için `/etc/bluetooth/main.conf` dosyasına şu satırı ekleyip Bluetooth'u yeniden başlatabilirsin:
+Bazı özellikler kulaklığın karşısında bir Apple cihazı olduğunu görmek istiyor. Bu Bilgisayar sayfasındaki DeviceID ayarı `/etc/bluetooth/main.conf` dosyasına şu satırı ekleyip Bluetooth'u yeniden başlatıyor. Çalıştırmadan önce komutu gösterip parola soruyor. Elle yapmak istersen:
 
 ```
 DeviceID = bluetooth:004C:0000:0000
+```
+
+Hyprland'de pencerenin yüzmesi ve kartın sağ üstte açılması için:
+
+```lua
+hl.window_rule({ name = "pinna", match = { class = "^(dev.pinna.Pinna)$" }, float = true, center = true, size = "900 620" })
+hl.window_rule({ name = "pinna-kart", match = { class = "^(dev.pinna.Popup)$" }, float = true, pin = true, move = "(monitor_w-window_w-16) 16", no_initial_focus = true })
 ```
 
 ## Komut satırı
@@ -64,7 +74,7 @@ Proje üç parça:
 
 - `crates/core` protokolün kendisi: paketler, BLE reklamlarının çözümü, ayar tablosu. İşletim sisteminden bağımsız, ileride Windows ve Android sürümleri de bunu kullanacak.
 - `crates/linux` BlueZ ile konuşan `pinnad` servisi ve `pinnactl`. Servis durumu D-Bus üzerinden `dev.pinna.Daemon` adıyla yayınlıyor.
-- `app` Qt Quick ile yazılmış arayüz.
+- `app` Qt Quick ile yazılmış arayüz. Yeni metin ekleyince `app/i18n/update.py` çeviri dosyasını günceller.
 
 Kulaklık görselleri Blender'da render ediliyor. Model Jed Falcone'un [AirPods Pro](https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c) çalışması, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) lisanslı. Modelin kendisi repoda yok; Sketchfab'den indirip görselleri şöyle yeniden üretebilirsin:
 

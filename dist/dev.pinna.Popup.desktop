@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Pinna kartı
+GenericName=AirPods Ayarları
+Comment=AirPods'u bağla, pilini gör, tüm ayarlarını değiştir
+Exec=pinna --popup
+Icon=dev.pinna.Pinna
+Terminal=false
+StartupWMClass=dev.pinna.Popup
+NoDisplay=true
