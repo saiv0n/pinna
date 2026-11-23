@@ -63,6 +63,8 @@ pub struct State {
     /// signal strength (dBm) and time of the last BLE advert while disconnected, for finding nearby buds
     pub signal: Option<i16>,
     pub signal_at: u64,
+    /// custom EQ as the buds last reported it; None when the model has none
+    pub eq: Option<crate::aap::Eq>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]

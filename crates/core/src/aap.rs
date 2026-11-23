@@ -159,7 +159,25 @@ pub enum Packet {
     Head([i16; 5]),
     /// stem press: 5 single, 6 double, 7 triple, 8 long
     Stem { press: u8, left: bool },
+    /// custom EQ, bands 0 to 100 with 50 flat
+    Eq(Eq),
     Other(u16),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct Eq {
+    pub enabled: bool,
+    pub low: u8,
+    pub mid: u8,
+    pub high: u8,
+}
+
+/// Format from MagicPodsCore; the buds send the same layout on connect.
+pub fn eq(e: Eq) -> Vec<u8> {
+    let mut p = HDR.to_vec();
+    p.extend_from_slice(&[0x63, 0x00, 0x05, 0x00, 0x01, if e.enabled { 2 } else { 1 }]);
+    p.extend_from_slice(&[e.low.min(100), e.mid.min(100), e.high.min(100)]);
+    p
 }
 
 pub fn control(id: u8, data: [u8; 4]) -> Vec<u8> {
@@ -223,6 +241,9 @@ pub fn parse(d: &[u8]) -> Option<Packet> {
             Packet::Control { id, data }
         }
         0x4B => Packet::Speaking(*body.get(3)?),
+        0x63 if body.len() >= 7 && body[..3] == [0x05, 0x00, 0x01] && body[4..7].iter().all(|b| *b <= 100) => {
+            Packet::Eq(Eq { enabled: body[3] == 2, low: body[4], mid: body[5], high: body[6] })
+        }
         0x19 => Packet::Stem { press: *body.first()?, left: *body.get(1)? == 0x01 },
         0x1D => Packet::Info(parse_info(body)),
         0x31 => parse_keys(body)?,
@@ -287,6 +308,17 @@ mod tests {
     fn battery_out_of_range() {
         let Some(Packet::Battery(b)) = parse(&hex("040004000400010201 7f0101".replace(' ', "").as_str())) else { panic!() };
         assert!(!b[0].connected);
+    }
+
+    #[test]
+    fn custom_eq() {
+        // sent by AirPods Pro 2 (USB-C) on connect: off, all bands flat
+        let Some(Packet::Eq(e)) = parse(&hex("04000400630005000101323232")) else { panic!() };
+        assert_eq!(e, Eq { enabled: false, low: 50, mid: 50, high: 50 });
+        let on = Eq { enabled: true, low: 70, mid: 50, high: 30 };
+        let Some(Packet::Eq(back)) = parse(&eq(on)) else { panic!() };
+        assert_eq!(back, on);
+        assert!(matches!(parse(&hex("04000400630005000101ff3232")), Some(Packet::Other(0x63))));
     }
 
     #[test]

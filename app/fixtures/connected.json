@@ -1,0 +1,81 @@
+{
+ "adapter": true,
+ "address": "00:11:22:33:44:55",
+ "connected": true,
+ "ready": true,
+ "name": "saivon's AirPods Pro",
+ "model": "",
+ "modelName": "AirPods Pro 2 (USB-C)",
+ "modelId": 8228,
+ "firmware": "",
+ "serial": "TEST",
+ "serialLeft": "TEST",
+ "serialRight": "TEST",
+ "battery": {
+  "left": {
+   "level": 82,
+   "charging": false
+  },
+  "right": {
+   "level": 79,
+   "charging": false
+  },
+  "case": {
+   "level": 64,
+   "charging": true
+  }
+ },
+ "ear": {
+  "left": "ear",
+  "right": "ear"
+ },
+ "mode": "anc",
+ "speaking": false,
+ "settings": {},
+ "prefs": {
+  "autoPause": true,
+  "autoResume": true,
+  "duckOnSpeech": true,
+  "duckLevel": 25,
+  "lowBatteryNotify": true,
+  "popup": true,
+  "caseScan": true,
+  "lowBattery": 20,
+  "chargedNotify": true,
+  "autoOutput": true,
+  "callMic": "airpods",
+  "stem": {},
+  "caOneBud": false,
+  "spatial": "off"
+ },
+ "hasKeys": true,
+ "devices": [
+  {
+   "address": "00:11:22:33:44:55",
+   "name": "saivon's AirPods Pro",
+   "modelName": "AirPods Pro 2 (USB-C)",
+   "modelId": 8228,
+   "connected": true
+  }
+ ],
+ "nearby": [],
+ "discovering": false,
+ "audio": {
+  "available": true,
+  "profile": "a2dp",
+  "volume": 60,
+  "muted": false,
+  "isDefault": true,
+  "codec": "AAC",
+  "micActive": false
+ },
+ "headTracking": false,
+ "signal": null,
+ "signalAt": 0,
+ "eq": {
+  "enabled": true,
+  "low": 62,
+  "mid": 50,
+  "high": 41
+ }
+}

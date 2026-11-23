@@ -142,6 +142,38 @@
         <translation>Baş takipli</translation>
     </message>
     <message>
+        <source>Equalizer</source>
+        <translation>Ekolayzır</translation>
+    </message>
+    <message>
+        <source>Changes the sound in the headphones themselves.</source>
+        <translation>Sesi kulaklığın kendisinde değiştirir.</translation>
+    </message>
+    <message>
+        <source>Custom equalizer</source>
+        <translation>Özel ekolayzır</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>Sıfırla</translation>
+    </message>
+    <message>
+        <source>Bass</source>
+        <translation>Bas</translation>
+    </message>
+    <message>
+        <source>Mids</source>
+        <translation>Orta</translation>
+    </message>
+    <message>
+        <source>Treble</source>
+        <translation>Tiz</translation>
+    </message>
+    <message>
+        <source>Flat</source>
+        <translation>Düz</translation>
+    </message>
+    <message>
         <source>Calls</source>
         <translation>Görüşmeler</translation>
     </message>
@@ -1352,16 +1384,16 @@
         <translation>Bilinmeyen mod.</translation>
     </message>
     <message>
+        <source>Invalid value for this setting.</source>
+        <translation>Bu ayar için geçersiz değer.</translation>
+    </message>
+    <message>
         <source>The value must be 1 or 5.</source>
         <translation>Değer 1 ya da 5 olmalı.</translation>
     </message>
     <message>
         <source>Unknown setting.</source>
         <translation>Bilinmeyen ayar.</translation>
-    </message>
-    <message>
-        <source>Invalid value for this setting.</source>
-        <translation>Bu ayar için geçersiz değer.</translation>
     </message>
     <message>
         <source>The name must be 1 to 32 bytes with no control characters.</source>

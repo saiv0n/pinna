@@ -144,7 +144,20 @@ impl Daemon {
         let value: Value;
         {
             let g = self.inner.lock().await;
-            if key == "holdLeft" || key == "holdRight" {
+            if key == "eq" {
+                // "on,50,50,50": enabled, low, mid, high
+                let f: Vec<&str> = v.split(',').collect();
+                let n = |i: usize| f.get(i).and_then(|x| x.trim().parse::<u8>().ok()).filter(|n| *n <= 100);
+                let (Some(on), Some(low), Some(mid), Some(high)) = (f.first().and_then(|x| state::parse_bool(x.trim())), n(1), n(2), n(3)) else {
+                    bail!("invalid: Invalid value for this setting.");
+                };
+                let e = aap::Eq { enabled: on, low, mid, high };
+                drop(g);
+                self.send(aap::eq(e)).await?;
+                self.inner.lock().await.state.eq = Some(e);
+                self.changed();
+                return Ok(());
+            } else if key == "holdLeft" || key == "holdRight" {
                 let n: u8 = v.parse().ok().filter(|n| *n == 1 || *n == 5).context("invalid: The value must be 1 or 5.")?;
                 let cur = |k: &str| g.state.settings.get(k).and_then(|x| x.as_u64()).unwrap_or(1) as u8;
                 let (l, r) = if key == "holdLeft" { (n, cur("holdRight")) } else { (cur("holdLeft"), n) };
@@ -790,6 +803,7 @@ impl Daemon {
         g.state.ready = false;
         g.state.speaking = false;
         g.state.ear = Default::default();
+        g.state.eq = None;
         g.state.battery = Default::default();
         g.state.head_tracking = false;
         g.spatial_head = false;
@@ -1032,6 +1046,7 @@ impl Daemon {
                 let _ = self.events.send(Event::Head(v));
                 return;
             }
+            Packet::Eq(e) => g.state.eq = Some(e),
             Packet::Stem { press, left } => {
                 drop(g);
                 self.stem(press, left).await;

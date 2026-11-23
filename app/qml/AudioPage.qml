@@ -54,6 +54,63 @@ Page {
         }
     }
 
+    // only shown when the buds report one; the values come back from them on every connect
+    Section {
+        id: eq
+        title: qsTr("Equalizer")
+        experimental: true
+        visible: !!Store.s.eq
+        enabled: Store.ready
+        footer: qsTr("Changes the sound in the headphones themselves.")
+        readonly property var v: Store.s.eq || ({ enabled: false, low: 50, mid: 50, high: 50 })
+        function send(on, l, m, h) { Backend.setSetting("eq", [on, l, m, h].join(",")) }
+        Setting {
+            title: qsTr("Custom equalizer")
+            Button {
+                visible: eq.v.enabled && (eq.v.low !== 50 || eq.v.mid !== 50 || eq.v.high !== 50)
+                text: qsTr("Reset")
+                onClicked: eq.send(true, 50, 50, 50)
+            }
+            Switch { checked: eq.v.enabled; onToggled: on => eq.send(on, eq.v.low, eq.v.mid, eq.v.high) }
+        }
+        Repeater {
+            model: [["low", qsTr("Bass")], ["mid", qsTr("Mids")], ["high", qsTr("Treble")]]
+            Block {
+                id: band
+                required property var modelData
+                visible: eq.v.enabled
+                Column {
+                    width: parent.width
+                    spacing: 8
+                    Item {
+                        width: parent.width
+                        height: label.implicitHeight
+                        Text { id: label; text: band.modelData[1]; font: Theme.body; color: Theme.text }
+                        Text {
+                            anchors.right: parent.right
+                            readonly property int d: eq.v[band.modelData[0]] - 50
+                            text: d === 0 ? qsTr("Flat") : (d > 0 ? "+" : "") + d
+                            font: Theme.footnote
+                            color: Theme.text2
+                        }
+                    }
+                    Slider {
+                        width: parent.width
+                        from: 0
+                        to: 100
+                        target: eq.v[band.modelData[0]]
+                        Accessible.name: band.modelData[1]
+                        onCommitted: x => {
+                            const n = { low: eq.v.low, mid: eq.v.mid, high: eq.v.high }
+                            n[band.modelData[0]] = Math.round(x)
+                            eq.send(true, n.low, n.mid, n.high)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Section {
         id: calls
         title: qsTr("Calls")
