@@ -45,7 +45,10 @@ Page {
                             id: sub
                             y: 68
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: cell.now !== null && Store.charging(cell.modelData[0]) ? qsTr("Charging")
+                            readonly property var est: (Store.s.estimate || {})[cell.modelData[0]]
+                            readonly property bool charging: cell.now !== null && Store.charging(cell.modelData[0])
+                            text: charging ? (est ? qsTr("Full in %1").arg(Store.duration(est)) : qsTr("Charging"))
+                                : est && cell.ear === "ear" ? qsTr("%1 left").arg(Store.duration(est))
                                 : cell.last ? qsTr("Last known, %1").arg(Store.ago(cell.last.at))
                                 : cell.lvl === null ? (cell.modelData[0] === "case" ? qsTr("Open the case") : qsTr("Unknown"))
                                 : cell.ear === "ear" ? qsTr("In ear") : cell.ear === "case" ? qsTr("In case") : cell.ear === "out" ? qsTr("Out of ear") : ""

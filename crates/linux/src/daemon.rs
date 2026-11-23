@@ -804,6 +804,7 @@ impl Daemon {
         g.state.speaking = false;
         g.state.ear = Default::default();
         g.state.eq = None;
+        g.state.estimate = Default::default();
         g.state.battery = Default::default();
         g.state.head_tracking = false;
         g.spatial_head = false;
@@ -956,6 +957,15 @@ impl Daemon {
                 let full = self.charged(&mut g);
                 let b = g.state.battery.clone();
                 g.history.record(&b);
+                let rows = crate::history::read();
+                let now = rows.last().map(|r| r[0]).unwrap_or(0).max(
+                    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0),
+                );
+                let est = |i: usize, c: &Cell| {
+                    let s: Vec<(i64, i16)> = rows.iter().map(|r| (r[0], r[i] as i16)).collect();
+                    pinna_core::estimate::minutes(&s, now, c.charging)
+                };
+                g.state.estimate = state::Estimate { left: est(1, &b.left), right: est(2, &b.right) };
                 drop(g);
                 let m = self.media.lock().await;
                 if let Some(msg) = low {

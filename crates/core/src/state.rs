@@ -65,6 +65,14 @@ pub struct State {
     pub signal_at: u64,
     /// custom EQ as the buds last reported it; None when the model has none
     pub eq: Option<crate::aap::Eq>,
+    /// minutes until empty, or until full while charging; None until there is enough history
+    pub estimate: Estimate,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
+pub struct Estimate {
+    pub left: Option<u32>,
+    pub right: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]

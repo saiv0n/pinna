@@ -77,5 +77,9 @@
   "low": 62,
   "mid": 50,
   "high": 41
+ },
+ "estimate": {
+  "left": 200,
+  "right": 185
  }
 }

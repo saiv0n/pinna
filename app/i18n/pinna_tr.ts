@@ -672,8 +672,16 @@
         <translation>Kutu</translation>
     </message>
     <message>
+        <source>Full in %1</source>
+        <translation>%1 içinde dolar</translation>
+    </message>
+    <message>
         <source>Charging</source>
         <translation>Şarj oluyor</translation>
+    </message>
+    <message>
+        <source>%1 left</source>
+        <translation>%1 kaldı</translation>
     </message>
     <message>
         <source>Last known, %1</source>
@@ -1231,6 +1239,18 @@
 </context>
 <context>
     <name>Store</name>
+    <message>
+        <source>%1 min</source>
+        <translation>%1 dk</translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation>%1 sa</translation>
+    </message>
+    <message>
+        <source>%1 h %2 min</source>
+        <translation>%1 sa %2 dk</translation>
+    </message>
     <message>
         <source>just now</source>
         <translation>az önce</translation>

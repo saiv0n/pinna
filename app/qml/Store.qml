@@ -34,6 +34,11 @@ QtObject {
     }
     readonly property var lastCase: lastKnown(3)
     readonly property var lastSeen: history.length ? history[history.length - 1] : null
+    // listening time from the service estimate, in minutes
+    function duration(m) {
+        const h = Math.floor(m / 60), r = m % 60
+        return h === 0 ? qsTr("%1 min").arg(r) : r === 0 ? qsTr("%1 h").arg(h) : qsTr("%1 h %2 min").arg(h).arg(r)
+    }
     function ago(t) {
         const m = Math.max(0, Math.round((Date.now() / 1000 - t) / 60))
         return m < 2 ? qsTr("just now") : m < 60 ? qsTr("%1 min ago").arg(m)

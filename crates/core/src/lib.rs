@@ -2,4 +2,5 @@
 // Future Windows and Android layers will use it too.
 pub mod aap;
 pub mod proximity;
+pub mod estimate;
 pub mod state;
