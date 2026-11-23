@@ -16,6 +16,7 @@ trait Daemon {
     async fn rename(&self, name: &str) -> zbus::Result<()>;
     async fn connect(&self) -> zbus::Result<()>;
     async fn disconnect(&self) -> zbus::Result<()>;
+    async fn set_audio(&self, key: &str, value: &str) -> zbus::Result<()>;
     #[zbus(signal)]
     fn state_changed(&self, json: &str) -> zbus::Result<()>;
 }
@@ -46,7 +47,11 @@ enum Cmd {
     Pref { key: String, value: String },
     /// Kulaklığın adını değiştir
     Rename { name: String },
+    /// Ses ayarı: profile a2dp|hfp, volume 0-100, default true
+    Audio { key: String, value: String },
+    /// Son kullanılan kulaklığa bağlan
     Connect,
+    /// Bağlantıyı kes
     Disconnect,
 }
 
@@ -88,8 +93,23 @@ fn print_status(s: &Value) {
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
+async fn main() {
+    if let Err(e) = run(Cli::parse()).await {
+        // servis "tür: açıklama" yolluyor, kullanıcıya sadece açıklama lazım
+        let raw = e.root_cause().to_string();
+        let msg = if raw.contains("ServiceUnknown") {
+            "Pinna servisi çalışmıyor, systemctl --user start pinnad ile başlat.".to_string()
+        } else if let Some(rest) = raw.strip_prefix("org.freedesktop.DBus.Error.").and_then(|r| r.split_once(": ")) {
+            rest.1.split_once(": ").map_or(rest.1, |(_, t)| t).to_string()
+        } else {
+            raw
+        };
+        eprintln!("pinnactl: {msg}");
+        std::process::exit(1);
+    }
+}
+
+async fn run(cli: Cli) -> anyhow::Result<()> {
     let conn = zbus::Connection::session().await?;
     let p = DaemonProxy::new(&conn).await?;
     match cli.cmd.unwrap_or(Cmd::Status) {
@@ -128,6 +148,7 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Set { key, value } => p.set_setting(&key, &value).await?,
         Cmd::Pref { key, value } => p.set_pref(&key, &value).await?,
         Cmd::Rename { name } => p.rename(&name).await?,
+        Cmd::Audio { key, value } => p.set_audio(&key, &value).await?,
         Cmd::Connect => p.connect().await?,
         Cmd::Disconnect => p.disconnect().await?,
     }
