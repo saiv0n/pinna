@@ -25,7 +25,7 @@ Item {
         smooth: true
         mipmap: true
         anchors.verticalCenter: parent.verticalCenter
-        x: root.width / 2 + (side < 0 ? -width - 6 : 6) * root.scaleFactor + side * (1 - root.spread) * 22 * root.scaleFactor
+        x: root.width / 2 + (side < 0 ? -width - 14 : 14) * root.scaleFactor + side * (1 - root.spread) * 22 * root.scaleFactor
         rotation: side * (1 - root.spread) * -6
         opacity: (active ? 1 : 0.42) * Math.min(1, 0.3 + root.spread)
         scale: active ? 1 : 0.93

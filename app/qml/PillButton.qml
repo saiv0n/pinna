@@ -11,7 +11,7 @@ Rectangle {
 
     implicitWidth: 240
     implicitHeight: 50
-    radius: 14
+    radius: height / 2
     color: primary ? Theme.accent : Theme.fill
     opacity: !enabled ? 0.5 : area.pressed ? 0.82 : 1
     scale: area.pressed ? 0.97 : 1

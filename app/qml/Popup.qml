@@ -83,7 +83,7 @@ Window {
         Rectangle {
             id: bg
             anchors.fill: parent
-            radius: 34
+            radius: 38
             color: Theme.group
             border.width: Theme.dark ? 1 : 0
             border.color: "#2c2c2e"
@@ -191,6 +191,8 @@ Window {
             spacing: 28
 
             BatteryRing {
+                size: 52
+                stroke: 4
                 level: win.cell("left").level === undefined ? null : win.cell("left").level
                 charging: !!win.cell("left").charging
                 delay: 250
@@ -203,6 +205,8 @@ Window {
                 }
             }
             BatteryRing {
+                size: 52
+                stroke: 4
                 level: win.cell("right").level === undefined ? null : win.cell("right").level
                 charging: !!win.cell("right").charging
                 delay: 330
@@ -216,6 +220,8 @@ Window {
                 }
             }
             BatteryRing {
+                size: 52
+                stroke: 4
                 visible: win.cell("case").level !== null && win.cell("case").level !== undefined
                 level: win.cell("case").level === undefined ? null : win.cell("case").level
                 charging: !!win.cell("case").charging
@@ -249,12 +255,10 @@ Window {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 20
             width: parent.width - 40
-            primary: !win.connected
             busy: win.connecting
-            text: win.connecting ? "Bağlanıyor…" : win.connected ? "Ayarları Aç" : "Bağlan"
+            text: win.connecting ? "Bağlanıyor…" : win.connected ? "Tamam" : "Bağlan"
             onClicked: {
                 if (win.connected) {
-                    Backend.openSettings()
                     win.leave()
                 } else {
                     win.connecting = true

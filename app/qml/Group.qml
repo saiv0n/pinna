@@ -12,7 +12,7 @@ Column {
 
     Text {
         visible: root.title.length > 0
-        text: root.title.toLocaleUpperCase(Qt.locale("tr_TR"))
+        text: root.title
         font: Theme.section
         color: Theme.header
         leftPadding: Theme.pad

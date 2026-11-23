@@ -4,19 +4,19 @@ import Pinna
 NavPage {
     id: page
     title: Store.name
-    titleAfter: hero.y + hero.nameItem.y + hero.nameItem.height - barHeight - 12
+    large: true
     signal open(url page, var props)
 
     readonly property bool ready: Store.ready
 
     function holdText(side) {
-        return Store.setting(side === "left" ? "holdLeft" : "holdRight", 1) === 5 ? "Siri" : "Gürültü Kontrolü"
+        return Store.setting(side === "left" ? "holdLeft" : "holdRight", 1) === 5 ? "Siri" : "Dinleme Modu"
     }
 
     Hero { id: hero }
 
     Group {
-        title: "Gürültü Kontrolü"
+        title: "Dinleme Modu"
         visible: !!Store.s.mode
         enabled: page.ready
 

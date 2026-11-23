@@ -45,7 +45,7 @@ Item {
         anchors.fill: parent
         color: Theme.groupPress
         opacity: root.clickable && mouse.pressed ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: mouse.pressed ? 0 : 320; easing.type: Easing.OutQuad } }
+        Behavior on opacity { NumberAnimation { duration: mouse.pressed ? 0 : 250; easing.type: Easing.OutQuad } }
     }
     Rectangle {
         anchors.fill: parent

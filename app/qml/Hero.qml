@@ -1,16 +1,21 @@
 import QtQuick
 import Pinna
 
-// Sayfanın tepesi: kulaklık görseli, ad, durum ve piller.
+// Sayfanın tepesi: kulaklık görseli ve Apple'daki gibi altında ince pil halkaları.
 Column {
     id: root
     readonly property var s: Store.s
     readonly property var bat: s.battery || ({})
     readonly property var ear: s.ear || ({})
-    readonly property alias nameItem: nameText
 
     width: parent ? parent.width : 0
-    spacing: 4
+    spacing: 10
+
+    function lvl(k) { const c = bat[k]; return c && c.level !== undefined ? c.level : null }
+    function chg(k) { return !!(bat[k] && bat[k].charging) }
+    // iki tekin pili yakınsa Apple tek halka gösterir; düşük olanı
+    readonly property bool joined: lvl("left") !== null && lvl("right") !== null
+        && Math.abs(lvl("left") - lvl("right")) <= 5 && chg("left") === chg("right")
 
     function earText() {
         const l = ear.left, r = ear.right
@@ -21,25 +26,44 @@ Column {
         if (l === "case" && r === "case") return "Kutuda"
         return "Bağlı"
     }
-    function cell(k) { return bat[k] || ({}) }
 
     PodArt {
         anchors.horizontalCenter: parent.horizontalCenter
-        scaleFactor: 0.92
+        scaleFactor: 0.86
         leftActive: root.ear.left !== "case"
         rightActive: root.ear.right !== "case"
     }
 
-    Item { width: 1; height: 6 }
+    Row {
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 34
 
-    Text {
-        id: nameText
-        width: parent.width
-        horizontalAlignment: Text.AlignHCenter
-        text: Store.name
-        font: Theme.title
-        color: Theme.text
-        elide: Text.ElideRight
+        BatteryRing {
+            visible: root.joined
+            label: "AirPods"
+            level: root.joined ? Math.min(root.lvl("left"), root.lvl("right")) : null
+            charging: root.chg("left")
+        }
+        BatteryRing {
+            visible: !root.joined
+            label: "Sol"
+            level: root.lvl("left")
+            charging: root.chg("left")
+        }
+        BatteryRing {
+            visible: !root.joined
+            label: "Sağ"
+            level: root.lvl("right")
+            charging: root.chg("right")
+            delay: 60
+        }
+        BatteryRing {
+            visible: root.lvl("case") !== null
+            label: "Kutu"
+            level: root.lvl("case")
+            charging: root.chg("case")
+            delay: 120
+        }
     }
 
     Row {
@@ -54,40 +78,6 @@ Column {
             text: root.earText()
             font: Theme.footnote
             color: Theme.text2
-        }
-    }
-
-    Item { width: 1; height: 14 }
-
-    Row {
-        id: batteries
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 30
-
-        Repeater {
-            model: [
-                { key: "left", label: "Sol" },
-                { key: "right", label: "Sağ" },
-                { key: "case", label: "Kutu" }
-            ]
-            Column {
-                required property var modelData
-                readonly property var c: root.cell(modelData.key)
-                // kutunun pili bilinmiyorsa Apple gibi hiç gösterme
-                visible: modelData.key !== "case" || (c.level !== null && c.level !== undefined)
-                spacing: 4
-                BatteryGlyph {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    level: parent.c.level === undefined ? null : parent.c.level
-                    charging: !!parent.c.charging
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: parent.modelData.label
-                    font: Theme.caption
-                    color: Theme.text2
-                }
-            }
         }
     }
 }

@@ -14,11 +14,11 @@ QtObject {
     readonly property color group: dark ? "#1c1c1e" : "#ffffff"
     readonly property color groupPress: dark ? "#2c2c2e" : "#e5e5ea"
     readonly property color groupHover: dark ? "#232325" : "#f7f7f9"
-    readonly property color separator: dark ? "#38383a" : "#d8d8dc"
+    readonly property color separator: dark ? "#38383a" : "#c6c6c8"
     readonly property color text: dark ? "#ffffff" : "#000000"
-    readonly property color text2: dark ? "#98989f" : "#8a8a8e"
-    readonly property color text3: dark ? "#5b5b60" : "#c4c4c7"
-    readonly property color header: dark ? "#8d8d93" : "#6d6d72"
+    readonly property color text2: "#8e8e93"
+    readonly property color text3: dark ? "#48484a" : "#c4c4c7"
+    readonly property color header: dark ? "#8e8e93" : "#6d6d72"
     readonly property color accent: dark ? "#0a84ff" : "#007aff"
     readonly property color accentText: "#ffffff"
     readonly property color green: dark ? "#30d158" : "#34c759"
@@ -31,23 +31,28 @@ QtObject {
     readonly property color thumb: dark ? "#636366" : "#ffffff"
     readonly property color focus: Qt.alpha(accent, 0.5)
 
-    readonly property int radius: 12
-    readonly property int rowHeight: 46
+    readonly property int radius: 16
+    readonly property int rowHeight: 44
     readonly property int pad: 16
     readonly property int margin: 18
 
     // yaylar: hafif taşma, abartısız
-    readonly property real springK: 4.2
-    readonly property real springD: 0.42
+    readonly property real springK: 4
+    readonly property real springD: 0.5
     readonly property int fast: reduce ? 0 : 160
     readonly property int medium: reduce ? 0 : 280
     readonly property int fade: 140
 
-    readonly property font caption: Qt.font({ pixelSize: 12, weight: 400 })
-    readonly property font footnote: Qt.font({ pixelSize: 13, weight: 400 })
-    readonly property font body: Qt.font({ pixelSize: 15, weight: 400 })
-    readonly property font label: Qt.font({ pixelSize: 15, weight: 600 })
-    readonly property font section: Qt.font({ pixelSize: 12, weight: 400, letterSpacing: 0.2 })
-    readonly property font navTitle: Qt.font({ pixelSize: 16, weight: 600 })
-    readonly property font title: Qt.font({ pixelSize: 24, weight: 680 })
+    // SF'nin izleme tablosuna yakın: büyüdükçe harfler sıkışır
+    readonly property font caption: Qt.font({ family: family, pixelSize: 12, weight: 400, letterSpacing: 0 })
+    readonly property font footnote: Qt.font({ family: family, pixelSize: 13, weight: 400, letterSpacing: -0.08 })
+    readonly property font body: Qt.font({ family: family, pixelSize: 15, weight: 400, letterSpacing: -0.24 })
+    readonly property font label: Qt.font({ family: family, pixelSize: 15, weight: 600, letterSpacing: -0.24 })
+    readonly property font section: Qt.font({ family: family, pixelSize: 14, weight: 600, letterSpacing: -0.15 })
+    readonly property font navTitle: Qt.font({ family: family, pixelSize: 15, weight: 600, letterSpacing: -0.24 })
+    readonly property font title: Qt.font({ family: family, pixelSize: 24, weight: 700, letterSpacing: -0.5, variableAxes: display })
+    readonly property font large: Qt.font({ family: family, pixelSize: 31, weight: 700, letterSpacing: -0.8, variableAxes: display })
+    readonly property string family: "Inter Variable"
+    // büyük yazılarda Inter'in Display kesimi
+    readonly property var display: ({ "opsz": 32 })
 }

@@ -29,7 +29,6 @@ qt_add_qml_module(pinna
         qml/Hero.qml
         qml/PodArt.qml
         qml/BatteryRing.qml
-        qml/BatteryGlyph.qml
         qml/ModeSwitch.qml
         qml/ModeIcon.qml
         qml/Group.qml
@@ -47,7 +46,7 @@ qt_add_qml_module(pinna
         qml/Disconnected.qml
         qml/Banner.qml
     RESOURCES
-        fonts/InstrumentSans.ttf
+        fonts/Inter.ttf
         assets/bud.png
         assets/set.png
 )

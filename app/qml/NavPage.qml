@@ -8,8 +8,8 @@ Item {
     id: page
     property string title
     property string backTitle
-    // ana sayfada başlık, büyük ad çubuğun altına kayınca belirir
-    property real titleAfter: -1
+    // iOS büyük başlığı: kaydırınca çubuktaki küçük başlığa dönüşür
+    property bool large: false
     default property alias content: col.data
     readonly property alias flick: flick
     signal leaving()
@@ -53,8 +53,22 @@ Item {
             width: flick.width - 2 * Theme.margin
             spacing: 28
             // çubuk başlangıçta boş; içerik altına kayınca belirir
-            topPadding: page.barHeight + 8
+            topPadding: page.barHeight + (page.large ? 0 : 8)
             bottomPadding: 36
+
+            Text {
+                id: bigTitle
+                visible: page.large
+                leftPadding: 2
+                bottomPadding: 6
+                text: page.title
+                font: Theme.large
+                color: Theme.text
+                // yukarı kaydırınca solar, aşağı çekince iOS'taki gibi hafifçe büyür
+                opacity: Math.max(0, 1 - page.scrolled / 28)
+                transformOrigin: Item.Left
+                scale: 1 + Math.max(0, -page.scrolled) / 500
+            }
         }
 
         C.ScrollBar.vertical: C.ScrollBar {
@@ -101,63 +115,55 @@ Item {
             font: Theme.navTitle
             color: Theme.text
             elide: Text.ElideRight
-            opacity: page.titleAfter < 0 ? 1 : Math.max(0, Math.min(1, (page.scrolled - page.titleAfter) / 16))
+            opacity: !page.large ? 1 : Math.max(0, Math.min(1, (page.scrolled - 22) / 14))
         }
 
-        Item {
+        Rectangle {
             id: backBtn
             visible: page.backTitle.length > 0
-            x: 8
-            width: backRow.width + 12
-            height: parent.height
+            x: 12
+            anchors.verticalCenter: parent.verticalCenter
+            width: 36
+            height: 36
+            radius: 18
+            color: Theme.dark ? "#2c2c2e" : "#ffffff"
+            border.width: backBtn.activeFocus ? 2 : (Theme.dark ? 0 : 0.5)
+            border.color: backBtn.activeFocus ? Theme.focus : "#14000000"
+            scale: backArea.pressed ? 0.9 : 1
             activeFocusOnTab: true
             Keys.onReturnPressed: page.back()
             Keys.onSpacePressed: page.back()
+            Behavior on scale { enabled: !Theme.reduce; SpringAnimation { spring: 6; damping: 0.5; epsilon: 0.005 } }
 
-            Row {
-                id: backRow
-                x: 4
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 5
-                opacity: backArea.pressed ? 0.35 : 1
-                Behavior on opacity { NumberAnimation { duration: backArea.pressed ? 0 : 220 } }
-
-                Shape {
-                    width: 11
-                    height: 19
-                    anchors.verticalCenter: parent.verticalCenter
-                    preferredRendererType: Shape.CurveRenderer
-                    ShapePath {
-                        strokeColor: Theme.accent
-                        strokeWidth: 2.6
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        joinStyle: ShapePath.RoundJoin
-                        startX: 9.2; startY: 1.6
-                        PathLine { x: 1.6; y: 9.5 }
-                        PathLine { x: 9.2; y: 17.4 }
-                    }
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: page.backTitle
-                    font: Theme.body
-                    color: Theme.accent
-                    elide: Text.ElideRight
-                    width: Math.min(implicitWidth, 130)
-                }
-            }
             Rectangle {
                 anchors.fill: parent
-                anchors.margins: 6
-                radius: 8
-                color: "transparent"
-                border.width: backBtn.activeFocus ? 2 : 0
-                border.color: Theme.focus
+                anchors.topMargin: 1
+                anchors.bottomMargin: -1.5
+                z: -1
+                radius: height / 2
+                color: Theme.dark ? "#00000000" : "#12000000"
+            }
+            Shape {
+                anchors.centerIn: parent
+                anchors.horizontalCenterOffset: -1
+                width: 10
+                height: 17
+                preferredRendererType: Shape.CurveRenderer
+                ShapePath {
+                    strokeColor: Theme.text
+                    strokeWidth: 2.3
+                    fillColor: "transparent"
+                    capStyle: ShapePath.RoundCap
+                    joinStyle: ShapePath.RoundJoin
+                    startX: 8.2; startY: 1.5
+                    PathLine { x: 1.6; y: 8.5 }
+                    PathLine { x: 8.2; y: 15.5 }
+                }
             }
             MouseArea {
                 id: backArea
                 anchors.fill: parent
+                anchors.margins: -4
                 cursorShape: Qt.PointingHandCursor
                 onClicked: page.back()
             }

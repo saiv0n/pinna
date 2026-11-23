@@ -17,7 +17,7 @@ NavPage {
         title: "Basılı Tutma"
         enabled: Store.ready
         CheckRow {
-            title: "Gürültü Kontrolü"
+            title: "Dinleme Modu"
             checked: page.action === 1
             onToggled: Backend.setSetting(page.key, 1)
         }
@@ -29,7 +29,7 @@ NavPage {
     }
 
     Group {
-        title: "Gürültü Kontrolü"
+        title: "Dinleme Modu"
         visible: page.action === 1
         enabled: Store.ready
         footer: "Basılı tutunca seçili modlar arasında sırayla geçilir. En az iki mod seçili kalmalı. Bu liste iki AirPod için ortaktır."
@@ -41,6 +41,7 @@ NavPage {
                 required property var modelData
                 readonly property int count: [1, 2, 4, 8].filter(b => page.mask & b).length
                 title: Store.modeNames[modelData.key]
+                subtitle: ({ off: "Gürültü kontrolü kapalı", transparency: "Dış sesleri içeri alır", adaptive: "Dış gürültüyü ortama göre ayarlar", anc: "Dış sesleri engeller" })[modelData.key]
                 checked: (page.mask & modelData.bit) !== 0
                 locked: count <= 2
                 onToggled: v => Backend.setSetting("listeningCycle", v ? (page.mask | modelData.bit) : (page.mask & ~modelData.bit))

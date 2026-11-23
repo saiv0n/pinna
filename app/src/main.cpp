@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
         bus.registerObject(QStringLiteral("/"), &instance, QDBusConnection::ExportScriptableSlots);
     }
 
-    int id = QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/Pinna/fonts/InstrumentSans.ttf"));
+    int id = QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/Pinna/fonts/Inter.ttf"));
     if (id >= 0) {
         QFont f(QFontDatabase::applicationFontFamilies(id).value(0));
         f.setPixelSize(14);

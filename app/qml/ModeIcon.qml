@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import Pinna
 
-// Dinleme modu ikonları: ortada dinleyen kişi, çevresinde sesin geçişini anlatan halka.
+// Dinleme modu glifleri: dolu büst ve çevresinde modu anlatan işaret. Çizgiler eşit kalınlıkta.
 Shape {
     id: root
     property string mode: "anc"
@@ -11,73 +11,81 @@ Shape {
     height: 28
     preferredRendererType: Shape.CurveRenderer
 
-    readonly property real c: 14
-    readonly property real r: 11.5
     readonly property color none: "transparent"
+    readonly property real line: 1.7
+    // uyarlanabilirde büst parıltıya yer açmak için sola kayar
+    readonly property real bx: mode === "adaptive" ? 11.5 : 14
+    readonly property real by: mode === "anc" ? 1 : 2
 
-    // baş ve omuzlar
+    // baş
     ShapePath {
-        strokeColor: root.none
-        fillColor: root.color
-        PathAngleArc { centerX: root.c; centerY: 10.6; radiusX: 3.7; radiusY: 3.7; startAngle: 0; sweepAngle: 360 }
+        strokeColor: root.mode === "off" ? root.color : root.none
+        strokeWidth: root.line
+        fillColor: root.mode === "off" ? root.none : root.color
+        PathAngleArc { centerX: root.bx; centerY: 9.6 + root.by; radiusX: 3.6; radiusY: 3.6; startAngle: 0; sweepAngle: 360 }
     }
+    // omuzlar
     ShapePath {
-        strokeColor: root.none
-        fillColor: root.color
-        startX: 7.4; startY: 21
-        PathCubic { control1X: 7.4; control1Y: 16.6; control2X: 10.4; control2Y: 15.4; x: 14; y: 15.4 }
-        PathCubic { control1X: 17.6; control1Y: 15.4; control2X: 20.6; control2Y: 16.6; x: 20.6; y: 21 }
-        PathQuad { controlX: 20.6; controlY: 21.8; x: 19.6; y: 21.8 }
-        PathLine { x: 8.4; y: 21.8 }
-        PathQuad { controlX: 7.4; controlY: 21.8; x: 7.4; y: 21 }
+        strokeColor: root.mode === "off" ? root.color : root.none
+        strokeWidth: root.line
+        joinStyle: ShapePath.RoundJoin
+        fillColor: root.mode === "off" ? root.none : root.color
+        startX: root.bx - 6.4; startY: 20.4 + root.by
+        PathCubic { control1X: root.bx - 6.4; control1Y: 16.2 + root.by; control2X: root.bx - 3.4; control2Y: 14.6 + root.by; x: root.bx; y: 14.6 + root.by }
+        PathCubic { control1X: root.bx + 3.4; control1Y: 14.6 + root.by; control2X: root.bx + 6.4; control2Y: 16.2 + root.by; x: root.bx + 6.4; y: 20.4 + root.by }
+        PathQuad { controlX: root.bx + 6.4; controlY: 21.4 + root.by; x: root.bx + 5.4; y: 21.4 + root.by }
+        PathLine { x: root.bx - 5.4; y: 21.4 + root.by }
+        PathQuad { controlX: root.bx - 6.4; controlY: 21.4 + root.by; x: root.bx - 6.4; y: 20.4 + root.by }
     }
 
-    // gürültü engelleme: kapalı, kalın halka
+    // gürültü engelleme: büstü saran kapalı halka
     ShapePath {
         strokeColor: root.mode === "anc" ? root.color : root.none
-        strokeWidth: 2.4
+        strokeWidth: root.line
         fillColor: root.none
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: 0; sweepAngle: 360 }
+        PathAngleArc { centerX: 14; centerY: 14; radiusX: 12.2; radiusY: 12.2; startAngle: 0; sweepAngle: 360 }
     }
 
-    // şeffaflık: noktalı halka, ses içeri giriyor
+    // şeffaflık: başın çevresinde dışarıdan gelen ses ışınları
     ShapePath {
         strokeColor: root.mode === "transparency" ? root.color : root.none
-        strokeWidth: 2.1
-        fillColor: root.none
+        strokeWidth: root.line
         capStyle: ShapePath.RoundCap
-        strokeStyle: ShapePath.DashLine
-        dashPattern: [0.01, 2.05]
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: 0; sweepAngle: 360 }
+        fillColor: root.none
+        startX: 0; startY: 0
+        PathMove { x: 7.40; y: 11.80 }
+        PathLine { x: 4.80; y: 11.80 }
+        PathMove { x: 8.28; y: 8.50 }
+        PathLine { x: 6.03; y: 7.20 }
+        PathMove { x: 10.70; y: 6.08 }
+        PathLine { x: 9.40; y: 3.83 }
+        PathMove { x: 14.00; y: 5.20 }
+        PathLine { x: 14.00; y: 2.60 }
+        PathMove { x: 17.30; y: 6.08 }
+        PathLine { x: 18.60; y: 3.83 }
+        PathMove { x: 19.72; y: 8.50 }
+        PathLine { x: 21.97; y: 7.20 }
+        PathMove { x: 20.60; y: 11.80 }
+        PathLine { x: 23.20; y: 11.80 }
     }
 
-    // uyarlanabilir: yarısı kapalı, yarısı noktalı, köşede parıltı
-    ShapePath {
-        strokeColor: root.mode === "adaptive" ? root.color : root.none
-        strokeWidth: 2.4
-        fillColor: root.none
-        capStyle: ShapePath.RoundCap
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: 90; sweepAngle: 175 }
-    }
-    ShapePath {
-        strokeColor: root.mode === "adaptive" ? root.color : root.none
-        strokeWidth: 2.1
-        fillColor: root.none
-        capStyle: ShapePath.RoundCap
-        strokeStyle: ShapePath.DashLine
-        dashPattern: [0.01, 2.05]
-        PathAngleArc { centerX: root.c; centerY: root.c; radiusX: root.r; radiusY: root.r; startAngle: -18; sweepAngle: 100 }
-    }
-    readonly property real x0: 21.6
-    readonly property real y0: 5.2
-    readonly property real k: 4.6
+    // uyarlanabilir: biri büyük biri küçük iki parıltı
     ShapePath {
         strokeColor: root.none
         fillColor: root.mode === "adaptive" ? root.color : root.none
-        startX: root.x0; startY: root.y0 - root.k
-        PathQuad { controlX: root.x0 + 0.8; controlY: root.y0 - 0.8; x: root.x0 + root.k; y: root.y0 }
-        PathQuad { controlX: root.x0 + 0.8; controlY: root.y0 + 0.8; x: root.x0; y: root.y0 + root.k }
-        PathQuad { controlX: root.x0 - 0.8; controlY: root.y0 + 0.8; x: root.x0 - root.k; y: root.y0 }
-        PathQuad { controlX: root.x0 - 0.8; controlY: root.y0 - 0.8; x: root.x0; y: root.y0 - root.k }
+        startX: 21.6; startY: 1.60
+        PathQuad { controlX: 22.52; controlY: 5.28; x: 26.20; y: 6.2 }
+        PathQuad { controlX: 22.52; controlY: 7.12; x: 21.6; y: 10.80 }
+        PathQuad { controlX: 20.68; controlY: 7.12; x: 17.00; y: 6.2 }
+        PathQuad { controlX: 20.68; controlY: 5.28; x: 21.6; y: 1.60 }
+    }
+    ShapePath {
+        strokeColor: root.none
+        fillColor: root.mode === "adaptive" ? root.color : root.none
+        startX: 24.8; startY: 11.00
+        PathQuad { controlX: 25.28; controlY: 12.92; x: 27.20; y: 13.4 }
+        PathQuad { controlX: 25.28; controlY: 13.88; x: 24.8; y: 15.80 }
+        PathQuad { controlX: 24.32; controlY: 13.88; x: 22.40; y: 13.4 }
+        PathQuad { controlX: 24.32; controlY: 12.92; x: 24.8; y: 11.00 }
     }
 }
