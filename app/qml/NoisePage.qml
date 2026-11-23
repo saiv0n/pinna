@@ -75,6 +75,15 @@ Page {
             }
         }
         Setting {
+            title: qsTr("Tek kulaklıkta konuşma algılamayı durdur")
+            subtitle: qsTr("Tek AirPod takılıyken konuşma algılama kapanır, ikisini takınca geri açılır.")
+            enabled: Store.setting("conversationAwareness", false) || Store.pref("caOneBud", false)
+            Switch {
+                checked: Store.pref("caOneBud", false)
+                onToggled: v => Backend.setPref("caOneBud", v)
+            }
+        }
+        Setting {
             title: qsTr("Tek AirPod ile Gürültü Engelleme")
             subtitle: qsTr("Yalnızca bir AirPod takılıyken de gürültü engelleme açık kalır.")
             Switch {

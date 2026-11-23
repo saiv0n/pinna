@@ -529,6 +529,10 @@
         <translation>Change listening mode</translation>
     </message>
     <message>
+        <source>Gürültü engelleme / Şeffaf</source>
+        <translation>Noise Cancellation / Transparency</translation>
+    </message>
+    <message>
         <source>Hiçbir şey</source>
         <translation>Nothing</translation>
     </message>
@@ -662,6 +666,54 @@
     <message>
         <source>Dışarıda</source>
         <translation>Out of ear</translation>
+    </message>
+    <message>
+        <source>Kulaklığı Bul</source>
+        <translation>Find Your Headphones</translation>
+    </message>
+    <message>
+        <source>Bilgisayarla birlikte dolaş; çubuklar dolarsa yaklaşıyorsun. Kutu kapalıyken yayın seyrekleşir.</source>
+        <translation>Walk around with the computer; more bars means you are getting closer. A closed case advertises less often.</translation>
+    </message>
+    <message>
+        <source>Tarama kapalı</source>
+        <translation>Scanning is off</translation>
+    </message>
+    <message>
+        <source>Sinyal aranıyor…</source>
+        <translation>Looking for a signal…</translation>
+    </message>
+    <message>
+        <source>Çok uzak</source>
+        <translation>Very far</translation>
+    </message>
+    <message>
+        <source>Uzakta</source>
+        <translation>Far</translation>
+    </message>
+    <message>
+        <source>Yakında</source>
+        <translation>Nearby</translation>
+    </message>
+    <message>
+        <source>Çok yakın</source>
+        <translation>Very close</translation>
+    </message>
+    <message>
+        <source>%1 dBm, %2</source>
+        <translation>%1 dBm, %2</translation>
+    </message>
+    <message>
+        <source>Kutunun kapağını aç ya da bir kulaklığı çıkar.</source>
+        <translation>Open the case lid or take out an AirPod.</translation>
+    </message>
+    <message>
+        <source>Sinyal %1 / 4</source>
+        <translation>Signal %1 of 4</translation>
+    </message>
+    <message>
+        <source>Taramayı Aç</source>
+        <translation>Turn On Scanning</translation>
     </message>
     <message>
         <source>Kulaklık</source>
@@ -983,6 +1035,14 @@
     <message>
         <source>Konuşmaya başlayınca medya kısılır, karşındakinin sesi öne çıkar.</source>
         <translation>When you start speaking, media is lowered and voices in front of you are brought forward.</translation>
+    </message>
+    <message>
+        <source>Tek kulaklıkta konuşma algılamayı durdur</source>
+        <translation>Pause Conversation Awareness with one AirPod</translation>
+    </message>
+    <message>
+        <source>Tek AirPod takılıyken konuşma algılama kapanır, ikisini takınca geri açılır.</source>
+        <translation>Conversation Awareness turns off while only one AirPod is in and comes back when both are.</translation>
     </message>
     <message>
         <source>Tek AirPod ile Gürültü Engelleme</source>

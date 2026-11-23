@@ -48,9 +48,9 @@ Page {
         footer: qsTr("Basışları bu bilgisayarda bir işe bağla. Atanmamış basışlar her zamanki gibi çalışır.")
         enabled: Store.ready
         property string side: "left"
-        readonly property var actions: ["", "playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "nothing", "cmd"]
+        readonly property var actions: ["", "playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "ancTransparency", "nothing", "cmd"]
         readonly property var names: [qsTr("Oynat / Duraklat"), qsTr("Sonraki parça"), qsTr("Önceki parça"), qsTr("Sesi aç"),
-            qsTr("Sesi kıs"), qsTr("Mikrofonu sustur"), qsTr("Dinleme modunu değiştir"), qsTr("Hiçbir şey"), qsTr("Komut çalıştır…")]
+            qsTr("Sesi kıs"), qsTr("Mikrofonu sustur"), qsTr("Dinleme modunu değiştir"), qsTr("Gürültü engelleme / Şeffaf"), qsTr("Hiçbir şey"), qsTr("Komut çalıştır…")]
         function value(slot) {
             const k = "stem." + slot
             const v = Store.prefs[k]
@@ -73,7 +73,7 @@ Page {
                 required property var modelData
                 readonly property string slot: modelData[0] + "." + press.side
                 readonly property string cur: press.value(slot)
-                readonly property bool isCmd: cur.startsWith("cmd:") || picker.currentIndex === 9
+                readonly property bool isCmd: cur.startsWith("cmd:") || picker.currentIndex === 10
                 title: modelData[1]
                 subtitle: cur === "" ? modelData[2] : ""
                 Field {
@@ -88,10 +88,10 @@ Page {
                 Dropdown {
                     id: picker
                     model: [qsTr("Varsayılan")].concat(press.names)
-                    currentIndex: row.cur.startsWith("cmd:") ? 9 : Math.max(0, press.actions.indexOf(row.cur))
+                    currentIndex: row.cur.startsWith("cmd:") ? 10 : Math.max(0, press.actions.indexOf(row.cur))
                     Accessible.name: row.title
                     onPicked: i => {
-                        if (i === 9) { cmd.forceActiveFocus(); return }
+                        if (i === 10) { cmd.forceActiveFocus(); return }
                         Backend.setPref("stem." + row.slot, press.actions[i])
                     }
                 }

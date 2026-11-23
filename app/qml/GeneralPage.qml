@@ -58,6 +58,48 @@ Page {
         }
     }
 
+    // bağlı değilken BLE yayınının gücüyle sıcak soğuk oyunu
+    Section {
+        id: finder
+        title: qsTr("Kulaklığı Bul")
+        visible: Backend.daemon && !Store.live && (Store.devices.length > 0 || !!Store.s.address)
+        footer: qsTr("Bilgisayarla birlikte dolaş; çubuklar dolarsa yaklaşıyorsun. Kutu kapalıyken yayın seyrekleşir.")
+        property real now: Date.now() / 1000
+        Timer { interval: 2000; repeat: true; running: finder.visible; onTriggered: finder.now = Date.now() / 1000 }
+        readonly property bool fresh: Store.s.signal !== null && Store.s.signal !== undefined && finder.now - (Store.s.signalAt || 0) < 30
+        readonly property int bars: !fresh ? 0 : Store.s.signal > -55 ? 4 : Store.s.signal > -67 ? 3 : Store.s.signal > -80 ? 2 : 1
+        Setting {
+            title: !Store.pref("caseScan", true) ? qsTr("Tarama kapalı")
+                : !finder.fresh ? qsTr("Sinyal aranıyor…")
+                : [qsTr("Çok uzak"), qsTr("Uzakta"), qsTr("Yakında"), qsTr("Çok yakın")][finder.bars - 1]
+            subtitle: finder.fresh ? qsTr("%1 dBm, %2").arg(Store.s.signal).arg(Store.ago(Store.s.signalAt))
+                : Store.pref("caseScan", true) ? qsTr("Kutunun kapağını aç ya da bir kulaklığı çıkar.") : ""
+            Row {
+                visible: Store.pref("caseScan", true)
+                spacing: 3
+                Accessible.role: Accessible.Indicator
+                Accessible.name: qsTr("Sinyal %1 / 4").arg(finder.bars)
+                Repeater {
+                    model: 4
+                    Rectangle {
+                        required property int index
+                        width: 5
+                        height: 6 + index * 4
+                        radius: 1.5
+                        anchors.bottom: parent.bottom
+                        color: index < finder.bars ? Theme.accent : Theme.control
+                        Behavior on color { ColorAnimation { duration: Theme.fast } }
+                    }
+                }
+            }
+            Button {
+                visible: !Store.pref("caseScan", true)
+                text: qsTr("Taramayı Aç")
+                onClicked: Backend.setPref("caseScan", true)
+            }
+        }
+    }
+
     Section {
         title: qsTr("Kulaklık")
         Setting {
