@@ -1,21 +1,27 @@
 import QtQuick
 import Pinna
 
-// The four listening modes side by side. The choice changes right away in Backend.
-Row {
+// The four listening modes side by side. A pill slides between them: grey tiles at the
+// bottom, the pill above them, icons and labels on top.
+Item {
     id: root
     property string mode: Store.s.mode || ""
     readonly property var modes: ["off", "transparency", "adaptive", "anc"]
     readonly property bool allowOff: Store.setting("allowOff", true)
     readonly property var shown: allowOff || mode === "off" ? modes : modes.slice(1)
     readonly property int index: shown.indexOf(mode)
+    readonly property real spacing: 8
+    readonly property real tileWidth: (width - spacing * (shown.length - 1)) / shown.length
+    property int hovered: -1
+    property int pressed: -1
 
     function pick(i) {
         if (!enabled || i < 0 || i >= shown.length || i === index) return
         Backend.setMode(shown[i])
     }
+    function tileX(i) { return i * (tileWidth + spacing) }
 
-    spacing: 8
+    implicitHeight: 72
     activeFocusOnTab: true
     Keys.onLeftPressed: pick(index - 1)
     Keys.onRightPressed: pick(index + 1)
@@ -24,30 +30,61 @@ Row {
     Accessible.name: Store.modeNames[mode] || ""
 
     Repeater {
-        model: root.modes
+        model: root.shown
         Rectangle {
-            id: tile
-            required property string modelData
-            readonly property bool on: modelData === root.mode
-            visible: root.shown.indexOf(modelData) >= 0
-            width: (root.width - root.spacing * (root.shown.length - 1)) / root.shown.length
-            height: 72
+            required property int index
+            x: root.tileX(index)
+            width: root.tileWidth
+            height: root.height
             radius: Theme.radius
-            color: on ? Theme.accent : area.containsMouse ? Theme.controlHover : Theme.control
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: -3
-                radius: parent.radius + 3
-                color: "transparent"
-                border.width: 2
-                border.color: Theme.focus
-                visible: root.activeFocus && tile.on
-            }
+            color: root.hovered === index && index !== root.index ? Theme.controlHover : Theme.control
+            scale: root.pressed === index ? 0.96 : 1
+            Behavior on scale { enabled: !Theme.reduce; NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+            Behavior on color { enabled: !Theme.reduce; ColorAnimation { duration: 120 } }
+        }
+    }
+
+    Rectangle {
+        id: pill
+        visible: root.index >= 0
+        x: root.tileX(Math.max(0, root.index))
+        width: root.tileWidth
+        height: root.height
+        radius: Theme.radius
+        color: Theme.accent
+        scale: root.pressed === root.index ? 0.96 : 1
+        Behavior on x {
+            enabled: !Theme.reduce && pill.visible
+            NumberAnimation { duration: 300; easing.type: Easing.OutBack; easing.overshoot: 0.8 }
+        }
+        Behavior on scale { enabled: !Theme.reduce; NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -3
+            radius: parent.radius + 3
+            color: "transparent"
+            border.width: 2
+            border.color: Theme.focus
+            visible: root.activeFocus
+        }
+    }
+
+    Repeater {
+        model: root.shown
+        Item {
+            id: tile
+            required property int index
+            required property string modelData
+            readonly property bool on: index === root.index
+            x: root.tileX(index)
+            width: root.tileWidth
+            height: root.height
             ModeIcon {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: 11
                 mode: tile.modelData
                 color: tile.on ? Theme.accentText : Theme.text
+                Behavior on color { enabled: !Theme.reduce; ColorAnimation { duration: 180 } }
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -60,12 +97,14 @@ Row {
                 font.pixelSize: 12
                 font.weight: tile.on ? 600 : 500
                 color: tile.on ? Theme.accentText : Theme.text
+                Behavior on color { enabled: !Theme.reduce; ColorAnimation { duration: 180 } }
             }
             MouseArea {
-                id: area
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: root.pick(root.shown.indexOf(tile.modelData))
+                onContainsMouseChanged: root.hovered = containsMouse ? tile.index : (root.hovered === tile.index ? -1 : root.hovered)
+                onPressedChanged: root.pressed = pressed ? tile.index : -1
+                onClicked: root.pick(tile.index)
             }
         }
     }

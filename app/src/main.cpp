@@ -37,6 +37,7 @@ public:
         engine = new QQmlApplicationEngine(this);
         engine->rootContext()->setContextProperty(QStringLiteral("pinnaTheme"), qEnvironmentVariable("PINNA_THEME"));
         engine->rootContext()->setContextProperty(QStringLiteral("pinnaPage"), qEnvironmentVariable("PINNA_PAGE"));
+        engine->rootContext()->setContextProperty(QStringLiteral("pinnaDemo"), qEnvironmentVariable("PINNA_DEMO"));
         engine->rootContext()->setContextProperty(QStringLiteral("pinnaReduceMotion"), reduce);
         engine->rootContext()->setContextProperty(QStringLiteral("pinnaWidth"), qEnvironmentVariableIntValue("PINNA_SHOT_WIDTH"));
         if (prepare)

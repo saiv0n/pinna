@@ -61,6 +61,12 @@ Window {
         onTriggered: Backend.loadHistory()
     }
     Connections { target: Store; function onLiveChanged() { Backend.loadHistory() } }
+    // PINNA_DEMO=mode with PINNA_STATE flips the mode after a second, to capture transitions mid-flight
+    Timer {
+        running: typeof pinnaDemo === "string" && pinnaDemo === "mode"
+        interval: 1000
+        onTriggered: Backend.setMode(Store.s.mode === "transparency" ? "anc" : "transparency")
+    }
 
     Sidebar {
         id: side
