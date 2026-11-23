@@ -1,0 +1,14 @@
+[Unit]
+Description=Earshot AirPods servisi
+After=bluetooth.target pipewire.service
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/earshotd
+Restart=on-failure
+RestartSec=3
+Environment=RUST_LOG=info
+Environment="EARSHOT_POPUP=%h/.local/bin/earshot --popup"
+
+[Install]
+WantedBy=graphical-session.target

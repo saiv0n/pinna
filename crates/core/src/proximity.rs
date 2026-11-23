@@ -1,0 +1,136 @@
+// Kutu kapağı açıldığında AirPods'un yaydığı BLE "proximity pairing" reklamı.
+// Şifresiz kısım 10'luk adımlarla pil verir, şifreli 16 bayt kulaklıktan alınan anahtarla çözülünce tam yüzde verir.
+
+use aes::Aes128;
+use aes::cipher::{BlockCipherDecrypt, BlockCipherEncrypt, KeyInit};
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Advert {
+    pub model: u16,
+    pub left: Option<u8>,
+    pub right: Option<u8>,
+    #[serde(rename = "case")]
+    pub case_: Option<u8>,
+    pub left_charging: bool,
+    pub right_charging: bool,
+    pub case_charging: bool,
+    pub lid_open: bool,
+    pub left_in_ear: bool,
+    pub right_in_ear: bool,
+    pub color: u8,
+}
+
+pub fn parse(data: &[u8], enc_key: Option<&[u8; 16]>) -> Option<Advert> {
+    if data.len() < 11 || data[0] != 0x07 || data[2] == 0x00 {
+        return None;
+    }
+    let model = u16::from_be_bytes([data[3], data[4]]);
+    let status = data[5];
+    let pods = data[6];
+    let fc = data[7];
+    let primary_left = status & 0x20 != 0;
+    let flipped = !primary_left;
+    let nib = |n: u8| if n == 15 { None } else { Some((n * 10).min(100)) };
+    let (ln, rn) = if flipped { (pods >> 4, pods & 0x0f) } else { (pods & 0x0f, pods >> 4) };
+    let flags = fc >> 4;
+    let this_in_case = status & 0x40 != 0;
+    let xor = flipped ^ this_in_case;
+    let mut a = Advert {
+        model,
+        left: nib(ln),
+        right: nib(rn),
+        case_: nib(fc & 0x0f),
+        left_charging: if flipped { flags & 0x02 != 0 } else { flags & 0x01 != 0 },
+        right_charging: if flipped { flags & 0x01 != 0 } else { flags & 0x02 != 0 },
+        case_charging: flags & 0x04 != 0,
+        // kapak biti sadece kutudaki kulaklığın yayınında anlamlı
+        lid_open: this_in_case && (data[8] >> 3) & 1 == 0,
+        left_in_ear: if xor { status & 0x08 != 0 } else { status & 0x02 != 0 },
+        right_in_ear: if xor { status & 0x02 != 0 } else { status & 0x08 != 0 },
+        color: data[9],
+    };
+    if let (Some(key), true) = (enc_key, data.len() >= 27) {
+        let mut block = [0u8; 16];
+        block.copy_from_slice(&data[data.len() - 16..]);
+        let c = Aes128::new(key.into());
+        c.decrypt_block((&mut block).into());
+        let fmt = |b: u8| if b & 0x7f == 0x7f { None } else { Some(((b & 0x7f).min(100), b & 0x80 != 0)) };
+        let (li, ri) = if primary_left { (1, 2) } else { (2, 1) };
+        if let Some((l, c)) = fmt(block[li]) {
+            a.left = Some(l);
+            a.left_charging = c;
+        }
+        if let Some((r, c)) = fmt(block[ri]) {
+            a.right = Some(r);
+            a.right_charging = c;
+        }
+        if let Some((k, c)) = fmt(block[3]) {
+            a.case_ = Some(k);
+            a.case_charging = c;
+        }
+    }
+    Some(a)
+}
+
+/// Rastgele BLE adresinin bu kulaklığa ait olup olmadığını IRK ile doğrular (Bluetooth çekirdek şartnamesindeki ah fonksiyonu).
+pub fn rpa_matches(addr: [u8; 6], irk: &[u8; 16]) -> bool {
+    // addr en anlamlı bayttan başlıyor; prand üst 3 bayt, hash alt 3 bayt
+    let prand = [addr[2], addr[1], addr[0]];
+    let hash = [addr[5], addr[4], addr[3]];
+    let mut key = *irk;
+    key.reverse();
+    let mut r = [0u8; 16];
+    r[0..3].copy_from_slice(&prand);
+    r.reverse();
+    let c = Aes128::new((&key).into());
+    c.encrypt_block((&mut r).into());
+    r.reverse();
+    r[0..3] == hash
+}
+
+pub fn model_name(id: u16) -> &'static str {
+    match id {
+        0x2002 => "AirPods",
+        0x200f => "AirPods (2. nesil)",
+        0x2013 => "AirPods (3. nesil)",
+        0x200e => "AirPods Pro",
+        0x2014 => "AirPods Pro 2",
+        0x2024 => "AirPods Pro 2 (USB-C)",
+        0x2027 => "AirPods Pro 3",
+        0x2019 => "AirPods 4",
+        0x201b => "AirPods 4 (ANC)",
+        0x200a => "AirPods Max",
+        0x201f => "AirPods Max (USB-C)",
+        _ => "AirPods",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rpa_spec_vector() {
+        // Bluetooth Core 5.x, Vol 3 Part H, D.7: irk ec0234a3..., prand 708194, hash 0dfbaa
+        // kulaklık anahtarı küçük uçlu verdiği için şartnamedeki değeri ters çeviriyoruz
+        let mut irk = [
+            0xec, 0x02, 0x34, 0xa3, 0x57, 0xc8, 0xad, 0x05, 0x34, 0x10, 0x10, 0xa6, 0x0a, 0x39, 0x7d, 0x9b,
+        ];
+        irk.reverse();
+        assert!(rpa_matches([0x70, 0x81, 0x94, 0x0d, 0xfb, 0xaa], &irk));
+        assert!(!rpa_matches([0x70, 0x81, 0x94, 0x0d, 0xfb, 0xab], &irk));
+    }
+
+    #[test]
+    fn plain_advert() {
+        // sol birincil, kutu açık, sol %90 sağ %80 kutu %50 şarjda
+        let d = [0x07, 0x19, 0x01, 0x20, 0x24, 0x75, 0x89, 0x45, 0x00, 0x00, 0x01];
+        let a = parse(&d, None).unwrap();
+        assert_eq!(a.model, 0x2024);
+        assert_eq!(a.left, Some(90));
+        assert_eq!(a.right, Some(80));
+        assert_eq!(a.case_, Some(50));
+        assert!(a.case_charging);
+        assert!(a.lid_open);
+    }
+}

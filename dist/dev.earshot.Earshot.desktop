@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Earshot
+GenericName=AirPods Ayarları
+Comment=AirPods'u bağla, pilini gör, tüm ayarlarını değiştir
+Exec=earshot
+Icon=dev.earshot.Earshot
+Terminal=false
+Categories=Settings;HardwareSettings;AudioVideo;
+Keywords=airpods;kulaklık;bluetooth;anc;pil;
+StartupWMClass=dev.earshot.Earshot
