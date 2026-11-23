@@ -1,5 +1,6 @@
 use pinna_core::aap::{self, Component, Mode, Packet, Pod};
 use crate::audio;
+use crate::mic;
 use crate::history::History;
 use crate::media::Media;
 use pinna_core::proximity::{self, Advert};
@@ -38,6 +39,10 @@ struct Inner {
     /// Bluetooth kapanırken bağlıydı, açılınca geri bağlan
     reconnect: bool,
     dropped: Option<Instant>,
+    /// kulaklığa mikrofonu aç dendi
+    mic_on: bool,
+    /// mikrofon açıkken konuşma algılama kapatıldı, kapanınca geri açılacak
+    ca_paused: bool,
 }
 
 #[derive(Clone)]
@@ -50,6 +55,8 @@ pub struct Daemon {
     pairing: watch::Sender<bool>,
     /// BlueZ'den bir değişiklik gelince ana döngüyü uyandırır
     wake: Arc<Notify>,
+    /// oturum döngüsü her ses paketinde buna yazıyor, async kilit gerekmesin
+    mic: Arc<std::sync::Mutex<Option<mic::Mic>>>,
 }
 
 impl Daemon {
@@ -79,6 +86,8 @@ impl Daemon {
                 a2dp_fixed: false,
                 reconnect: false,
                 dropped: None,
+                mic_on: false,
+                ca_paused: false,
             })),
             events,
             media: Arc::new(Mutex::new(Media::new(bus))),
@@ -86,6 +95,7 @@ impl Daemon {
             scan,
             pairing,
             wake: Arc::new(Notify::new()),
+            mic: Default::default(),
         })
     }
 
@@ -152,11 +162,10 @@ impl Daemon {
         g.config.prefs.set(key, v).map_err(|e| anyhow!("invalid: {e}"))?;
         g.state.prefs = g.config.prefs.clone();
         let scan = g.config.prefs.case_scan && !g.state.connected;
-        let quality = g.config.prefs.call_quality;
         g.config.save();
         drop(g);
-        if key == "callQuality" {
-            audio::call_quality(quality).await;
+        if key == "callMic" {
+            self.apply_call().await;
         }
         let _ = self.scan.send(scan);
         self.changed();
@@ -367,6 +376,8 @@ impl Daemon {
         if a.available {
             g.audio_set = true;
         }
+        let mut a = a;
+        a.mic_active = g.mic_on;
         let changed = g.state.audio != a;
         g.state.audio = a;
         drop(g);
@@ -377,6 +388,56 @@ impl Daemon {
         if changed {
             self.changed();
         }
+    }
+
+    /// Görüşme ayarını uygular: WirePlumber'ın HFP geçişi ve Pinna'nın sanal mikrofonu.
+    async fn apply_call(&self) {
+        let (mode, connected, name) = {
+            let g = self.inner.lock().await;
+            (g.config.prefs.call_mic.clone(), g.state.connected, g.state.name.clone())
+        };
+        audio::call_quality(mode != "hfp").await;
+        let want = mode == "airpods" && connected;
+        let has = self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some();
+        if want && !has {
+            match mic::Mic::open(if name.is_empty() { "AirPods" } else { &name }).await {
+                Some(m) => {
+                    *self.mic.lock().unwrap_or_else(|e| e.into_inner()) = Some(m);
+                    mic::make_default().await;
+                }
+                None => warn!("sanal mikrofon açılamadı"),
+            }
+        } else if !want && has {
+            let m = self.mic.lock().unwrap_or_else(|e| e.into_inner()).take();
+            if let Some(m) = m {
+                m.close().await;
+            }
+            self.mic_activity().await;
+        }
+    }
+
+    /// Bir uygulama sanal mikrofonu dinlemeye başlayınca kulaklığın mikrofonunu açar, bırakınca kapatır.
+    async fn mic_activity(&self) {
+        let open = self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some();
+        let want = open && mic::in_use().await;
+        let mut g = self.inner.lock().await;
+        if g.mic_on == want || (want && !g.state.connected) {
+            return;
+        }
+        g.mic_on = want;
+        g.state.audio.mic_active = want;
+        // konuşma algılama açıksa kulaklık konuşurken karşı tarafın sesini kısıyor
+        let ca = g.state.settings.get("conversationAwareness").and_then(Value::as_bool) == Some(true);
+        let pause = want && ca;
+        let resume = !want && std::mem::take(&mut g.ca_paused);
+        g.ca_paused |= pause;
+        drop(g);
+        info!("kulaklık mikrofonu {}", if want { "açılıyor" } else { "kapanıyor" });
+        let _ = self.send(if want { aap::MIC_START } else { aap::MIC_STOP }.to_vec()).await;
+        if pause || resume {
+            let _ = self.send(aap::control(aap::cmd::CONVERSATION, [if want { 2 } else { 1 }, 0, 0, 0])).await;
+        }
+        self.changed();
     }
 
     pub async fn head_tracking(&self, on: bool) -> Result<()> {
@@ -464,8 +525,11 @@ impl Daemon {
         tokio::spawn(self.clone().pair_loop());
         tokio::spawn(self.clone().bluez_events());
         tokio::spawn(self.clone().audio_events());
-        let quality = self.inner.lock().await.config.prefs.call_quality;
-        tokio::spawn(audio::call_quality(quality));
+        let me = self.clone();
+        tokio::spawn(async move {
+            mic::cleanup().await;
+            me.apply_call().await;
+        });
         loop {
             let powered = self.adapter.is_powered().await.unwrap_or(false);
             {
@@ -591,6 +655,9 @@ impl Daemon {
             let mut lines = tokio::io::BufReader::new(out).lines();
             self.refresh_audio().await;
             while let Ok(Some(l)) = lines.next_line().await {
+                if l.contains(" source") {
+                    self.mic_activity().await;
+                }
                 if !(l.contains(" sink ") || l.contains(" card ") || l.contains(" server")) {
                     continue;
                 }
@@ -618,7 +685,10 @@ impl Daemon {
         g.audio_set = false;
         g.a2dp_fixed = false;
         g.dropped = Some(Instant::now());
+        g.mic_on = false;
+        g.ca_paused = false;
         drop(g);
+        self.apply_call().await;
         self.media.lock().await.forget();
         self.changed();
     }
@@ -690,6 +760,12 @@ impl Daemon {
                     let n = r?;
                     if n == 0 { bail!("kanal kapandı"); }
                     let data = &buf[..n];
+                    if data.len() > 8 && data[4] == 0x58 {
+                        if let Some(m) = self.mic.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
+                            m.feed(data);
+                        }
+                        continue;
+                    }
                     debug!("<- {}", Config::hex(data));
                     if let Some(p) = aap::parse(data) {
                         if matches!(p, Packet::HandshakeAck) {
@@ -699,6 +775,7 @@ impl Daemon {
                         self.handle(p).await;
                         if first_battery {
                             announced = true;
+                            self.apply_call().await;
                             self.popup().await;
                         }
                     }
@@ -797,8 +874,10 @@ impl Daemon {
             Packet::Speaking(level) => {
                 g.state.speaking = level <= 2;
                 let prefs = g.state.prefs.clone();
+                let g_mic = g.mic_on;
                 drop(g);
-                if prefs.duck_on_speech {
+                // görüşmede kendi sesin bilgisayarı kısmasın
+                if prefs.duck_on_speech && !g_mic {
                     self.media.lock().await.speech(level, prefs.duck_level).await;
                 }
             }

@@ -114,32 +114,56 @@
         <translation>Calls</translation>
     </message>
     <message>
-        <source>Kulaklığın mikrofonu açıkken Bluetooth ses kalitesini telefon düzeyine indirir (%1).</source>
-        <translation>While the earbud microphone is on, Bluetooth drops audio to phone quality (%1).</translation>
+        <source>Kulaklık müzik kalitesinde kalır, mikrofonu ayrı bir kanaldan gelir. Uygulama başka bir mikrofon kullanıyorsa adı "(Pinna)" ile biteni seç. Deneysel.</source>
+        <translation>Earbuds stay at music quality and their microphone comes over a separate channel. If your app uses another microphone, pick the one ending in "(Pinna)". Experimental.</translation>
     </message>
     <message>
-        <source>Discord gibi uygulamalarda ses bozuluyorsa yüksek kaliteyi açık tut.</source>
-        <translation>If audio sounds bad in apps like Discord, keep high quality on.</translation>
-    </message>
-    <message>
-        <source>Görüşmede yüksek kaliteli ses</source>
-        <translation>High quality audio in calls</translation>
+        <source>Mikrofon açılınca kulaklık telefon profiline geçer, müzik de telefon kalitesine düşer. Değişiklik bir sonraki bağlanışta geçerli olur.</source>
+        <translation>When the microphone opens, the earbuds switch to the phone profile and music drops to phone quality too. Takes effect the next time they connect.</translation>
     </message>
     <message>
         <source>Kulaklık müzik kalitesinde kalır, mikrofon olarak bilgisayarınki kullanılır.</source>
         <translation>Earbuds stay at music quality and the computer's microphone is used.</translation>
     </message>
     <message>
+        <source>Görüşmede mikrofon</source>
+        <translation>Microphone in calls</translation>
+    </message>
+    <message>
+        <source>Bilgisayarın</source>
+        <translation>This computer's</translation>
+    </message>
+    <message>
+        <source>AirPods, yüksek kalite</source>
+        <translation>AirPods, high quality</translation>
+    </message>
+    <message>
+        <source>AirPods, telefon kalitesi</source>
+        <translation>AirPods, phone quality</translation>
+    </message>
+    <message>
+        <source>Şu anki kalite</source>
+        <translation>Current quality</translation>
+    </message>
+    <message>
+        <source>Kulaklık ve mikrofon %1, telefon kalitesi</source>
+        <translation>Earbuds and microphone %1, phone quality</translation>
+    </message>
+    <message>
+        <source>Kulaklık %1, mikrofon AAC-ELD 64 kHz, açık</source>
+        <translation>Earbuds %1, microphone AAC-ELD 64 kHz, on</translation>
+    </message>
+    <message>
+        <source>Kulaklık %1, mikrofon bir uygulama dinleyince açılır</source>
+        <translation>Earbuds %1, microphone turns on when an app listens</translation>
+    </message>
+    <message>
+        <source>Kulaklık %1, mikrofon bilgisayarın</source>
+        <translation>Earbuds %1, computer's microphone</translation>
+    </message>
+    <message>
         <source>Kulaklığın mikrofonu</source>
         <translation>Earbud microphone</translation>
-    </message>
-    <message>
-        <source>Açık, %1.</source>
-        <translation>On, %1.</translation>
-    </message>
-    <message>
-        <source>Kapalı, %1.</source>
-        <translation>Off, %1.</translation>
     </message>
     <message>
         <source>Kapalı</source>

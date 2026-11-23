@@ -36,22 +36,44 @@ Page {
     }
 
     Section {
+        id: calls
         title: qsTr("Görüşmeler")
-        footer: a.profile === "hfp"
-            ? qsTr("Kulaklığın mikrofonu açıkken Bluetooth ses kalitesini telefon düzeyine indirir (%1).").arg(a.codec || "HFP")
-            : qsTr("Discord gibi uygulamalarda ses bozuluyorsa yüksek kaliteyi açık tut.")
+        readonly property string mode: Store.pref("callMic", "computer")
+        footer: mode === "airpods"
+            ? qsTr("Kulaklık müzik kalitesinde kalır, mikrofonu ayrı bir kanaldan gelir. Uygulama başka bir mikrofon kullanıyorsa adı \"(Pinna)\" ile biteni seç. Deneysel.")
+            : mode === "hfp"
+            ? qsTr("Mikrofon açılınca kulaklık telefon profiline geçer, müzik de telefon kalitesine düşer. Değişiklik bir sonraki bağlanışta geçerli olur.")
+            : qsTr("Kulaklık müzik kalitesinde kalır, mikrofon olarak bilgisayarınki kullanılır.")
         Setting {
-            title: qsTr("Görüşmede yüksek kaliteli ses")
-            subtitle: qsTr("Kulaklık müzik kalitesinde kalır, mikrofon olarak bilgisayarınki kullanılır.")
+            title: qsTr("Görüşmede mikrofon")
             enabled: Backend.daemon
-            Switch {
-                checked: Store.pref("callQuality", true)
-                onToggled: v => Backend.setPref("callQuality", v)
+            Dropdown {
+                readonly property var modes: ["computer", "airpods", "hfp"]
+                model: [qsTr("Bilgisayarın"), qsTr("AirPods, yüksek kalite"), qsTr("AirPods, telefon kalitesi")]
+                currentIndex: Math.max(0, modes.indexOf(calls.mode))
+                onPicked: i => Backend.setPref("callMic", modes[i])
             }
         }
         Setting {
+            title: qsTr("Şu anki kalite")
+            enabled: Store.live && !!a.available
+            subtitle: a.profile === "hfp"
+                ? qsTr("Kulaklık ve mikrofon %1, telefon kalitesi").arg(a.codec || "HFP")
+                : calls.mode === "airpods"
+                ? (a.micActive ? qsTr("Kulaklık %1, mikrofon AAC-ELD 64 kHz, açık").arg(a.codec || "A2DP")
+                               : qsTr("Kulaklık %1, mikrofon bir uygulama dinleyince açılır").arg(a.codec || "A2DP"))
+                : qsTr("Kulaklık %1, mikrofon bilgisayarın").arg(a.codec || "A2DP")
+            Rectangle {
+                visible: !!a.micActive || a.profile === "hfp"
+                width: 8
+                height: 8
+                radius: 4
+                color: a.profile === "hfp" ? Theme.orange : Theme.green
+            }
+        }
+        Setting {
+            visible: calls.mode === "hfp"
             title: qsTr("Kulaklığın mikrofonu")
-            subtitle: a.profile === "hfp" ? qsTr("Açık, %1.").arg(a.codec || "HFP") : qsTr("Kapalı, %1.").arg(a.codec || "A2DP")
             enabled: Store.live && !!a.available
             Segmented {
                 options: [qsTr("Kapalı"), qsTr("Açık")]

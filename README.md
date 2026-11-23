@@ -10,7 +10,8 @@ Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup ol
 - Gürültü engelleme, şeffaf, uyarlanabilir ve kapalı modları arasında anında geçiyor. Uyarlanabilir modda ne kadar ortam sesi gireceğini 0 ile 100 arasında ayarlayabiliyorsun.
 - Konuşma algılama, kişiselleştirilmiş ses düzeyi, tek kulaklıkla gürültü engelleme, ses kaydırma, basma hızı, basılı tutma süresi, kutu hoparlörünün sesi, uyku algılama, işitme desteği.
 - Sapı basılı tutunca hangi modlar arasında geçileceğini ve sol ile sağ kulaklığın ne yapacağını seçebiliyorsun. Kulaklık bunları her yeni cihazda unuttuğu için Pinna her bağlantıda yeniden yazıyor.
-- Bağlanınca kulaklığı varsayılan ses çıkışı yapıyor. Yüksek kalite ile mikrofonlu profil arasında geçiş ve ses düzeyi uygulamanın içinden.
+- Bağlanınca kulaklığı varsayılan ses çıkışı yapıyor. Ses düzeyi ve profil uygulamanın içinden.
+- Görüşmede mikrofon olarak üç seçenek var. Bilgisayarın mikrofonu ya da AirPods'un yüksek kaliteli mikrofonu seçiliyken kulaklık müzik kalitesinde (AAC) kalıyor. İkincisi deneysel: kulaklığın mikrofonu AAC-ELD olarak ayrı bir kanaldan geliyor, Pinna bunu çözüp "(Pinna)" adlı bir mikrofon olarak sunuyor ve bir uygulama dinleyince kendiliğinden açıyor. Üçüncüsü Bluetooth'un telefon profili; orada ses de mikrofon da telefon kalitesine düşüyor (bu kulaklıkta LC3, 24 kHz).
 - Birden fazla eşli AirPods ya da Beats varsa aralarında geçebiliyor, yenisini eşleştirebiliyor, eskisini unutabiliyorsun.
 - Sistem tepsisinde duruyor: pil, mod değiştirme, bağlan ve kes. Pencereyi kapatınca tepside kalıyor, istersen oturum açılınca tepside başlıyor.
 - Bir kulaklığı çıkarınca çalan şey duruyor, takınca devam ediyor (MPRIS destekleyen her oynatıcıda). Konuşmaya başlayınca bilgisayarın sesini de kısıyor.
@@ -24,13 +25,13 @@ Kulaklık uyarlama, şeffaflık modunu özelleştirme, mikrofon seçimi ve kulak
 
 ## Kurulum
 
-Gerekenler: Rust (1.85 ya da yenisi), Qt 6.8 ya da yenisi (Widgets, Quick, QuickControls2, QuickEffects, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` ve `pactl`). Çeviri için `lrelease` gerekiyor; yoksa arayüz Türkçe kalır.
+Gerekenler: Rust (1.85 ya da yenisi), Qt 6.8 ya da yenisi (Widgets, Quick, QuickControls2, QuickEffects, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` ve `pactl`), FFmpeg'in libavcodec geliştirme paketi (Ubuntu'da `libavcodec-dev`). Çeviri için `lrelease` gerekiyor; yoksa arayüz Türkçe kalır.
 
 ```bash
 ./install.sh
 ```
 
-Betik her şeyi `~/.local` altına kurar, `pinnad` servisini `systemctl --user` ile açar. sudo istemez. Servis kısıtlı bir ortamda çalışır: sadece `~/.config/pinna` ve `~/.local/state/pinna` altına yazabilir, ağa çıkamaz. BLE anahtarlarının durduğu ayar dosyası 0600 izinle yazılır.
+Betik her şeyi `~/.local` altına kurar, `pinnad` servisini `systemctl --user` ile açar. sudo istemez. Servis kısıtlı bir ortamda çalışır: sadece `~/.config/pinna`, `~/.local/state/pinna`, kendi çalışma klasörü ve görüşme ayarı için `~/.config/wireplumber/wireplumber.conf.d` altına yazabilir, ağa çıkamaz. BLE anahtarlarının durduğu ayar dosyası 0600 izinle yazılır.
 
 Kulaklığı önce sistemin Bluetooth ayarlarından bir kez eşleştirmen yeterli. Sonrasında Pinna kendisi bulur.
 

@@ -19,6 +19,27 @@ pub const HEAD_STOP: &[u8] = &[
     0x02, 0x1A, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00,
 ];
 
+// LibrePods'tan: kulaklığın mikrofonunu A2DP'yi bozmadan 0x58 paketleriyle yollatır
+pub const MIC_START: &[u8] = &[
+    0x04, 0x00, 0x04, 0x00, 0x58, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x01, 0x82, 0x00, 0x00, 0x00, 0x04, 0x96, 0x00,
+];
+pub const MIC_STOP: &[u8] = &[0x04, 0x00, 0x04, 0x00, 0x58, 0x00, 0x00, 0x00, 0x02, 0x00, 0x03, 0x01];
+/// Mikrofon karelerinin AAC-ELD yapılandırması. 48 kHz yazıyor ama kareler 64 kHz hızında geliyor.
+pub const MIC_ASC: [u8; 4] = [0xF8, 0xE6, 0x30, 0x00];
+pub const MIC_RATE: u32 = 64_000;
+
+/// 0x58 ses paketindeki AAC-ELD kareleri: 22 bayt başlık, sonra [zaman:u32][uzunluk:u8][kare] dizisi.
+pub fn mic_frames(d: &[u8]) -> impl Iterator<Item = &[u8]> {
+    let audio = d.len() > 22 && d[..4] == HDR && d[4..8] == [0x58, 0x00, 0x01, 0x00];
+    let mut off = if audio { 22 } else { d.len() };
+    std::iter::from_fn(move || {
+        let len = *d.get(off + 4)? as usize;
+        let f = d.get(off + 5..off + 5 + len)?;
+        off += 5 + len;
+        Some(f)
+    })
+}
+
 pub mod cmd {
     pub const LISTENING_MODE: u8 = 0x0D;
     pub const PRESS_SPEED: u8 = 0x17;
@@ -285,6 +306,17 @@ mod tests {
         assert!(matches!(parse(HEAD_START), Some(Packet::Other(0x17))));
     }
 
+    #[test]
+    fn mic() {
+        let mut d = vec![0x04, 0x00, 0x04, 0x00, 0x58, 0x00, 0x01, 0x00];
+        d.resize(22, 0);
+        d.extend([0x84, 3, 0, 0, 2, 0xAA, 0xBB, 0x38, 4, 0, 0, 1, 0xCC, 0x00]);
+        let f: Vec<_> = mic_frames(&d).collect();
+        assert_eq!(f, [&[0xAA, 0xBB][..], &[0xCC][..]]);
+        assert_eq!(mic_frames(MIC_STOP).count(), 0);
+        assert_eq!(mic_frames(&d[..24]).count(), 0);
+    }
+
     // kulaklıktan ya da havadan gelen her bayt dizisi güvenle ayrıştırılmalı
     #[test]
     fn fuzz_parse() {
@@ -306,6 +338,10 @@ mod tests {
                 d[5] = 0;
             }
             let _ = parse(&d);
+            if i % 5 == 0 && d.len() >= 8 {
+                d[4..8].copy_from_slice(&[0x58, 0x00, 0x01, 0x00]);
+            }
+            let _ = mic_frames(&d).count();
             if i % 3 == 0 && !d.is_empty() {
                 d[0] = 0x07;
             }

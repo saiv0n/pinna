@@ -15,6 +15,10 @@ ConfigurationDirectory=pinna
 ConfigurationDirectoryMode=0700
 StateDirectory=pinna
 StateDirectoryMode=0700
+# sanal mikrofonun fifo dosyası; PipeWire modülü açıkken silinmesin
+RuntimeDirectory=pinna
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
 ProtectSystem=strict
 ProtectHome=read-only
 # görüşme ayarı için tek istisna
