@@ -1,51 +1,79 @@
 import QtQuick
 import Pinna
 
-// Baş takibi verisinin canlı görünümü: yukarıdan bakılan bir baş ve ham değerler.
+// Baş takibinin canlı görünümü. İlk örnekler düz bakış kabul edilir, açılar ona göre hesaplanır.
 Item {
     id: root
     readonly property var v: Backend.head
-    readonly property bool has: v && v.length >= 5
-    // ölçek belgelerde yok, görülen en büyük değere göre normalleştir
-    property real span: 1
-    onVChanged: if (has) span = Math.max(span, Math.abs(v[0]), Math.abs(v[1]), Math.abs(v[2]))
-    function n(i) { return has ? v[i] / span : 0 }
-    implicitHeight: 150
+    property var samples: []
+    property var zero: null
+    property real pitch: 0
+    property real yaw: 0
+    implicitHeight: 168
+
+    function reset() { samples = []; zero = null; pitch = 0; yaw = 0 }
+    onVChanged: {
+        if (!v || v.length < 3) return
+        if (!zero) {
+            const s = samples.concat([[v[0], v[1], v[2]]])
+            samples = s
+            if (s.length >= 10)
+                zero = [1, 2].map(i => s.reduce((a, r) => a + r[i], 0) / s.length)
+            return
+        }
+        const o2 = v[1] - zero[0], o3 = v[2] - zero[1]
+        pitch = (o2 + o3) / 2 / 32000 * 180
+        yaw = (o2 - o3) / 2 / 32000 * 180
+    }
 
     Rectangle {
-        id: dial
-        width: 130
-        height: 130
-        radius: 65
+        id: stage
+        width: 150
+        height: 150
+        radius: 75
         color: Theme.bg
         border.width: 1
         border.color: Theme.border
+
         Item {
+            id: head
             anchors.centerIn: parent
-            width: 70
-            height: 80
-            rotation: root.n(0) * 90
-            transform: Rotation { origin.x: 35; origin.y: 40; axis { x: 1; y: 0; z: 0 } angle: root.n(1) * 50 }
-            Rectangle { anchors.centerIn: parent; width: 58; height: 70; radius: 29; color: Theme.control; border.width: 1; border.color: Theme.border }
-            Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: -2; width: 12; height: 14; radius: 6; color: Theme.accent }
-            Rectangle { x: 0; y: 30; width: 8; height: 18; radius: 4; color: Theme.text3 }
-            Rectangle { x: 62; y: 30; width: 8; height: 18; radius: 4; color: Theme.text3 }
+            width: 72
+            height: 88
+            transform: [
+                Rotation { origin.x: 36; origin.y: 44; axis { x: 0; y: 1; z: 0 } angle: Math.max(-80, Math.min(80, root.yaw)) },
+                Rotation { origin.x: 36; origin.y: 44; axis { x: 1; y: 0; z: 0 } angle: Math.max(-60, Math.min(60, -root.pitch)) }
+            ]
+            Behavior on x { enabled: false }
+            Rectangle { anchors.fill: parent; radius: 36; color: Theme.control; border.width: 1; border.color: Theme.border }
+            Rectangle { x: 20; y: 34; width: 8; height: 8; radius: 4; color: Theme.text }
+            Rectangle { x: 44; y: 34; width: 8; height: 8; radius: 4; color: Theme.text }
+            Rectangle { x: 26; y: 60; width: 20; height: 4; radius: 2; color: Theme.text2 }
+            Rectangle { x: -6; y: 36; width: 8; height: 18; radius: 4; color: "#ffffff"; border.width: 1; border.color: Theme.border }
+            Rectangle { x: 70; y: 36; width: 8; height: 18; radius: 4; color: "#ffffff"; border.width: 1; border.color: Theme.border }
         }
     }
+
     Column {
-        x: dial.width + 20
-        width: parent.width - x
-        anchors.verticalCenter: dial.verticalCenter
-        spacing: 6
-        Repeater {
-            model: [qsTr("Yönelim 1"), qsTr("Yönelim 2"), qsTr("Yönelim 3"), qsTr("Yatay ivme"), qsTr("Dikey ivme")]
-            Row {
-                required property int index
-                required property string modelData
-                spacing: 10
-                Text { width: 90; text: parent.modelData; font: Theme.footnote; color: Theme.text2 }
-                Text { text: root.has ? root.v[parent.index] : "–"; font.family: "monospace"; font.pixelSize: 12; color: Theme.text }
+        x: stage.width + 28
+        anchors.verticalCenter: stage.verticalCenter
+        spacing: 10
+        Text {
+            text: !root.zero ? qsTr("Düz bak, sıfırlanıyor…") : qsTr("Başını çevir ya da eğ")
+            font: Theme.body
+            color: Theme.text2
+        }
+        Row {
+            spacing: 24
+            Column {
+                Text { text: qsTr("Dönüş"); font: Theme.footnote; color: Theme.text2 }
+                Text { text: Math.round(root.yaw) + "°"; font: Theme.title; color: Theme.text }
+            }
+            Column {
+                Text { text: qsTr("Eğim"); font: Theme.footnote; color: Theme.text2 }
+                Text { text: Math.round(root.pitch) + "°"; font: Theme.title; color: Theme.text }
             }
         }
+        Button { text: qsTr("Sıfırla"); enabled: !!root.zero; onClicked: root.reset() }
     }
 }

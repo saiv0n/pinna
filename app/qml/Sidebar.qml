@@ -9,6 +9,7 @@ Rectangle {
     signal picked(int index)
     signal pair()
     color: Theme.sidebar
+    readonly property bool paired: Store.devices.length > 0 || !!Store.s.address
     width: 236
 
     Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.line }
@@ -57,6 +58,8 @@ Rectangle {
             Text {
                 width: parent.width
                 text: !Backend.daemon ? qsTr("Servis çalışmıyor")
+                    : Store.s.adapter === false ? qsTr("Bluetooth kapalı")
+                    : !root.paired ? qsTr("Eşli kulaklık yok")
                     : Store.live ? (Store.modeNames[Store.s.mode] || qsTr("Bağlı"))
                     : qsTr("Bağlı değil")
                 font: Theme.footnote
@@ -100,17 +103,11 @@ Rectangle {
         Button {
             x: 8
             y: 62
-            visible: Backend.daemon && !Store.live && Store.level("left") === null
+            visible: Backend.daemon && Store.s.adapter !== false && root.paired && !Store.live && Store.level("left") === null
             text: qsTr("Bağlan")
             onClicked: Backend.connectDevice()
         }
-        Button {
-            x: 8
-            y: 62
-            visible: !Backend.daemon
-            text: qsTr("Servisi Başlat")
-            onClicked: Backend.startDaemon()
-        }
+
         MouseArea {
             id: cardArea
             z: -1

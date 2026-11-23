@@ -74,8 +74,8 @@ Page {
             }
         }
         Setting {
-            title: Store.live ? qsTr("Bağlı") : qsTr("Bağlı değil")
-            subtitle: Store.s.address || ""
+            title: qsTr("Bağlantı")
+            subtitle: Store.live ? qsTr("Bu bilgisayara bağlı") : qsTr("Bağlı değil")
             enabled: Backend.daemon
             Button {
                 text: Store.live ? qsTr("Bağlantıyı Kes") : qsTr("Bağlan")

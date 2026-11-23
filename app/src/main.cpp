@@ -1,34 +1,82 @@
-#include <QDBusConnection>
-#include <QDBusConnectionInterface>
-#include <QDBusMessage>
-#include <QFontDatabase>
-#include <QApplication>
-#include <QLibraryInfo>
-#include <QLocale>
-#include <QTranslator>
 #include "backend.h"
 #include "tray.h"
-#include <QQmlApplicationEngine>
+
+#include <QApplication>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QElapsedTimer>
+#include <QFontDatabase>
+#include <QLocale>
 #include <QProcess>
+#include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QTimer>
+#include <QTranslator>
+#include <malloc.h>
 
-// İkinci kez açılınca yeni pencere yerine var olanı öne getirmek için.
-class Instance : public QObject
+static QElapsedTimer startClock;
+
+// Ayar penceresi. Tepsiye inince QML motoru tamamen bırakılır, bellekte sadece tepsi kalır.
+class App : public QObject
 {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "dev.pinna.App1")
 public:
     QQmlApplicationEngine *engine = nullptr;
+    QQuickWindow *window = nullptr;
+    QString component = QStringLiteral("Main");
+    bool reduce = false;
+    std::function<void(QQmlApplicationEngine *)> prepare;
+
+    QQuickWindow *load()
+    {
+        if (engine)
+            return window;
+        engine = new QQmlApplicationEngine(this);
+        engine->rootContext()->setContextProperty(QStringLiteral("pinnaTheme"), qEnvironmentVariable("PINNA_THEME"));
+        engine->rootContext()->setContextProperty(QStringLiteral("pinnaPage"), qEnvironmentVariable("PINNA_PAGE"));
+        engine->rootContext()->setContextProperty(QStringLiteral("pinnaReduceMotion"), reduce);
+        engine->rootContext()->setContextProperty(QStringLiteral("pinnaWidth"), qEnvironmentVariableIntValue("PINNA_SHOT_WIDTH"));
+        if (prepare)
+            prepare(engine);
+        engine->loadFromModule("Pinna", component);
+        window = engine->rootObjects().isEmpty() ? nullptr : qobject_cast<QQuickWindow *>(engine->rootObjects().first());
+        if (window) {
+            if (qEnvironmentVariableIsSet("PINNA_TRACE")) {
+                connect(window, &QQuickWindow::frameSwapped, Backend::instance(), &Backend::frameShown, Qt::DirectConnection);
+                connect(window, &QQuickWindow::frameSwapped, window, [] {
+                    static bool once = false;
+                    if (!once) {
+                        once = true;
+                        qInfo("pinna: ilk kare %lld ms", startClock.elapsed());
+                    }
+                }, Qt::DirectConnection);
+            }
+            connect(window, &QWindow::visibleChanged, this, [this](bool v) { Backend::instance()->windowShown(v); });
+        }
+        return window;
+    }
+
+    void release()
+    {
+        if (qEnvironmentVariableIsSet("PINNA_TRACE"))
+            qInfo("pinna: pencere bırakılıyor (%s)", engine ? "motor var" : "motor yok");
+        if (!engine)
+            return;
+        engine->deleteLater();
+        engine = nullptr;
+        window = nullptr;
+        Backend::instance()->windowShown(false);
+        // silinen arayüzün belleği işletim sistemine geri dönsün
+        QTimer::singleShot(1000, [] { malloc_trim(0); });
+    }
+
 public slots:
     Q_SCRIPTABLE void Activate()
     {
-        if (!engine || engine->rootObjects().isEmpty())
-            return;
-        if (auto *w = qobject_cast<QQuickWindow *>(engine->rootObjects().first())) {
-            w->setVisible(true);
+        if (auto *w = load()) {
             w->show();
             w->raise();
             w->requestActivate();
@@ -36,20 +84,9 @@ public slots:
     }
 };
 
-// GNOME ayarlarında animasyonlar kapatıldıysa hareketleri sadeleştir
-static bool reduceMotion()
-{
-    if (qEnvironmentVariableIsSet("PINNA_REDUCE_MOTION"))
-        return qEnvironmentVariableIntValue("PINNA_REDUCE_MOTION") != 0;
-    QProcess p;
-    p.start(QStringLiteral("gsettings"), {"get", "org.gnome.desktop.interface", "enable-animations"});
-    if (!p.waitForFinished(400))
-        return false;
-    return p.readAllStandardOutput().trimmed() == "false";
-}
-
 int main(int argc, char *argv[])
 {
+    startClock.start();
     // tepsi menüsü için Widgets gerekiyor
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Pinna"));
@@ -59,8 +96,22 @@ int main(int argc, char *argv[])
 
     const bool popup = app.arguments().contains(QStringLiteral("--popup"));
     const bool hidden = app.arguments().contains(QStringLiteral("--tray"));
+    const bool shot = !qEnvironmentVariable("PINNA_SHOT").isEmpty();
     // Hyprland kuralları sınıfa bakıyor, kart ayrı bir sınıfla açılsın
     app.setDesktopFileName(popup ? QStringLiteral("dev.pinna.Popup") : QStringLiteral("dev.pinna.Pinna"));
+
+    App instance;
+    instance.component = popup ? QStringLiteral("Popup") : QStringLiteral("Main");
+    // ikinci kez açılınca yeni pencere yerine var olanı öne getir
+    if (!popup && !shot) {
+        auto bus = QDBusConnection::sessionBus();
+        if (!bus.registerService(QStringLiteral("dev.pinna.App"))) {
+            bus.call(QDBusMessage::createMethodCall(QStringLiteral("dev.pinna.App"), QStringLiteral("/"),
+                                                    QStringLiteral("dev.pinna.App1"), QStringLiteral("Activate")));
+            return 0;
+        }
+        bus.registerObject(QStringLiteral("/"), &instance, QDBusConnection::ExportScriptableSlots);
+    }
 
     // kaynak metinler Türkçe; başka dillerde İngilizce çeviri yüklenir
     QTranslator translator;
@@ -73,73 +124,60 @@ int main(int argc, char *argv[])
             QCoreApplication::installTranslator(&translator);
     };
     applyLanguage();
-
-    Instance instance;
-    // ekran görüntüsü alınırken açık olan pencereye karışma
-    if (!popup && qEnvironmentVariable("PINNA_SHOT").isEmpty()) {
-        auto bus = QDBusConnection::sessionBus();
-        if (!bus.registerService(QStringLiteral("dev.pinna.App"))) {
-            bus.call(QDBusMessage::createMethodCall(QStringLiteral("dev.pinna.App"), QStringLiteral("/"),
-                                                    QStringLiteral("dev.pinna.App1"), QStringLiteral("Activate")));
-            return 0;
-        }
-        bus.registerObject(QStringLiteral("/"), &instance, QDBusConnection::ExportScriptableSlots);
-    }
+    QObject::connect(Backend::instance(), &Backend::languageChanged, &instance, [&] {
+        applyLanguage();
+        if (instance.engine)
+            instance.engine->retranslate();
+    });
 
     int id = QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/Pinna/fonts/Inter.ttf"));
     if (id >= 0) {
         QFont f(QFontDatabase::applicationFontFamilies(id).value(0));
-        f.setPixelSize(14);
+        f.setPixelSize(13);
         f.setHintingPreference(QFont::PreferNoHinting);
         app.setFont(f);
     }
 
-    QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty(QStringLiteral("pinnaHidden"), hidden);
-    instance.engine = &engine;
-    engine.rootContext()->setContextProperty(QStringLiteral("pinnaTheme"), qEnvironmentVariable("PINNA_THEME"));
-    engine.rootContext()->setContextProperty(QStringLiteral("pinnaPage"), qEnvironmentVariable("PINNA_PAGE"));
-    engine.rootContext()->setContextProperty(QStringLiteral("pinnaReduceMotion"), reduceMotion());
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
-                     [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
-    if (int h = qEnvironmentVariableIntValue("PINNA_SHOT_HEIGHT"))
-        engine.setInitialProperties({{QStringLiteral("height"), h}});
-    engine.loadFromModule("Pinna", popup ? "Popup" : "Main");
-    QObject::connect(Backend::instance(), &Backend::languageChanged, &engine, [&] {
-        applyLanguage();
-        engine.retranslate();
-        emit Backend::instance()->stateChanged();
-    });
-    if (engine.rootObjects().isEmpty())
-        return 1;
-    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
-    if (qEnvironmentVariableIsSet("PINNA_TRACE")) {
-        QObject::connect(window, &QQuickWindow::frameSwapped, Backend::instance(), &Backend::frameShown, Qt::DirectConnection);
-        // PINNA_TRACE=şeffaflık gibi bir mod verilirse ölçüm için o moda geçip eskisine döner
-        const QString to = qEnvironmentVariable("PINNA_TRACE");
-        if (to.size() > 1) {
-            QTimer::singleShot(2000, [to] {
-                const QString back = Backend::instance()->state().value(QStringLiteral("mode")).toString();
-                Backend::instance()->setMode(to);
-                QTimer::singleShot(2500, [back] { Backend::instance()->setMode(back); });
-            });
-        }
+    // GNOME'da animasyonlar kapalıysa hareketleri sadeleştir; açılışı bekletmesin diye arka planda sorulur
+    if (qEnvironmentVariableIsSet("PINNA_REDUCE_MOTION")) {
+        instance.reduce = qEnvironmentVariableIntValue("PINNA_REDUCE_MOTION") != 0;
+    } else {
+        auto *p = new QProcess(&app);
+        QObject::connect(p, &QProcess::finished, &instance, [p, &instance] {
+            instance.reduce = p->readAllStandardOutput().trimmed() == "false";
+            if (instance.engine)
+                instance.engine->rootContext()->setContextProperty(QStringLiteral("pinnaReduceMotion"), instance.reduce);
+            p->deleteLater();
+        });
+        p->start(QStringLiteral("gsettings"), {"get", "org.gnome.desktop.interface", "enable-animations"});
     }
 
-    Tray *tray = nullptr;
-    if (!popup && qEnvironmentVariable("PINNA_SHOT").isEmpty()) {
-        tray = new Tray(&app);
-        tray->window = window;
-        Backend::instance()->setTray(tray->available());
+    if (int h = qEnvironmentVariableIntValue("PINNA_SHOT_HEIGHT"))
+        instance.prepare = [h](QQmlApplicationEngine *e) { e->setInitialProperties({{QStringLiteral("height"), h}}); };
+
+    if (!popup && !shot) {
+        auto *tray = new Tray(&app);
+        tray->open = [&instance] { instance.Activate(); };
+        tray->isOpen = [&instance] { return instance.window && instance.window->isVisible() && instance.window->isActive(); };
+        tray->close = [&instance] { instance.release(); };
+        Backend::instance()->setTray(true);
         app.setQuitOnLastWindowClosed(false);
+        // QML pencereyi tepsiye indirince motoru bırak
+        QObject::connect(Backend::instance(), &Backend::windowReleased, &instance, [&instance] { instance.release(); });
+        if (hidden && tray->available())
+            return app.exec();
     }
+
+    QQuickWindow *window = instance.load();
+    if (!window)
+        return 1;
+    window->show();
 
     // README görselleri için: PINNA_SHOT=dosya.png ile pencereyi kaydedip çık
-    const QString shot = qEnvironmentVariable("PINNA_SHOT");
-    if (!shot.isEmpty() && !engine.rootObjects().isEmpty()) {
-        auto *w = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
-        QTimer::singleShot(qEnvironmentVariableIntValue("PINNA_SHOT_DELAY") ?: 2500, w, [w, shot] {
-            w->grabWindow().save(shot);
+    if (shot) {
+        const QString path = qEnvironmentVariable("PINNA_SHOT");
+        QTimer::singleShot(qEnvironmentVariableIntValue("PINNA_SHOT_DELAY") ?: 2500, window, [window, path] {
+            window->grabWindow().save(path);
             QCoreApplication::quit();
         });
     }

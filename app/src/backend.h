@@ -22,15 +22,15 @@ class Backend : public QObject
     Q_PROPERTY(bool closeToTray READ closeToTray WRITE setCloseToTray NOTIFY appChanged)
     Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY appChanged)
     Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
-    Q_PROPERTY(bool trayAvailable MEMBER m_tray NOTIFY appChanged)
+    Q_PROPERTY(bool trayAvailable READ trayAvailable NOTIFY appChanged)
     Q_PROPERTY(bool deviceIdOk READ deviceIdOk NOTIFY appChanged)
     Q_PROPERTY(QString deviceIdCommand READ deviceIdCommand CONSTANT)
     Q_PROPERTY(QString version READ version CONSTANT)
 
 public:
-    explicit Backend(QObject *parent = nullptr);
     static Backend *instance();
-    static Backend *create(QQmlEngine *, QJSEngine *) { return instance(); }
+    // QML de tepsiyle aynı nesneyi kullansın; motor silinince nesne yaşamaya devam eder
+    static Backend *create(QQmlEngine *, QJSEngine *);
 
     QVariantMap state() const { return m_state; }
     bool daemon() const { return m_daemon; }
@@ -44,7 +44,9 @@ public:
     QString language() const;
     void setLanguage(const QString &lang);
     QString deviceIdCommand() const;
+    void windowShown(bool shown) { m_windowShown = shown; }
     QString version() const;
+    bool trayAvailable() const;
     void setTray(bool on) { m_tray = on; emit appChanged(); }
     void frameShown();
 
@@ -54,6 +56,7 @@ public:
     Q_INVOKABLE void setAudio(const QString &key, const QVariant &value);
     Q_INVOKABLE void rename(const QString &name);
     Q_INVOKABLE void connectDevice();
+    Q_INVOKABLE void powerOn();
     Q_INVOKABLE void disconnectDevice();
     Q_INVOKABLE void select(const QString &address);
     Q_INVOKABLE void forget(const QString &address);
@@ -67,6 +70,7 @@ public:
     Q_INVOKABLE void setupDeviceId();
     Q_INVOKABLE QString exportLog();
     Q_INVOKABLE void copy(const QString &text);
+    Q_INVOKABLE void releaseWindow() { emit windowReleased(); }
 
 signals:
     void stateChanged();
@@ -75,12 +79,18 @@ signals:
     void headChanged();
     void appChanged();
     void languageChanged();
-    void error(const QString &message);
+    // kod: not-connected, bluetooth-off, unreachable, service, invalid, audio, pair-failed, busy, bluetooth
+    void error(const QString &code, const QString &message);
     void notice(const QString &message);
     void caseOpened();
+    void windowReleased();
+
+private:
+    explicit Backend(QObject *parent = nullptr);
 
 private slots:
     void onState(const QString &json);
+    void replaceState(const QString &json);
     void onCase(const QString &json);
     void onHead(const QList<qint16> &values);
 
@@ -88,6 +98,7 @@ private:
     void call(const QString &method, const QVariantList &args);
     void optimistic(const QString &group, const QString &key, const QVariant &value);
     void setDaemon(bool up);
+    void apply(QVariantMap next);
     void fakeCall(const QString &method, const QVariantList &args);
 
     struct Pending {
@@ -105,6 +116,7 @@ private:
     QVariantList m_head;
     bool m_daemon = false;
     bool m_tray = false;
+    bool m_windowShown = true;
     QString m_fake;
     QDBusServiceWatcher *m_watcher = nullptr;
 };

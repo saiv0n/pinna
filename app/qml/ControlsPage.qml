@@ -4,6 +4,8 @@ import Pinna
 Page {
     id: page
     title: qsTr("Kontroller")
+    // pencere kapanınca akış açık kalıp pil yemesin
+    Component.onDestruction: if (Store.s.headTracking) Backend.headTracking(false)
 
     Section {
         title: qsTr("Basılı Tutma")
@@ -61,42 +63,15 @@ Page {
     }
 
     Section {
-        title: qsTr("Mikrofon ve Algılama")
-        enabled: Store.ready
-        Setting {
-            title: qsTr("Mikrofon")
-            subtitle: qsTr("Otomatikte kulakta olan AirPod kullanılır.")
-            Dropdown {
-                model: [qsTr("Otomatik"), qsTr("Her zaman sağ"), qsTr("Her zaman sol")]
-                currentIndex: Store.setting("micMode", 0)
-                onPicked: i => Backend.setSetting("micMode", i)
-            }
-        }
-        Setting {
-            title: qsTr("Kulak algılama")
-            subtitle: qsTr("Kulaktan çıkarınca ses kulaklıktan kesilir.")
-            Switch {
-                checked: Store.setting("earDetection", true)
-                onToggled: v => Backend.setSetting("earDetection", v)
-            }
-        }
-    }
-
-    Section {
         title: qsTr("Baş Takibi")
-        footer: qsTr("Deneysel. Kulaklığın hareket algılayıcısından gelen ham değerler. Bazı yazılım sürümleri bu veriyi yalnızca Apple aygıtlarına gönderiyor.")
+        footer: qsTr("Kulaklığın hareket algılayıcısı başının yönünü canlı gösterir. Açıkken pil biraz daha hızlı biter.")
         enabled: Store.ready
         Setting {
             id: head
             readonly property bool on: !!Store.s.headTracking
-            property bool silent: false
-            title: on ? (Backend.head.length ? qsTr("Veri geliyor") : silent ? qsTr("Kulaklık veri göndermedi") : qsTr("Bekleniyor…")) : qsTr("Kapalı")
-            Timer { interval: 3000; running: head.on && !Backend.head.length; onTriggered: head.silent = true }
-            onOnChanged: silent = false
-            Button {
-                text: head.on ? qsTr("Durdur") : qsTr("Başlat")
-                onClicked: Backend.headTracking(!head.on)
-            }
+            title: qsTr("Canlı görünüm")
+            subtitle: on && !Backend.head.length ? qsTr("Kulaklıktan veri bekleniyor…") : ""
+            Switch { checked: head.on; onToggled: v => Backend.headTracking(v) }
         }
         Block {
             visible: head.on

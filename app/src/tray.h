@@ -1,10 +1,10 @@
 #pragma once
 
 #include <QObject>
+#include <functional>
 
 class QSystemTrayIcon;
 class QMenu;
-class QWindow;
 
 // StatusNotifierItem olarak görünen tepsi simgesi; menüsü servis durumundan kurulur.
 class Tray : public QObject
@@ -13,7 +13,8 @@ class Tray : public QObject
 public:
     explicit Tray(QObject *parent = nullptr);
     bool available() const;
-    QWindow *window = nullptr;
+    std::function<void()> open, close;
+    std::function<bool()> isOpen;
     void toggleWindow();
 
 private:

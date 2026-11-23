@@ -39,7 +39,7 @@ Page {
 
     Section {
         title: "Pinna"
-        footer: qsTr("Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0). Protokol notları LibrePods projesinden. Pinna'nın Apple ile bir bağı yoktur.")
+        footer: qsTr("Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0). Pinna'nın Apple ile bir bağı yoktur.")
         Setting { title: qsTr("Sürüm"); Text { text: Backend.version; font: Theme.body; color: Theme.text2 } }
         Setting { title: qsTr("Lisans"); Text { text: "GPL-3.0"; font: Theme.body; color: Theme.text2 } }
     }

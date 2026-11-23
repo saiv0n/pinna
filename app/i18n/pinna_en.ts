@@ -40,8 +40,8 @@
         <translation>Copy</translation>
     </message>
     <message>
-        <source>Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0). Protokol notları LibrePods projesinden. Pinna'nın Apple ile bir bağı yoktur.</source>
-        <translation>Headphone renders from Jed Falcone's AirPods Pro model (CC BY 4.0). Protocol notes from the LibrePods project. Pinna is not affiliated with Apple.</translation>
+        <source>Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0). Pinna'nın Apple ile bir bağı yoktur.</source>
+        <translation>Headphone renders from Jed Falcone's AirPods Pro model (CC BY 4.0). Pinna is not affiliated with Apple.</translation>
     </message>
     <message>
         <source>Sürüm</source>
@@ -73,34 +73,6 @@
     <message>
         <source>Uykuya daldığını fark edince çalan medya duraklatılır.</source>
         <translation>Media is paused when you fall asleep.</translation>
-    </message>
-    <message>
-        <source>Henüz Desteklenmiyor</source>
-        <translation>Not Supported Yet</translation>
-    </message>
-    <message>
-        <source>Bu iki ayarın paket biçimi kısmen biliniyor ama kulaklığın şu anki değerleri okunamıyor. Yanlış değer yazıp işitme ayarını bozmamak için Pinna şimdilik bunlara dokunmuyor.</source>
-        <translation>The packet format for these is only partly known and the current values can't be read back. Pinna leaves them alone for now so it doesn't overwrite a hearing setup with wrong values.</translation>
-    </message>
-    <message>
-        <source>Kulaklık uyarlama</source>
-        <translation>Headphone accommodation</translation>
-    </message>
-    <message>
-        <source>Telefon ve medya sesini işitmene göre ayarlar.</source>
-        <translation>Tunes phone and media audio to your hearing.</translation>
-    </message>
-    <message>
-        <source>Yok</source>
-        <translation>Unavailable</translation>
-    </message>
-    <message>
-        <source>Şeffaflık modunu özelleştir</source>
-        <translation>Customize Transparency mode</translation>
-    </message>
-    <message>
-        <source>Yükseltme, ton ve ortam gürültüsü azaltma.</source>
-        <translation>Amplification, tone and ambient noise reduction.</translation>
     </message>
 </context>
 <context>
@@ -458,68 +430,20 @@
         <translation>Longest</translation>
     </message>
     <message>
-        <source>Mikrofon ve Algılama</source>
-        <translation>Microphone and Detection</translation>
-    </message>
-    <message>
-        <source>Mikrofon</source>
-        <translation>Microphone</translation>
-    </message>
-    <message>
-        <source>Otomatikte kulakta olan AirPod kullanılır.</source>
-        <translation>Automatic uses whichever AirPod is in your ear.</translation>
-    </message>
-    <message>
-        <source>Otomatik</source>
-        <translation>Automatic</translation>
-    </message>
-    <message>
-        <source>Her zaman sağ</source>
-        <translation>Always right</translation>
-    </message>
-    <message>
-        <source>Her zaman sol</source>
-        <translation>Always left</translation>
-    </message>
-    <message>
-        <source>Kulak algılama</source>
-        <translation>Ear detection</translation>
-    </message>
-    <message>
-        <source>Kulaktan çıkarınca ses kulaklıktan kesilir.</source>
-        <translation>Audio stops playing through the headphones when you take them out.</translation>
-    </message>
-    <message>
         <source>Baş Takibi</source>
         <translation>Head Tracking</translation>
     </message>
     <message>
-        <source>Deneysel. Kulaklığın hareket algılayıcısından gelen ham değerler. Bazı yazılım sürümleri bu veriyi yalnızca Apple aygıtlarına gönderiyor.</source>
-        <translation>Experimental. Raw values from the motion sensor. Some firmware versions only stream this to Apple devices.</translation>
+        <source>Kulaklığın hareket algılayıcısı başının yönünü canlı gösterir. Açıkken pil biraz daha hızlı biter.</source>
+        <translation>Shows the direction of your head live using the headphones' motion sensor. Uses a bit more battery while on.</translation>
     </message>
     <message>
-        <source>Veri geliyor</source>
-        <translation>Receiving data</translation>
+        <source>Canlı görünüm</source>
+        <translation>Live view</translation>
     </message>
     <message>
-        <source>Kulaklık veri göndermedi</source>
-        <translation>No data from headphones</translation>
-    </message>
-    <message>
-        <source>Bekleniyor…</source>
-        <translation>Waiting…</translation>
-    </message>
-    <message>
-        <source>Kapalı</source>
-        <translation>Off</translation>
-    </message>
-    <message>
-        <source>Durdur</source>
-        <translation>Stop</translation>
-    </message>
-    <message>
-        <source>Başlat</source>
-        <translation>Start</translation>
+        <source>Kulaklıktan veri bekleniyor…</source>
+        <translation>Waiting for data from the headphones…</translation>
     </message>
 </context>
 <context>
@@ -577,8 +501,12 @@
         <translation>The headphones can switch to this computer from nearby devices on their own.</translation>
     </message>
     <message>
-        <source>Bağlı</source>
-        <translation>Connected</translation>
+        <source>Bağlantı</source>
+        <translation>Connection</translation>
+    </message>
+    <message>
+        <source>Bu bilgisayara bağlı</source>
+        <translation>Connected to this computer</translation>
     </message>
     <message>
         <source>Bağlı değil</source>
@@ -664,24 +592,24 @@
 <context>
     <name>HeadView</name>
     <message>
-        <source>Yönelim 1</source>
-        <translation>Orientation 1</translation>
+        <source>Düz bak, sıfırlanıyor…</source>
+        <translation>Look straight ahead, calibrating…</translation>
     </message>
     <message>
-        <source>Yönelim 2</source>
-        <translation>Orientation 2</translation>
+        <source>Başını çevir ya da eğ</source>
+        <translation>Turn or tilt your head</translation>
     </message>
     <message>
-        <source>Yönelim 3</source>
-        <translation>Orientation 3</translation>
+        <source>Dönüş</source>
+        <translation>Turn</translation>
     </message>
     <message>
-        <source>Yatay ivme</source>
-        <translation>Horizontal accel.</translation>
+        <source>Eğim</source>
+        <translation>Tilt</translation>
     </message>
     <message>
-        <source>Dikey ivme</source>
-        <translation>Vertical accel.</translation>
+        <source>Sıfırla</source>
+        <translation>Recenter</translation>
     </message>
 </context>
 <context>
@@ -715,10 +643,6 @@
         <translation>About</translation>
     </message>
     <message>
-        <source>Pinna servisi çalışmıyor. Ayarlar kulaklığa gönderilemez.</source>
-        <translation>The Pinna service isn't running. Settings can't be sent to the headphones.</translation>
-    </message>
-    <message>
         <source>%1 bağlı değil. Bu ayarlar bağlanınca değiştirilebilir.</source>
         <translation>%1 is not connected. These settings can be changed once it connects.</translation>
     </message>
@@ -727,8 +651,116 @@
         <translation>Connect</translation>
     </message>
     <message>
+        <source>Pinna servisi çalışmıyor</source>
+        <translation>The Pinna service isn't running</translation>
+    </message>
+    <message>
+        <source>Kulaklıkla konuşan arka plan servisi kapalı. Başlatınca ayarların hepsi yeniden kullanılabilir.</source>
+        <translation>The background service that talks to your headphones is stopped. Start it to use all settings again.</translation>
+    </message>
+    <message>
         <source>Servisi Başlat</source>
         <translation>Start Service</translation>
+    </message>
+    <message>
+        <source>Bluetooth kapalı</source>
+        <translation>Bluetooth is off</translation>
+    </message>
+    <message>
+        <source>AirPods'a bağlanmak ve ayarlarını değiştirmek için Bluetooth açık olmalı.</source>
+        <translation>Bluetooth needs to be on to connect to your AirPods and change their settings.</translation>
+    </message>
+    <message>
+        <source>Bluetooth'u Aç</source>
+        <translation>Turn On Bluetooth</translation>
+    </message>
+    <message>
+        <source>Kulaklık bağlı değil</source>
+        <translation>Headphones not connected</translation>
+    </message>
+    <message>
+        <source>Bu ayar ancak kulaklık bağlıyken değişebilir.</source>
+        <translation>This setting can only change while the headphones are connected.</translation>
+    </message>
+    <message>
+        <source>Kulaklığa ulaşmak için Bluetooth'u aç.</source>
+        <translation>Turn on Bluetooth to reach your headphones.</translation>
+    </message>
+    <message>
+        <source>Kulaklığa ulaşılamadı</source>
+        <translation>Couldn't reach the headphones</translation>
+    </message>
+    <message>
+        <source>Kutudan çıkar ya da kapağını aç ve bilgisayarın yakınında tut.</source>
+        <translation>Take them out of the case or open the lid, and keep them near the computer.</translation>
+    </message>
+    <message>
+        <source>Yeniden Dene</source>
+        <translation>Try Again</translation>
+    </message>
+    <message>
+        <source>Bluetooth meşgul</source>
+        <translation>Bluetooth is busy</translation>
+    </message>
+    <message>
+        <source>Başka bir işlem sürüyor. Birkaç saniye sonra yeniden dene.</source>
+        <translation>Another operation is in progress. Try again in a few seconds.</translation>
+    </message>
+    <message>
+        <source>Servise ulaşılamadı</source>
+        <translation>Couldn't reach the service</translation>
+    </message>
+    <message>
+        <source>Pinna servisi yanıt vermedi.</source>
+        <translation>The Pinna service didn't respond.</translation>
+    </message>
+    <message>
+        <source>Eşleşme tamamlanmadı</source>
+        <translation>Pairing didn't finish</translation>
+    </message>
+    <message>
+        <source>Kutu açıkken arkasındaki düğmeyi ışık beyaz yanıp sönene kadar basılı tut.</source>
+        <translation>With the lid open, hold the button on the back of the case until the light flashes white.</translation>
+    </message>
+    <message>
+        <source>Yeniden Ara</source>
+        <translation>Search Again</translation>
+    </message>
+    <message>
+        <source>Ses ayarı değişmedi</source>
+        <translation>Audio setting didn't change</translation>
+    </message>
+    <message>
+        <source>PipeWire bu kulaklık için isteği kabul etmedi. Kulaklığı çıkarıp yeniden tak.</source>
+        <translation>PipeWire didn't accept the request for these headphones. Take them out and put them back in.</translation>
+    </message>
+    <message>
+        <source>Bu değer kullanılamıyor</source>
+        <translation>That value can't be used</translation>
+    </message>
+    <message>
+        <source>Eşli kulaklık yok</source>
+        <translation>No paired headphones</translation>
+    </message>
+    <message>
+        <source>Önce AirPods'unu bu bilgisayarla eşleştir.</source>
+        <translation>Pair your AirPods with this computer first.</translation>
+    </message>
+    <message>
+        <source>Eşleştir</source>
+        <translation>Pair</translation>
+    </message>
+    <message>
+        <source>DeviceID eklenmedi</source>
+        <translation>DeviceID wasn't added</translation>
+    </message>
+    <message>
+        <source>Günlük kaydedilemedi</source>
+        <translation>Couldn't save the log</translation>
+    </message>
+    <message>
+        <source>Bir şey ters gitti</source>
+        <translation>Something went wrong</translation>
     </message>
 </context>
 <context>
@@ -783,6 +815,45 @@
     </message>
 </context>
 <context>
+    <name>Onboarding</name>
+    <message>
+        <source>AirPods'unu bağla</source>
+        <translation>Connect your AirPods</translation>
+    </message>
+    <message>
+        <source>AirPods kutudayken kapağı aç ve kutunun arkasındaki düğmeyi ışık beyaz yanıp sönene kadar basılı tut.</source>
+        <translation>With your AirPods in the case, open the lid and hold the button on the back until the light flashes white.</translation>
+    </message>
+    <message>
+        <source>Pinna, bu bilgisayarla eşleşmiş AirPods ya da Beats kulaklıkları yönetir. Başlamak için kulaklığını eşleştir.</source>
+        <translation>Pinna manages AirPods and Beats headphones paired with this computer. Pair your headphones to get started.</translation>
+    </message>
+    <message>
+        <source>Eşleştirmeye Başla</source>
+        <translation>Start Pairing</translation>
+    </message>
+    <message>
+        <source>Aranıyor…</source>
+        <translation>Searching…</translation>
+    </message>
+    <message>
+        <source>Durdur</source>
+        <translation>Stop</translation>
+    </message>
+    <message>
+        <source>Eşleştirmeye hazır</source>
+        <translation>Ready to pair</translation>
+    </message>
+    <message>
+        <source>Eşleştiriliyor…</source>
+        <translation>Pairing…</translation>
+    </message>
+    <message>
+        <source>Eşleştir</source>
+        <translation>Pair</translation>
+    </message>
+</context>
+<context>
     <name>Popup</name>
     <message>
         <source>Bağlanıyor…</source>
@@ -824,6 +895,14 @@
         <translation>Service not running</translation>
     </message>
     <message>
+        <source>Bluetooth kapalı</source>
+        <translation>Bluetooth is off</translation>
+    </message>
+    <message>
+        <source>Eşli kulaklık yok</source>
+        <translation>No paired headphones</translation>
+    </message>
+    <message>
         <source>Bağlı</source>
         <translation>Connected</translation>
     </message>
@@ -838,10 +917,6 @@
     <message>
         <source>Bağlan</source>
         <translation>Connect</translation>
-    </message>
-    <message>
-        <source>Servisi Başlat</source>
-        <translation>Start Service</translation>
     </message>
     <message>
         <source>Bağlantıyı Kes</source>
@@ -884,18 +959,37 @@
     </message>
 </context>
 <context>
+    <name>Toast</name>
+    <message>
+        <source>Kapat</source>
+        <translation>Close</translation>
+    </message>
+</context>
+<context>
     <name>Backend</name>
+    <message>
+        <source>Pinna servisine ulaşılamadı.</source>
+        <translation>Couldn't reach the Pinna service.</translation>
+    </message>
+    <message>
+        <source>Parola penceresi kapatıldı, hiçbir şey değişmedi.</source>
+        <translation>The password prompt was closed; nothing changed.</translation>
+    </message>
+    <message>
+        <source>Satır eklenemedi (çıkış kodu %1).</source>
+        <translation>Couldn't add the line (exit code %1).</translation>
+    </message>
     <message>
         <source>DeviceID eklendi, Bluetooth yeniden başlatıldı.</source>
         <translation>DeviceID added, Bluetooth restarted.</translation>
     </message>
     <message>
-        <source>DeviceID eklenemedi (çıkış kodu %1).</source>
-        <translation>Couldn't add DeviceID (exit code %1).</translation>
+        <source>DeviceID eklendi. Etkinleşmesi için Bluetooth'u yeniden başlat.</source>
+        <translation>DeviceID added. Restart Bluetooth for it to take effect.</translation>
     </message>
     <message>
-        <source>Günlük yazılamadı: %1</source>
-        <translation>Couldn't write log: %1</translation>
+        <source>Günlük %1 konumuna yazılamadı.</source>
+        <translation>Couldn't write the log to %1.</translation>
     </message>
     <message>
         <source>Günlük kaydedildi: %1</source>
@@ -921,6 +1015,10 @@
         <translation>Service not running</translation>
     </message>
     <message>
+        <source>Bluetooth kapalı</source>
+        <translation>Bluetooth is off</translation>
+    </message>
+    <message>
         <source>Bağlı değil</source>
         <translation>Not connected</translation>
     </message>
@@ -943,6 +1041,10 @@
     <message>
         <source>Bağlantıyı Kes</source>
         <translation>Disconnect</translation>
+    </message>
+    <message>
+        <source>Bluetooth'u Aç</source>
+        <translation>Turn On Bluetooth</translation>
     </message>
     <message>
         <source>Bağlan</source>

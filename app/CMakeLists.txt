@@ -40,6 +40,7 @@ qt_add_qml_module(pinna
         qml/ModeIcon.qml
         qml/ModePicker.qml
         qml/NoisePage.qml
+        qml/Onboarding.qml
         qml/Page.qml
         qml/Popup.qml
         qml/Section.qml
@@ -48,6 +49,7 @@ qt_add_qml_module(pinna
         qml/Sidebar.qml
         qml/Slider.qml
         qml/Spinner.qml
+        qml/StatusView.qml
         qml/Store.qml
         qml/Switch.qml
         qml/Theme.qml
@@ -55,8 +57,6 @@ qt_add_qml_module(pinna
     RESOURCES
         fonts/Inter.ttf
         assets/bud.png
-        assets/set.png
-        assets/case.png
         assets/tray.png
 )
 

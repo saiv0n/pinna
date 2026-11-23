@@ -12,12 +12,15 @@
 #include <QFileInfo>
 #include <QClipboard>
 #include <QDBusMetaType>
+#include <QDBusVariant>
+#include <QJSEngine>
 #include <QDateTime>
 #include <QDir>
 #include <QGuiApplication>
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QSystemTrayIcon>
 
 static const QString SERVICE = QStringLiteral("dev.pinna.Daemon");
 static const QString PATH = QStringLiteral("/dev/pinna/Daemon");
@@ -36,7 +39,13 @@ Backend *Backend::instance()
     return b;
 }
 
-// QML'e de tepsiye de aynı nesne gitsin diye
+Backend *Backend::create(QQmlEngine *, QJSEngine *)
+{
+    auto *b = instance();
+    QJSEngine::setObjectOwnership(b, QJSEngine::CppOwnership);
+    return b;
+}
+
 Backend::Backend(QObject *parent) : QObject(parent)
 {
     m_clock.start();
@@ -46,7 +55,7 @@ Backend::Backend(QObject *parent) : QObject(parent)
     if (!m_fake.isEmpty()) {
         QFile f(m_fake);
         if (f.open(QIODevice::ReadOnly))
-            onState(QString::fromUtf8(f.readAll()));
+            replaceState(QString::fromUtf8(f.readAll()));
         setDaemon(!m_state.isEmpty());
         return;
     }
@@ -88,7 +97,7 @@ void Backend::refresh()
         QDBusPendingReply<QString> r = *w;
         if (!r.isError()) {
             setDaemon(true);
-            onState(r.value());
+            replaceState(r.value());
         }
         w->deleteLater();
     });
@@ -137,9 +146,23 @@ void Backend::frameShown()
     m_traceAt = -1;
 }
 
+// servis sinyalde sadece değişen alanları yolluyor
 void Backend::onState(const QString &json)
 {
-    auto next = QJsonDocument::fromJson(json.toUtf8()).toVariant().toMap();
+    auto next = m_state;
+    const auto diff = QJsonDocument::fromJson(json.toUtf8()).toVariant().toMap();
+    for (auto it = diff.begin(); it != diff.end(); ++it)
+        next[it.key()] = it.value();
+    apply(next);
+}
+
+void Backend::replaceState(const QString &json)
+{
+    apply(QJsonDocument::fromJson(json.toUtf8()).toVariant().toMap());
+}
+
+void Backend::apply(QVariantMap next)
+{
     // tıklanan değer kulaklıktan onay gelene kadar ekranda kalsın, eski bir yankı geri çevirmesin
     const qint64 now = m_clock.elapsed();
     for (auto it = m_pending.begin(); it != m_pending.end();) {
@@ -180,7 +203,14 @@ void Backend::call(const QString &method, const QVariantList &args)
         QDBusPendingReply<> r = *w;
         if (r.isError()) {
             m_pending.clear();
-            emit error(r.error().message());
+            // servisten "kod: açıklama" biçiminde gelir; D-Bus'ın kendi hataları servise ulaşılamadı demek
+            const QString msg = r.error().message();
+            const int colon = msg.indexOf(QLatin1String(": "));
+            const bool coded = r.error().type() == QDBusError::Failed || r.error().type() == QDBusError::InvalidArgs;
+            if (coded && colon > 0 && colon < 16)
+                emit error(msg.left(colon), msg.mid(colon + 2));
+            else
+                emit error(QStringLiteral("service"), tr("Pinna servisine ulaşılamadı."));
             refresh();
         }
         w->deleteLater();
@@ -221,6 +251,7 @@ void Backend::rename(const QString &name)
 }
 
 void Backend::connectDevice() { call(QStringLiteral("Connect"), {}); }
+void Backend::powerOn() { call(QStringLiteral("PowerOn"), {}); }
 void Backend::disconnectDevice() { call(QStringLiteral("Disconnect"), {}); }
 void Backend::select(const QString &address) { call(QStringLiteral("Select"), {address}); }
 void Backend::forget(const QString &address) { call(QStringLiteral("Forget"), {address}); }
@@ -306,23 +337,38 @@ bool Backend::deviceIdOk() const
     return false;
 }
 
+// kullanıcıya gösterilen metin; çalıştırılan komut kabuk kullanmıyor
 QString Backend::deviceIdCommand() const
 {
-    return QStringLiteral(R"(pkexec sh -c "sed -i '/^\[General\]/a DeviceID = bluetooth:004C:0000:0000' /etc/bluetooth/main.conf && systemctl restart bluetooth")");
+    return QStringLiteral("pkexec sed -i '/^\\[General\\]/a DeviceID = bluetooth:004C:0000:0000' /etc/bluetooth/main.conf");
 }
 
 void Backend::setupDeviceId()
 {
+    if (deviceIdOk())
+        return;
     auto *p = new QProcess(this);
     connect(p, &QProcess::finished, this, [this, p](int code) {
-        if (code == 0)
-            emit notice(tr("DeviceID eklendi, Bluetooth yeniden başlatıldı."));
-        else
-            emit error(tr("DeviceID eklenemedi (çıkış kodu %1).").arg(code));
-        emit appChanged();
         p->deleteLater();
+        if (code != 0) {
+            // 126/127 pkexec'te iptal ya da yetki yok demek
+            emit error(QStringLiteral("deviceid"), code == 126 || code == 127 ? tr("Parola penceresi kapatıldı, hiçbir şey değişmedi.")
+                                                                               : tr("Satır eklenemedi (çıkış kodu %1).").arg(code));
+            return;
+        }
+        emit appChanged();
+        // BlueZ ayarı yalnızca yeniden başlayınca okur; bunu polkit kendisi soruyor
+        auto *r = new QProcess(this);
+        connect(r, &QProcess::finished, this, [this, r](int c) {
+            r->deleteLater();
+            emit notice(c == 0 ? tr("DeviceID eklendi, Bluetooth yeniden başlatıldı.")
+                               : tr("DeviceID eklendi. Etkinleşmesi için Bluetooth'u yeniden başlat."));
+        });
+        r->start(QStringLiteral("systemctl"), {QStringLiteral("restart"), QStringLiteral("bluetooth.service")});
     });
-    p->start(QStringLiteral("sh"), {QStringLiteral("-c"), deviceIdCommand()});
+    p->start(QStringLiteral("pkexec"), {QStringLiteral("/usr/bin/sed"), QStringLiteral("-i"),
+                                        QStringLiteral("/^\\[General\\]/a DeviceID = bluetooth:004C:0000:0000"),
+                                        QStringLiteral("/etc/bluetooth/main.conf")});
 }
 
 QString Backend::exportLog()
@@ -336,7 +382,7 @@ QString Backend::exportLog()
     p.waitForFinished(5000);
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly)) {
-        emit error(tr("Günlük yazılamadı: %1").arg(path));
+        emit error(QStringLiteral("file"), tr("Günlük %1 konumuna yazılamadı.").arg(path));
         return {};
     }
     f.write("Pinna " + version().toUtf8() + "\n\n");
@@ -350,6 +396,20 @@ QString Backend::exportLog()
 void Backend::copy(const QString &text)
 {
     QGuiApplication::clipboard()->setText(text);
+}
+
+// tepsi sonradan da gelebilir, o yüzden her seferinde sorulur
+bool Backend::trayAvailable() const
+{
+    if (!m_tray)
+        return false;
+    // Qt bazı oturumlarda tepsiyi görmüyor; StatusNotifier sunucusuna doğrudan sor
+    auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.kde.StatusNotifierWatcher"), QStringLiteral("/StatusNotifierWatcher"),
+                                              QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Get"));
+    msg.setArguments({QStringLiteral("org.kde.StatusNotifierWatcher"), QStringLiteral("IsStatusNotifierHostRegistered")});
+    const auto r = QDBusConnection::sessionBus().call(msg, QDBus::Block, 300);
+    return r.type() == QDBusMessage::ReplyMessage ? r.arguments().value(0).value<QDBusVariant>().variant().toBool()
+                                                  : QSystemTrayIcon::isSystemTrayAvailable();
 }
 
 QString Backend::version() const { return QCoreApplication::applicationVersion(); }

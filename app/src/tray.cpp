@@ -5,7 +5,6 @@
 #include <QCoreApplication>
 #include <QMenu>
 #include <QSystemTrayIcon>
-#include <QWindow>
 
 static QString level(const QVariantMap &bat, const QString &k)
 {
@@ -34,19 +33,16 @@ bool Tray::available() const { return QSystemTrayIcon::isSystemTrayAvailable(); 
 
 void Tray::toggleWindow()
 {
-    if (!window)
-        return;
-    if (window->isVisible() && window->isActive()) {
-        window->hide();
-    } else {
-        window->show();
-        window->raise();
-        window->requestActivate();
-    }
+    if (isOpen && isOpen())
+        close();
+    else if (open)
+        open();
 }
 
 void Tray::rebuild()
 {
+    if (m_menu->isVisible())
+        return;
     auto *b = Backend::instance();
     const auto s = b->state();
     const bool live = b->daemon() && s.value(QStringLiteral("connected")).toBool();
@@ -61,7 +57,9 @@ void Tray::rebuild()
         parts << tr("Sağ %1").arg(r);
     if (!c.isEmpty())
         parts << tr("Kutu %1").arg(c);
-    const QString status = !b->daemon() ? tr("Servis çalışmıyor") : !live ? tr("Bağlı değil") : parts.join(QStringLiteral("  "));
+    const QString status = !b->daemon() ? tr("Servis çalışmıyor")
+        : !s.value(QStringLiteral("adapter")).toBool() ? tr("Bluetooth kapalı")
+        : !live ? tr("Bağlı değil") : parts.join(QStringLiteral("  "));
     m_icon->setToolTip(name + QStringLiteral("\n") + status);
 
     m_menu->clear();
@@ -90,17 +88,16 @@ void Tray::rebuild()
         }
         m_menu->addSeparator();
         connect(m_menu->addAction(tr("Bağlantıyı Kes")), &QAction::triggered, b, &Backend::disconnectDevice);
+    } else if (b->daemon() && !s.value(QStringLiteral("adapter")).toBool()) {
+        connect(m_menu->addAction(tr("Bluetooth'u Aç")), &QAction::triggered, b, &Backend::powerOn);
     } else if (b->daemon()) {
         connect(m_menu->addAction(tr("Bağlan")), &QAction::triggered, b, &Backend::connectDevice);
     } else {
         connect(m_menu->addAction(tr("Servisi Başlat")), &QAction::triggered, b, &Backend::startDaemon);
     }
     connect(m_menu->addAction(tr("Ayarları Aç")), &QAction::triggered, this, [this] {
-        if (window) {
-            window->show();
-            window->raise();
-            window->requestActivate();
-        }
+        if (open)
+            open();
     });
     m_menu->addSeparator();
     connect(m_menu->addAction(tr("Çık")), &QAction::triggered, qApp, &QCoreApplication::quit);
