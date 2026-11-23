@@ -225,12 +225,12 @@
         <translation>Case</translation>
     </message>
     <message>
-        <source>24 sa önce</source>
-        <translation>24 h ago</translation>
+        <source>%1 sa önce</source>
+        <translation>%1 h ago</translation>
     </message>
     <message>
-        <source>12 sa önce</source>
-        <translation>12 h ago</translation>
+        <source>%1 dk önce</source>
+        <translation>%1 min ago</translation>
     </message>
     <message>
         <source>şimdi</source>
@@ -239,6 +239,17 @@
     <message>
         <source>Henüz kayıt yok. Kulaklık bağlıyken pil düzeyi birkaç dakikada bir kaydedilir.</source>
         <translation>No data yet. Battery levels are recorded every few minutes while connected.</translation>
+    </message>
+</context>
+<context>
+    <name>BatteryTile</name>
+    <message>
+        <source>bilinmiyor</source>
+        <translation>unknown</translation>
+    </message>
+    <message>
+        <source>şarj oluyor</source>
+        <translation>charging</translation>
     </message>
 </context>
 <context>
@@ -511,6 +522,14 @@
     <message>
         <source>Şarj oluyor</source>
         <translation>Charging</translation>
+    </message>
+    <message>
+        <source>Son bilinen, %1</source>
+        <translation>Last known, %1</translation>
+    </message>
+    <message>
+        <source>Kutuyu aç</source>
+        <translation>Open the case</translation>
     </message>
     <message>
         <source>Bilinmiyor</source>
@@ -951,12 +970,24 @@
         <translation>Connected</translation>
     </message>
     <message>
+        <source>Son görülme %1</source>
+        <translation>Last seen %1</translation>
+    </message>
+    <message>
         <source>Bağlı değil</source>
         <translation>Not connected</translation>
     </message>
     <message>
-        <source>Cihaz menüsü</source>
-        <translation>Device menu</translation>
+        <source>Sol</source>
+        <translation>Left</translation>
+    </message>
+    <message>
+        <source>Sağ</source>
+        <translation>Right</translation>
+    </message>
+    <message>
+        <source>Kutu</source>
+        <translation>Case</translation>
     </message>
     <message>
         <source>Bağlan</source>
@@ -985,6 +1016,22 @@
 </context>
 <context>
     <name>Store</name>
+    <message>
+        <source>az önce</source>
+        <translation>just now</translation>
+    </message>
+    <message>
+        <source>%1 dk önce</source>
+        <translation>%1 min ago</translation>
+    </message>
+    <message>
+        <source>%1 sa önce</source>
+        <translation>%1 h ago</translation>
+    </message>
+    <message>
+        <source>%1 gün önce</source>
+        <translation>%1 d ago</translation>
+    </message>
     <message>
         <source>Kapalı</source>
         <translation>Off</translation>

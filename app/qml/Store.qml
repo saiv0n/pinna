@@ -25,6 +25,21 @@ QtObject {
     }
     function charging(k) { return !!(battery[k] && battery[k].charging) }
 
+    // pil geçmişinden son bilinen değerler; kutu kapalıyken ya da kulaklık yokken bunlar gösterilir
+    readonly property var history: Backend.history || []
+    function lastKnown(i) {
+        for (let n = history.length - 1; n >= 0; n--)
+            if (history[n][i] >= 0) return { level: history[n][i], at: history[n][0] }
+        return null
+    }
+    readonly property var lastCase: lastKnown(3)
+    readonly property var lastSeen: history.length ? history[history.length - 1] : null
+    function ago(t) {
+        const m = Math.max(0, Math.round((Date.now() / 1000 - t) / 60))
+        return m < 2 ? qsTr("az önce") : m < 60 ? qsTr("%1 dk önce").arg(m)
+            : m < 1440 ? qsTr("%1 sa önce").arg(Math.round(m / 60)) : qsTr("%1 gün önce").arg(Math.round(m / 1440))
+    }
+
     readonly property var modeNames: ({
         off: qsTr("Kapalı"),
         transparency: qsTr("Şeffaflık"),

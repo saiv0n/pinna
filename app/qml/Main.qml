@@ -52,6 +52,16 @@ Window {
     Shortcut { sequence: "Ctrl+PgDown"; onActivated: win.go((win.page + 1) % 7, true) }
     Shortcut { sequence: "Ctrl+PgUp"; onActivated: win.go((win.page + 6) % 7, true) }
 
+    // kenar çubuğu da son bilinen kutu pilini buradan okuyor
+    Timer {
+        interval: 60000
+        repeat: true
+        triggeredOnStart: true
+        running: Backend.daemon
+        onTriggered: Backend.loadHistory()
+    }
+    Connections { target: Store; function onLiveChanged() { Backend.loadHistory() } }
+
     Sidebar {
         id: side
         height: parent.height

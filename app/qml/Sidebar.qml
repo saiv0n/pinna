@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import Pinna
 
 // Solda cihaz kartı, bölümler ve servis durumu.
@@ -14,98 +15,127 @@ Rectangle {
 
     Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.line }
 
-    // cihaz kartı
+    // cihaz kartı: görsel, tam ad, durum ve üç pil
+    readonly property bool hasLevels: Store.level("left") !== null || Store.level("right") !== null
+    readonly property string status: !Backend.daemon ? qsTr("Servis çalışmıyor")
+        : Store.s.adapter === false ? qsTr("Bluetooth kapalı")
+        : !root.paired ? qsTr("Eşli kulaklık yok")
+        : Store.live ? (Store.modeNames[Store.s.mode] || qsTr("Bağlı"))
+        : Store.lastSeen ? qsTr("Son görülme %1").arg(Store.ago(Store.lastSeen[0]))
+        : qsTr("Bağlı değil")
+
     Rectangle {
         id: device
-        x: 12
-        y: 14
-        width: parent.width - 24
-        height: 100
+        x: 10
+        y: 12
+        width: parent.width - 20
+        height: card.height + 20
         radius: Theme.radius
-        color: cardArea.containsMouse ? Theme.hover : "transparent"
+        color: cardArea.pressed ? Theme.press : cardArea.containsMouse ? Theme.hover : "transparent"
+        Behavior on color { ColorAnimation { duration: Theme.fast } }
+        Accessible.role: Accessible.Button
+        Accessible.name: Store.name + ", " + root.status
+        Accessible.onPressAction: root.picked(0)
 
-        Row {
-            id: art
-            x: 6
-            y: 10
-            spacing: -2
-            opacity: Store.live ? 1 : 0.45
-            Repeater {
-                model: [false, true]
-                Image {
-                    required property bool modelData
-                    source: "../assets/bud.png"
-                    mirror: modelData
-                    width: 24
-                    height: 44
-                    fillMode: Image.PreserveAspectFit
-                    mipmap: true
-                }
-            }
-        }
         Column {
-            x: art.x + art.width + 10
-            y: 14
-            width: parent.width - x - 28
-            spacing: 2
-            Text {
-                width: parent.width
-                text: Store.name
-                font: Theme.label
-                color: Theme.text
-                elide: Text.ElideRight
-            }
-            Text {
-                width: parent.width
-                text: !Backend.daemon ? qsTr("Servis çalışmıyor")
-                    : Store.s.adapter === false ? qsTr("Bluetooth kapalı")
-                    : !root.paired ? qsTr("Eşli kulaklık yok")
-                    : Store.live ? (Store.modeNames[Store.s.mode] || qsTr("Bağlı"))
-                    : qsTr("Bağlı değil")
-                font: Theme.footnote
-                color: Store.live ? Theme.text2 : Theme.text3
-                elide: Text.ElideRight
-            }
-        }
-        IconButton {
-            anchors.right: parent.right
+            id: card
+            x: 10
             y: 10
-            icon: "more"
-            Accessible.name: qsTr("Cihaz menüsü")
-            onClicked: deviceMenu.popup(this, 0, height)
-        }
-        Row {
-            x: 8
-            y: 66
+            width: parent.width - 20
             spacing: 12
-            visible: Store.level("left") !== null || Store.level("right") !== null
-            Repeater {
-                model: [["left"], ["right"], ["case"]]
+
+            Row {
+                width: parent.width
+                spacing: 10
                 Row {
-                    required property var modelData
-                    visible: Store.level(modelData[0]) !== null
-                    spacing: 4
-                    BatteryRing {
-                        size: 18
-                        stroke: 2
-                        level: Store.level(parent.modelData[0])
-                        charging: Store.charging(parent.modelData[0])
+                    id: art
+                    spacing: -3
+                    opacity: Store.live ? 1 : 0.5
+                    Behavior on opacity { NumberAnimation { duration: Theme.medium } }
+                    // beyaz kulaklık açık zeminde kaybolmasın
+                    layer.enabled: !Theme.dark
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: "#000000"
+                        shadowOpacity: 0.35
+                        shadowBlur: 0.35
+                        shadowVerticalOffset: 1
                     }
+                    Repeater {
+                        model: [false, true]
+                        Image {
+                            required property bool modelData
+                            source: "../assets/bud.png"
+                            mirror: modelData
+                            width: 22
+                            height: 40
+                            fillMode: Image.PreserveAspectFit
+                            mipmap: true
+                        }
+                    }
+                }
+                Column {
+                    width: parent.width - art.width - 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 3
                     Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Store.level(parent.modelData[0]) + "%"
-                        font: Theme.footnote
+                        width: parent.width
+                        text: Store.name
+                        font.family: Theme.family
+                        font.pixelSize: 14
+                        font.weight: 600
                         color: Theme.text
+                        wrapMode: Text.Wrap
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
+                        lineHeight: 1.1
+                    }
+                    Row {
+                        spacing: 6
+                        width: parent.width
+                        Rectangle {
+                            width: 6
+                            height: 6
+                            radius: 3
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: Store.live ? Theme.green : Theme.text3
+                        }
+                        Text {
+                            width: parent.width - 12
+                            text: root.status
+                            font: Theme.footnote
+                            color: Theme.text2
+                            elide: Text.ElideRight
+                        }
                     }
                 }
             }
-        }
-        Button {
-            x: 8
-            y: 62
-            visible: Backend.daemon && Store.s.adapter !== false && root.paired && !Store.live && Store.level("left") === null
-            text: qsTr("Bağlan")
-            onClicked: Backend.connectDevice()
+
+            Row {
+                width: parent.width
+                spacing: 10
+                visible: root.hasLevels || (Store.lastSeen && root.paired && !Store.live)
+                Repeater {
+                    model: [["left", qsTr("Sol"), 1], ["right", qsTr("Sağ"), 2], ["case", qsTr("Kutu"), 3]]
+                    BatteryTile {
+                        id: tile
+                        required property var modelData
+                        readonly property var now: Store.level(modelData[0])
+                        readonly property var last: Store.lastKnown(modelData[2])
+                        width: (card.width - 20) / 3
+                        name: modelData[1]
+                        level: now !== null ? now : last ? last.level : null
+                        stale: now === null
+                        charging: now !== null && Store.charging(modelData[0])
+                    }
+                }
+            }
+
+            Button {
+                visible: Backend.daemon && Store.s.adapter !== false && root.paired && !Store.live
+                text: qsTr("Bağlan")
+                onClicked: Backend.connectDevice()
+            }
         }
 
         MouseArea {

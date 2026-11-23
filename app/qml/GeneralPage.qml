@@ -13,22 +13,28 @@ Page {
             Row {
                 width: parent.width
                 Repeater {
-                    model: [["left", qsTr("Sol AirPod")], ["right", qsTr("Sağ AirPod")], ["case", qsTr("Kutu")]]
+                    model: [["left", qsTr("Sol AirPod"), 1], ["right", qsTr("Sağ AirPod"), 2], ["case", qsTr("Kutu"), 3]]
                     Item {
                         id: cell
                         required property var modelData
-                        readonly property var lvl: Store.level(modelData[0])
+                        readonly property var now: Store.level(modelData[0])
+                        readonly property var last: now === null ? Store.lastKnown(modelData[2]) : null
+                        readonly property var lvl: now !== null ? now : last ? last.level : null
                         readonly property string ear: modelData[0] === "case" ? "" : ((Store.s.ear || {})[modelData[0]] || "")
                         width: parent.width / 3
                         height: 84
+                        opacity: cell.last ? 0.6 : 1
+                        Accessible.role: Accessible.StaticText
+                        Accessible.name: label.text + ", " + sub.text
                         BatteryRing {
                             anchors.horizontalCenter: parent.horizontalCenter
                             size: 44
                             stroke: 3.5
                             level: cell.lvl
-                            charging: Store.charging(cell.modelData[0])
+                            charging: cell.now !== null && Store.charging(cell.modelData[0])
                         }
                         Text {
+                            id: label
                             y: 50
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: cell.modelData[1] + (cell.lvl !== null ? "  " + cell.lvl + "%" : "")
@@ -36,10 +42,12 @@ Page {
                             color: cell.lvl !== null ? Theme.text : Theme.text3
                         }
                         Text {
+                            id: sub
                             y: 68
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: Store.charging(cell.modelData[0]) ? qsTr("Şarj oluyor")
-                                : cell.lvl === null ? qsTr("Bilinmiyor")
+                            text: cell.now !== null && Store.charging(cell.modelData[0]) ? qsTr("Şarj oluyor")
+                                : cell.last ? qsTr("Son bilinen, %1").arg(Store.ago(cell.last.at))
+                                : cell.lvl === null ? (cell.modelData[0] === "case" ? qsTr("Kutuyu aç") : qsTr("Bilinmiyor"))
                                 : cell.ear === "ear" ? qsTr("Kulakta") : cell.ear === "case" ? qsTr("Kutuda") : cell.ear === "out" ? qsTr("Dışarıda") : ""
                             font: Theme.footnote
                             color: Theme.text2
@@ -89,13 +97,6 @@ Page {
         Block {
             BatteryChart { width: parent.width }
         }
-    }
-    Timer {
-        interval: 60000
-        repeat: true
-        triggeredOnStart: true
-        running: page.visible && Backend.daemon
-        onTriggered: Backend.loadHistory()
     }
 
     Section {

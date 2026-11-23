@@ -22,6 +22,7 @@ qt_add_qml_module(pinna
         qml/AudioPage.qml
         qml/BatteryChart.qml
         qml/BatteryRing.qml
+        qml/BatteryTile.qml
         qml/Block.qml
         qml/Button.qml
         qml/CheckBox.qml
