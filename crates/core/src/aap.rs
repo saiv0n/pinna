@@ -304,6 +304,34 @@ mod tests {
         (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
     }
 
+    // packets captured from AirPods Pro 2 (USB-C) on 2026-11-23
+    #[test]
+    fn real_battery() {
+        let Some(Packet::Battery(b)) = parse(&hex("0400040004000302015f020104016002010801000401")) else { panic!() };
+        let get = |c: Component| b.iter().find(|e| e.component == c).cloned().unwrap();
+        let (r, l, case) = (get(Component::Right), get(Component::Left), get(Component::Case));
+        assert_eq!((r.level, r.charging, r.connected), (95, false, true));
+        assert_eq!((l.level, l.charging, l.connected), (96, false, true));
+        // case away from the buds reports level 0 and status 4
+        assert!(!case.connected);
+    }
+
+    #[test]
+    fn real_ear_speech_mode() {
+        assert!(matches!(parse(&hex("0400040006000000")), Some(Packet::Ear(Pod::Ear, Pod::Ear))));
+        assert!(matches!(parse(&hex("0400040006000001")), Some(Packet::Ear(Pod::Ear, Pod::Out))));
+        assert!(matches!(parse(&hex("040004004b0002000108")), Some(Packet::Speaking(8))));
+        let Some(Packet::Control { id, data }) = parse(&hex("0400040009000d03000000")) else { panic!() };
+        assert_eq!((id, Mode::from_byte(data[0])), (cmd::LISTENING_MODE, Some(Mode::Transparency)));
+    }
+
+    #[test]
+    fn real_unknown_packets_are_ignored() {
+        for p in ["04000400550001010019", "0400040052000300020100", "040004004e000200000000000000", "040004000e0000000000000000", "04000400080002000100"] {
+            assert!(matches!(parse(&hex(p)), Some(Packet::Other(_))), "{p}");
+        }
+    }
+
     #[test]
     fn battery_out_of_range() {
         let Some(Packet::Battery(b)) = parse(&hex("040004000400010201 7f0101".replace(' ', "").as_str())) else { panic!() };
