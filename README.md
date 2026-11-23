@@ -8,7 +8,7 @@ Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup ol
 
 - Sol, sağ ve kutu pilini gösteriyor, son 24 saatin pil grafiğini tutuyor. Pil azalınca (eşiği sen seçiyorsun) ve şarj bitince bildirim gönderiyor.
 - Gürültü engelleme, şeffaf, uyarlanabilir ve kapalı modları arasında anında geçiyor. Uyarlanabilir modda ne kadar ortam sesi gireceğini 0 ile 100 arasında ayarlayabiliyorsun.
-- Konuşma algılama, kişiselleştirilmiş ses düzeyi, tek kulaklıkla gürültü engelleme, ses kaydırma, basma hızı, basılı tutma süresi, mikrofon seçimi, kulak algılama, kutu hoparlörünün sesi, uyku algılama, işitme desteği.
+- Konuşma algılama, kişiselleştirilmiş ses düzeyi, tek kulaklıkla gürültü engelleme, ses kaydırma, basma hızı, basılı tutma süresi, kutu hoparlörünün sesi, uyku algılama, işitme desteği.
 - Sapı basılı tutunca hangi modlar arasında geçileceğini ve sol ile sağ kulaklığın ne yapacağını seçebiliyorsun. Kulaklık bunları her yeni cihazda unuttuğu için Pinna her bağlantıda yeniden yazıyor.
 - Bağlanınca kulaklığı varsayılan ses çıkışı yapıyor. Yüksek kalite ile mikrofonlu profil arasında geçiş ve ses düzeyi uygulamanın içinden.
 - Birden fazla eşli AirPods ya da Beats varsa aralarında geçebiliyor, yenisini eşleştirebiliyor, eskisini unutabiliyorsun.
@@ -16,8 +16,9 @@ Linux için AirPods yöneticisi. Kulaklığı bağlar, pilini ve kulakta olup ol
 - Bir kulaklığı çıkarınca çalan şey duruyor, takınca devam ediyor (MPRIS destekleyen her oynatıcıda). Konuşmaya başlayınca bilgisayarın sesini de kısıyor.
 - Kutuyu açınca ya da kulaklık bağlanınca köşede küçük bir kart çıkıyor.
 - Türkçe ve İngilizce. Varsayılan olarak sistem dilini izliyor, Bu Bilgisayar sayfasından değiştirilebiliyor.
+- Baş takibini canlı gösteriyor: başını çevirdikçe ve eğdikçe açılar güncelleniyor.
 
-Baş takibi deneysel: Pinna akışı başlatan paketi gönderiyor ama denediğim kulaklık veri göndermedi. Kulaklık uyarlama ve şeffaflık modunu özelleştirme henüz yok, arayüzde de öyle yazıyor.
+Kulaklık uyarlama, şeffaflık modunu özelleştirme, mikrofon seçimi ve kulak algılamayı kapatma şimdilik yok. Kulaklık bu ayarların değerini geri bildirmediği için doğru çalıştıklarından emin olamadım.
 
 Şu an AirPods Pro 2 (USB-C) üzerinde denendi. Diğer AirPods ve Beats modelleri de aynı protokolü konuştuğu için çoğu ayar çalışmalı, ama kulaklık bir özelliği desteklemiyorsa o ayar bir şey yapmaz.
 
@@ -29,7 +30,7 @@ Gerekenler: Rust (1.85 ya da yenisi), Qt 6.8 ya da yenisi (Widgets, Quick, Quick
 ./install.sh
 ```
 
-Betik her şeyi `~/.local` altına kurar, `pinnad` servisini `systemctl --user` ile açar. sudo istemez.
+Betik her şeyi `~/.local` altına kurar, `pinnad` servisini `systemctl --user` ile açar. sudo istemez. Servis kısıtlı bir ortamda çalışır: sadece `~/.config/pinna` ve `~/.local/state/pinna` altına yazabilir, ağa çıkamaz. BLE anahtarlarının durduğu ayar dosyası 0600 izinle yazılır.
 
 Kulaklığı önce sistemin Bluetooth ayarlarından bir kez eşleştirmen yeterli. Sonrasında Pinna kendisi bulur.
 
@@ -68,8 +69,6 @@ bind = SUPER, A, exec, pinnactl cycle
 
 ## Nasıl çalışıyor
 
-Apple kulaklıklarının ayarları AAP denen kapalı bir protokolle, Bluetooth üzerinde L2CAP 0x1001 kanalından gidiyor. Bu protokolü [LibrePods](https://github.com/kavishdevar/librepods) ekibi çözüp belgeledi, Pinna da o notlara dayanıyor.
-
 Proje üç parça:
 
 - `crates/core` protokolün kendisi: paketler, BLE reklamlarının çözümü, ayar tablosu. İşletim sisteminden bağımsız, ileride Windows ve Android sürümleri de bunu kullanacak.
@@ -83,6 +82,8 @@ art/build.sh ~/Downloads/airpods-pro/source/Airpods_ForSketchfab.fbx
 ```
 
 Işık, malzeme ve kadraj `art/render.py` içinde. Modeldeki sol kulaklığın sapı eksik olduğu için sağ kulaklık aynalanarak kullanılıyor.
+
+Protokol konusundaki çalışmaları için [LibrePods](https://github.com/kavishdevar/librepods) ekibine teşekkürler.
 
 ## Lisans
 
