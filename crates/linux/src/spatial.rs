@@ -76,17 +76,8 @@ impl Spatial {
         if pactl(&["get-default-sink"]).await.as_deref() == Some(sink) {
             pactl(&["set-default-sink", NODE]).await;
         }
-        // kulaklığa doğrudan giden akışlar da sanal çıkışa taşınsın
-        if let Some(list) = pactl(&["list", "short", "sink-inputs"]).await {
-            let sinks = pactl(&["list", "short", "sinks"]).await.unwrap_or_default();
-            let id = sinks.lines().find(|l| l.split('\t').nth(1) == Some(sink)).and_then(|l| l.split('\t').next()).unwrap_or("");
-            for l in list.lines() {
-                let f: Vec<&str> = l.split('\t').collect();
-                if f.get(1) == Some(&id) && !id.is_empty() {
-                    pactl(&["move-sink-input", f[0], NODE]).await;
-                }
-            }
-        }
+        // akışları elle taşımıyoruz: taşınan akışın hedefi WirePlumber'da kalıcı olur, uzamsal ses kapanınca sessiz kalabilir.
+        // Varsayılanı izleyen akışlar kendiliğinden geçer.
         let now = Instant::now();
         Some(Spatial { child, sink: sink.into(), base: None, last_t: now, sent: 0.0, sent_at: now })
     }
