@@ -4,7 +4,7 @@ import Pinna
 NavPage {
     id: page
     title: Store.name
-    titleAfter: hero.y + hero.nameItem.y + hero.nameItem.height - 20
+    titleAfter: hero.y + hero.nameItem.y + hero.nameItem.height - barHeight - 12
     signal open(url page, var props)
 
     readonly property bool ready: Store.ready

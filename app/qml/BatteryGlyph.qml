@@ -13,9 +13,10 @@ Row {
     readonly property color tone: charging ? Theme.green : known && level <= 20 ? Theme.red : Theme.text
 
     // açılışta boştan dolar
-    property real shown: 0
-    Component.onCompleted: shown = known ? level / 100 : 0
-    onLevelChanged: shown = known ? level / 100 : 0
+    // sinyal işleyicisi yerine bağlama; işleyici `known`'ın eski değerini okuyordu
+    property bool started: false
+    Component.onCompleted: Qt.callLater(() => started = true)
+    property real shown: started && known ? level / 100 : 0
     Behavior on shown { enabled: !Theme.reduce; NumberAnimation { duration: 700; easing.type: Easing.OutQuart } }
 
     Item {

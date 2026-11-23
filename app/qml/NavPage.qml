@@ -15,7 +15,7 @@ Item {
     signal leaving()
 
     readonly property real barHeight: 50
-    readonly property real scrolled: flick.contentY + flick.topMargin
+    readonly property real scrolled: flick.contentY
 
     function back() {
         leaving()
@@ -42,7 +42,6 @@ Item {
     Flickable {
         id: flick
         anchors.fill: parent
-        topMargin: page.barHeight
         contentHeight: col.height
         boundsBehavior: Flickable.DragOverBounds
         flickDeceleration: 2400
@@ -53,7 +52,8 @@ Item {
             x: Theme.margin
             width: flick.width - 2 * Theme.margin
             spacing: 28
-            topPadding: 8
+            // çubuk başlangıçta boş; içerik altına kayınca belirir
+            topPadding: page.barHeight + 8
             bottomPadding: 36
         }
 
