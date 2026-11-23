@@ -24,6 +24,10 @@ install -Dm644 dist/pinnad.service "$HOME/.config/systemd/user/pinnad.service"
 # arayüz ya da pinnactl servisi çağırınca kendiliğinden başlasın
 install -Dm644 dist/dev.pinna.Daemon.service "$prefix/share/dbus-1/services/dev.pinna.Daemon.service"
 
+# BLE anahtarları burada, başkası okuyamasın
+mkdir -p "$HOME/.config/pinna" "$HOME/.local/state/pinna"
+chmod 700 "$HOME/.config/pinna" "$HOME/.local/state/pinna"
+
 systemctl --user daemon-reload
 systemctl --user enable --now pinnad.service
 systemctl --user restart pinnad.service

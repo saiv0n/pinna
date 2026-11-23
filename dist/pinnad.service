@@ -10,5 +10,26 @@ RestartSec=3
 Environment=RUST_LOG=info
 Environment="PINNA_POPUP=%h/.local/bin/pinna --popup"
 
+# ayar ve pil geçmişi dışında hiçbir yere yazamasın
+ConfigurationDirectory=pinna
+ConfigurationDirectoryMode=0700
+StateDirectory=pinna
+StateDirectoryMode=0700
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# D-Bus, PipeWire ve L2CAP için yeterli
+RestrictAddressFamilies=AF_UNIX AF_BLUETOOTH
+
 [Install]
 WantedBy=graphical-session.target
