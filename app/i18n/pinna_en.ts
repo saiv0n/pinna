@@ -1128,6 +1128,13 @@
     </message>
 </context>
 <context>
+    <name>Section</name>
+    <message>
+        <source>Deneysel</source>
+        <translation>Experimental</translation>
+    </message>
+</context>
+<context>
     <name>Sidebar</name>
     <message>
         <source>Servis çalışmıyor</source>

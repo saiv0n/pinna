@@ -6,16 +6,37 @@ Column {
     id: root
     property string title
     property string footer
+    property bool experimental: false
     default property alias rows: box.data
     width: parent ? parent.width : 0
     spacing: 6
 
-    Text {
+    Row {
         visible: !!root.title
-        text: root.title
-        font: Theme.heading
-        color: Theme.text2
+        spacing: 6
         leftPadding: 2
+        Text {
+            text: root.title
+            font: Theme.heading
+            color: Theme.text2
+        }
+        Rectangle {
+            visible: root.experimental
+            anchors.verticalCenter: parent.verticalCenter
+            width: tag.implicitWidth + 10
+            height: tag.implicitHeight + 2
+            radius: height / 2
+            color: Qt.alpha(Theme.orange, 0.16)
+            Text {
+                id: tag
+                anchors.centerIn: parent
+                text: qsTr("Deneysel")
+                font.family: Theme.family
+                font.pixelSize: 10
+                font.weight: 600
+                color: Theme.orange
+            }
+        }
     }
     Rectangle {
         width: parent.width

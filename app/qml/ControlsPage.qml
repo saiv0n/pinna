@@ -45,6 +45,7 @@ Page {
     Section {
         id: press
         title: qsTr("Basış Kısayolları")
+        experimental: true
         footer: qsTr("Basışları bu bilgisayarda bir işe bağla. Atanmamış basışlar her zamanki gibi çalışır.")
         enabled: Store.ready
         property string side: "left"

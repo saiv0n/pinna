@@ -37,6 +37,7 @@ Page {
 
     Section {
         title: qsTr("Uzamsal Ses")
+        experimental: true
         footer: Store.pref("spatial", "off") === "head"
             ? qsTr("Ses önündeki iki hoparlörden geliyormuş gibi duyulur ve başını çevirince yerinde kalır. Uzun süre yana bakarsan ses de yavaşça oraya yerleşir. Baş takibi pili biraz daha hızlı bitirir.")
             : qsTr("Stereo ses, kafanın içinde değil önündeki iki hoparlörden geliyormuş gibi duyulur.")
