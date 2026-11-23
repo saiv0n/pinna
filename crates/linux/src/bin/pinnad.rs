@@ -9,6 +9,12 @@ async fn main() -> anyhow::Result<()> {
     conn.object_server().at(service::PATH, Service { d: d.clone() }).await?;
     conn.request_name(service::NAME).await?;
     tokio::spawn(service::pump(conn.clone(), d.clone()));
+    let b = d.clone();
+    tokio::spawn(async move {
+        if let Err(e) = pinna_linux::battery::run(b).await {
+            log::warn!("sistem pil göstergesine bağlanılamadı: {e}");
+        }
+    });
     log::info!("pinnad hazır");
     d.run().await
 }

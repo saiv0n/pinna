@@ -46,6 +46,8 @@ struct Inner {
     ca_paused: bool,
     /// uzamsal ses için baş takibi akışı açık
     spatial_head: bool,
+    /// konuşma algılamayı tek kulaklık yüzünden biz kapattık
+    ca_held: bool,
 }
 
 #[derive(Clone)]
@@ -93,6 +95,7 @@ impl Daemon {
                 mic_on: false,
                 ca_paused: false,
                 spatial_head: false,
+                ca_held: false,
             })),
             events,
             media: Arc::new(Mutex::new(Media::new(bus))),
@@ -103,6 +106,10 @@ impl Daemon {
             mic: Default::default(),
             spatial: Default::default(),
         })
+    }
+
+    pub fn adapter_name(&self) -> String {
+        self.adapter.name().to_string()
     }
 
     fn changed(&self) {
@@ -239,7 +246,14 @@ impl Daemon {
     pub async fn connect(&self) -> Result<()> {
         let a = self.target().await?;
         self.powered().await?;
-        self.adapter.device(a)?.connect().await.map_err(Self::reason)?;
+        let d = self.adapter.device(a)?;
+        // kutu taraması açıkken BlueZ LE ile bağlanmayı deneyip düşüyor; klasik ses profiliyle tekrar dene
+        if let Err(e) = d.connect().await {
+            debug!("bağlanılamadı ({e}), A2DP ile deneniyor");
+            d.connect_profile(&A2DP_SINK).await.map_err(Self::reason)?;
+        }
+        // profil bağlantısında Connected olayı bazen gelmiyor, ana döngüyü kendimiz uyandıralım
+        self.wake.notify_one();
         Ok(())
     }
 
@@ -946,7 +960,21 @@ impl Daemon {
                 let after = in_ear(&l) + in_ear(&r);
                 let prefs = g.state.prefs.clone();
                 let all_in_case = l == Pod::Case && r == Pod::Case;
+                let ca_on = g.state.settings.get("conversationAwareness").and_then(|v| v.as_bool()) == Some(true);
+                // tek kulakla konuşma algılama her sesi kısıyor; ikisi takılınca geri açılır
+                let ca = if prefs.ca_one_bud && after == 1 && ca_on && !g.ca_held {
+                    g.ca_held = true;
+                    Some(2)
+                } else if g.ca_held && (after == 2 || !prefs.ca_one_bud) {
+                    g.ca_held = false;
+                    Some(1)
+                } else {
+                    None
+                };
                 drop(g);
+                if let Some(b) = ca {
+                    let _ = self.send(aap::control(aap::cmd::CONVERSATION, [b, 0, 0, 0])).await;
+                }
                 if known {
                     let mut m = self.media.lock().await;
                     if all_in_case {
@@ -1030,13 +1058,14 @@ impl Daemon {
             _ => return,
         };
         let side = if left { "left" } else { "right" };
-        let (action, cycle, mode) = {
+        let (action, cycle, mode, allow_off) = {
             let g = self.inner.lock().await;
             let hold = g.state.settings.get(if left { "holdLeft" } else { "holdRight" }).and_then(|v| v.as_u64());
             let fb = if press == 8 && hold == Some(5) { "nothing" } else { fallback };
             let a = g.state.prefs.stem.get(&format!("{name}.{side}")).cloned().unwrap_or_else(|| fb.into());
             let cycle = g.state.settings.get("listeningCycle").and_then(|v| v.as_u64()).unwrap_or(0x0E) as u8;
-            (a, cycle, g.state.mode)
+            let allow_off = g.state.settings.get("allowOff").and_then(|v| v.as_bool()).unwrap_or(false);
+            (a, cycle, g.state.mode, allow_off)
         };
         info!("sap basışı: {name} {side}, {action}");
         let wpctl = |args: &[&str]| {
@@ -1057,9 +1086,20 @@ impl Daemon {
                 let (t, i) = if muted { ("Mikrofon kapalı", "microphone-sensitivity-muted") } else { ("Mikrofon açık", "audio-input-microphone") };
                 self.media.lock().await.notify(t, "", i).await;
             }
+            "ancTransparency" => {
+                let next = if mode == Some(Mode::Anc) { Mode::Transparency } else { Mode::Anc };
+                if let Err(e) = self.send(aap::control(aap::cmd::LISTENING_MODE, [next.byte(), 0, 0, 0])).await {
+                    warn!("mod değiştirilemedi: {e}");
+                }
+            }
             "mode" => {
                 let order = [(Mode::Anc, 2), (Mode::Transparency, 4), (Mode::Adaptive, 8), (Mode::Off, 1)];
-                let list: Vec<Mode> = order.iter().filter(|(_, b)| cycle & b != 0).map(|(m, _)| *m).collect();
+                // kapalı mod izni yoksa kulaklık reddediyor ve döngü takılıyor
+                let list: Vec<Mode> = order
+                    .iter()
+                    .filter(|(m, b)| cycle & b != 0 && (*m != Mode::Off || allow_off))
+                    .map(|(m, _)| *m)
+                    .collect();
                 let at = list.iter().position(|m| Some(*m) == mode);
                 if let Some(next) = at.map_or(list.first(), |i| list.get((i + 1) % list.len()))
                     && let Err(e) = self.send(aap::control(aap::cmd::LISTENING_MODE, [next.byte(), 0, 0, 0])).await
@@ -1215,7 +1255,7 @@ impl Daemon {
                         if ev.is_none() { return Ok(()); }
                         continue;
                     };
-                    let Some(adv) = self.advert(a).await else { continue };
+                    let Some((adv, rssi)) = self.advert(a).await else { continue };
                     let opened = adv.lid_open && !lid_open;
                     lid_open = adv.lid_open;
                     {
@@ -1224,6 +1264,8 @@ impl Daemon {
                         g.state.battery.left = Cell { level: adv.left, charging: adv.left_charging };
                         g.state.battery.right = Cell { level: adv.right, charging: adv.right_charging };
                         g.state.battery.case_ = Cell { level: adv.case_, charging: adv.case_charging };
+                        g.state.signal = Some(rssi);
+                        g.state.signal_at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
                     }
                     self.changed();
                     if opened {
@@ -1236,7 +1278,7 @@ impl Daemon {
         }
     }
 
-    async fn advert(&self, a: Address) -> Option<Advert> {
+    async fn advert(&self, a: Address) -> Option<(Advert, i16)> {
         let d = self.adapter.device(a).ok()?;
         let rssi = d.rssi().await.ok()??;
         let data = d.manufacturer_data().await.ok()??;
@@ -1256,7 +1298,7 @@ impl Daemon {
         if model != 0 && adv.model != model {
             return None;
         }
-        Some(adv)
+        Some((adv, rssi))
     }
 }
 

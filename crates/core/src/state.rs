@@ -60,6 +60,9 @@ pub struct State {
     pub discovering: bool,
     pub audio: Audio,
     pub head_tracking: bool,
+    /// bağlı değilken son BLE yayınının sinyal gücü (dBm) ve zamanı; yakındaki kulaklığı bulmak için
+    pub signal: Option<i16>,
+    pub signal_at: u64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -107,6 +110,8 @@ pub struct Prefs {
     pub call_mic: String,
     /// "double.left" gibi anahtar, eylem adı ya da "cmd:<komut>"; boşsa kulaklık kendi bildiğini yapar
     pub stem: BTreeMap<String, String>,
+    /// tek kulaklık takılıyken konuşma algılamayı kapat
+    pub ca_one_bud: bool,
     /// off, fixed (sanal hoparlör) ya da head (baş takipli)
     pub spatial: String,
 }
@@ -127,6 +132,7 @@ impl Default for Prefs {
             call_mic: "computer".into(),
             stem: BTreeMap::new(),
             spatial: "off".into(),
+            ca_one_bud: false,
         }
     }
 }
@@ -145,6 +151,7 @@ impl Prefs {
             "lowBattery" => self.low_battery = v.parse::<u8>()?.clamp(5, 50),
             "chargedNotify" => self.charged_notify = b()?,
             "autoOutput" => self.auto_output = b()?,
+            "caOneBud" => self.ca_one_bud = b()?,
             "callMic" if ["computer", "airpods", "hfp"].contains(&v) => self.call_mic = v.into(),
             "callMic" => anyhow::bail!("geçersiz değer: {v}"),
             "spatial" if ["off", "fixed", "head"].contains(&v) => self.spatial = v.into(),
@@ -170,7 +177,7 @@ impl Prefs {
 }
 
 pub const STEM_ACTIONS: &[&str] =
-    &["playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "nothing"];
+    &["playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "ancTransparency", "nothing"];
 
 impl Prefs {
     /// Kulaklığa hangi basışları bize iletmesini söyleyeceğimiz.
