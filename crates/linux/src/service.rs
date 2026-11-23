@@ -2,8 +2,8 @@ use crate::daemon::{Daemon, Event};
 use zbus::object_server::SignalEmitter;
 use zbus::{fdo, interface};
 
-pub const NAME: &str = "dev.earshot.Daemon";
-pub const PATH: &str = "/dev/earshot/Daemon";
+pub const NAME: &str = "dev.pinna.Daemon";
+pub const PATH: &str = "/dev/pinna/Daemon";
 
 pub struct Service {
     pub d: Daemon,
@@ -13,7 +13,7 @@ fn err(e: anyhow::Error) -> fdo::Error {
     fdo::Error::Failed(format!("{e:#}"))
 }
 
-#[interface(name = "dev.earshot.Daemon1")]
+#[interface(name = "dev.pinna.Daemon1")]
 impl Service {
     async fn state(&self) -> String {
         self.d.json().await

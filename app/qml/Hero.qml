@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 Column {
     id: root

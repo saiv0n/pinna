@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 import QtQuick.Shapes
 
 // Pil halkası. İlk görünüşte sıfırdan dolarak gelir (uygulamanın imza hareketi).

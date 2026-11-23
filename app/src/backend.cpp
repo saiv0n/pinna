@@ -10,9 +10,9 @@
 #include <QCoreApplication>
 #include <QProcess>
 
-static const QString SERVICE = QStringLiteral("dev.earshot.Daemon");
-static const QString PATH = QStringLiteral("/dev/earshot/Daemon");
-static const QString IFACE = QStringLiteral("dev.earshot.Daemon1");
+static const QString SERVICE = QStringLiteral("dev.pinna.Daemon");
+static const QString PATH = QStringLiteral("/dev/pinna/Daemon");
+static const QString IFACE = QStringLiteral("dev.pinna.Daemon1");
 
 static QString str(const QVariant &v)
 {
@@ -96,8 +96,8 @@ void Backend::disconnectDevice() { call(QStringLiteral("Disconnect"), {}); }
 void Backend::startDaemon()
 {
     // önce systemd servisi, yoksa doğrudan çalıştır
-    if (QProcess::execute(QStringLiteral("systemctl"), {"--user", "start", "earshotd.service"}) != 0)
-        QProcess::startDetached(QStringLiteral("earshotd"), {});
+    if (QProcess::execute(QStringLiteral("systemctl"), {"--user", "start", "pinnad.service"}) != 0)
+        QProcess::startDetached(QStringLiteral("pinnad"), {});
 }
 
 void Backend::openSettings()

@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 // İki kulaklık yan yana; kulakta olmayan hafifçe solar.
 Item {

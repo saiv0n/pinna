@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 SettingRow {
     id: root

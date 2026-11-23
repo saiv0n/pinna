@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 // iOS tarzı anahtar. Tıklayınca hemen döner, gerçek değer servisten gelince yerine oturur.
 Item {

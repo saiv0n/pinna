@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 import QtQuick.Shapes
 
 // Dinleme modlarının çizgi ikonları: baş silueti ve etrafındaki ses dalgaları.

@@ -1,11 +1,11 @@
 [Desktop Entry]
 Type=Application
-Name=Earshot
+Name=Pinna
 GenericName=AirPods Ayarları
 Comment=AirPods'u bağla, pilini gör, tüm ayarlarını değiştir
-Exec=earshot
-Icon=dev.earshot.Earshot
+Exec=pinna
+Icon=dev.pinna.Pinna
 Terminal=false
 Categories=Settings;HardwareSettings;AudioVideo;
 Keywords=airpods;kulaklık;bluetooth;anc;pil;
-StartupWMClass=dev.earshot.Earshot
+StartupWMClass=dev.pinna.Pinna

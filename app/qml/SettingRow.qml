@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 // Grup içindeki tek satır. Sağ taraftaki kontrol `trailing` ile, alttaki ek içerik `below` ile gelir.
 Item {

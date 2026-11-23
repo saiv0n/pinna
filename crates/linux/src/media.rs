@@ -109,7 +109,7 @@ impl Media {
         let hints: HashMap<&str, Variant> = HashMap::new();
         let actions: Vec<&str> = vec![];
         let _ = p
-            .call_method("Notify", &("Earshot", 0u32, icon, title, body, actions, hints, 5000i32))
+            .call_method("Notify", &("Pinna", 0u32, icon, title, body, actions, hints, 5000i32))
             .await;
     }
 }

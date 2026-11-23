@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 // Dört dinleme modu. Seçili modun arkasındaki dolgu kayarak yer değiştirir.
 Rectangle {

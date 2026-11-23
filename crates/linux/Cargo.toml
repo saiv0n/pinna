@@ -1,15 +1,15 @@
 [package]
-name = "earshot-linux"
+name = "pinna-linux"
 description = "Linux servisi (BlueZ) ve komut satırı aracı"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [lib]
-name = "earshot_linux"
+name = "pinna_linux"
 
 [dependencies]
-earshot-core = { path = "../core" }
+pinna-core = { path = "../core" }
 anyhow = "1.0.105"
 bluer = { version = "0.17.4", features = ["bluetoothd", "l2cap"] }
 clap = { version = "4.6.9", features = ["derive"] }

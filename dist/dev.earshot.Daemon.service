@@ -1,4 +1,0 @@
-[D-BUS Service]
-Name=dev.earshot.Daemon
-Exec=/bin/false
-SystemdService=earshotd.service

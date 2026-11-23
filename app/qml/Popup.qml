@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Effects
-import Earshot
+import Pinna
 
 // Kutu açılınca ya da bağlanınca beliren küçük kart.
 Window {
@@ -12,7 +12,7 @@ Window {
     minimumHeight: height
     maximumHeight: height
     visible: true
-    title: "Earshot"
+    title: "Pinna"
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
 

@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 // Kulaklık bağlı değilken ya da servis çalışmıyorken gösterilen tek eylemli ekran.
 Column {
@@ -31,7 +31,7 @@ Column {
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: !root.daemon ? "Earshot servisi çalışmıyor"
+            text: !root.daemon ? "Pinna servisi çalışmıyor"
                 : !root.adapter ? "Bluetooth kapalı"
                 : !root.paired ? "Eşli AirPods yok"
                 : (root.s.name || "AirPods") + " bağlı değil"

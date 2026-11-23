@@ -3,8 +3,8 @@ import QtQuick
 
 QtObject {
     // sistem rengi bilinmiyorsa koyu başla; Hyprland'de çoğu zaman bilinmiyor
-    // EARSHOT_THEME=light|dark ile zorlanabilir
-    readonly property string forced: typeof earshotTheme === "string" ? earshotTheme : ""
+    // PINNA_THEME=light|dark ile zorlanabilir
+    readonly property string forced: typeof pinnaTheme === "string" ? pinnaTheme : ""
     readonly property bool dark: forced === "dark" || (forced !== "light" && Qt.styleHints.colorScheme !== Qt.ColorScheme.Light)
 
     readonly property color bg: dark ? "#111317" : "#f2f2f6"

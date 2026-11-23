@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic as C
-import Earshot
+import Pinna
 
 Window {
     id: win
@@ -12,7 +12,7 @@ Window {
     minimumHeight: height
     maximumHeight: height
     visible: true
-    title: "Earshot"
+    title: "Pinna"
     color: Theme.bg
 
     readonly property var s: Backend.state
@@ -255,7 +255,7 @@ Window {
             Text {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
-                text: "Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0).\nEarshot'un Apple ile bir bağı yoktur."
+                text: "Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0).\nPinna'nın Apple ile bir bağı yoktur."
                 font: Theme.caption
                 color: Theme.text3
                 lineHeight: 1.2

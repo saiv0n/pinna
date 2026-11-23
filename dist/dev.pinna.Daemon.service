@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=dev.pinna.Daemon
+Exec=/bin/false
+SystemdService=pinnad.service

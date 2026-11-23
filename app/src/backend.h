@@ -6,7 +6,7 @@
 
 class QDBusServiceWatcher;
 
-// earshotd ile D-Bus üzerinden konuşan köprü. Durumun tamamı tek bir harita olarak QML'e açılıyor.
+// pinnad ile D-Bus üzerinden konuşan köprü. Durumun tamamı tek bir harita olarak QML'e açılıyor.
 class Backend : public QObject
 {
     Q_OBJECT

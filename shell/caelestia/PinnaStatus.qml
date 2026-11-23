@@ -9,7 +9,7 @@ import qs.components
 import qs.services
 
 // Caelestia barı için: AirPods bağlıyken simge, en düşük pil ve dinleme modu.
-// Sol tık modlar arasında geçer, sağ tık Earshot'u açar.
+// Sol tık modlar arasında geçer, sağ tık Pinna'yı açar.
 Item {
     id: root
 
@@ -29,7 +29,7 @@ Item {
     Process {
         id: watch
         running: true
-        command: ["earshotctl", "watch"]
+        command: ["pinnactl", "watch"]
         stdout: SplitParser {
             onRead: data => {
                 try {
@@ -49,7 +49,7 @@ Item {
 
     Process {
         id: cycle
-        command: ["earshotctl", "cycle"]
+        command: ["pinnactl", "cycle"]
     }
 
     ColumnLayout {
@@ -83,7 +83,7 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onClicked: e => {
             if (e.button === Qt.RightButton)
-                Quickshell.execDetached(["earshot"]);
+                Quickshell.execDetached(["pinna"]);
             else
                 cycle.running = true;
         }

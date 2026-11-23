@@ -4,9 +4,9 @@ use serde_json::Value;
 use zbus::proxy;
 
 #[proxy(
-    interface = "dev.earshot.Daemon1",
-    default_service = "dev.earshot.Daemon",
-    default_path = "/dev/earshot/Daemon"
+    interface = "dev.pinna.Daemon1",
+    default_service = "dev.pinna.Daemon",
+    default_path = "/dev/pinna/Daemon"
 )]
 trait Daemon {
     async fn state(&self) -> zbus::Result<String>;
@@ -23,7 +23,7 @@ trait Daemon {
 
 /// AirPods'u komut satırından yönet.
 #[derive(Parser)]
-#[command(name = "earshotctl", version)]
+#[command(name = "pinnactl", version)]
 struct Cli {
     #[command(subcommand)]
     cmd: Option<Cmd>,

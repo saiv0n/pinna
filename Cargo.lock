@@ -357,33 +357,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "earshot-core"
-version = "0.1.0"
-dependencies = [
- "aes",
- "anyhow",
- "dirs",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "earshot-linux"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bluer",
- "clap",
- "earshot-core",
- "env_logger",
- "futures",
- "log",
- "serde_json",
- "tokio",
- "zbus",
-]
-
-[[package]]
 name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -818,6 +791,33 @@ name = "pin-project-lite"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c938015719552d665fd0553b90d96cd7ff58e83e4c061ca99e6bb78865a72752"
+
+[[package]]
+name = "pinna-core"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "anyhow",
+ "dirs",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "pinna-linux"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bluer",
+ "clap",
+ "env_logger",
+ "futures",
+ "log",
+ "pinna-core",
+ "serde_json",
+ "tokio",
+ "zbus",
+]
 
 [[package]]
 name = "pkg-config"

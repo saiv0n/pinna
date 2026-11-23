@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 // Başlığı ve açıklaması olan, köşeleri yuvarlak satır grubu.
 Column {

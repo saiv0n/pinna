@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 
 // Kayan göstergeli parçalı seçici.
 Item {

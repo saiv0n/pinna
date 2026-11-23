@@ -1,7 +1,7 @@
-use earshot_core::aap::{self, Component, Mode, Packet, Pod};
+use pinna_core::aap::{self, Component, Mode, Packet, Pod};
 use crate::media::Media;
-use earshot_core::proximity::{self, Advert};
-use earshot_core::state::{self, Cell, Config, State};
+use pinna_core::proximity::{self, Advert};
+use pinna_core::state::{self, Cell, Config, State};
 use anyhow::{Context, Result, anyhow, bail};
 use bluer::{Adapter, Address, AdapterEvent, DiscoveryFilter, DiscoveryTransport};
 use futures::StreamExt;
@@ -183,7 +183,7 @@ impl Daemon {
         }
         g.last_popup = Some(Instant::now());
         drop(g);
-        let cmd = std::env::var("EARSHOT_POPUP").unwrap_or_else(|_| "earshot --popup".into());
+        let cmd = std::env::var("PINNA_POPUP").unwrap_or_else(|_| "pinna --popup".into());
         let mut parts = cmd.split_whitespace();
         if let Some(bin) = parts.next() {
             match tokio::process::Command::new(bin).args(parts).spawn() {

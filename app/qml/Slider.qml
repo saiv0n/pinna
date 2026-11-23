@@ -1,5 +1,5 @@
 import QtQuick
-import Earshot
+import Pinna
 import QtQuick.Controls.Basic as C
 
 C.Slider {

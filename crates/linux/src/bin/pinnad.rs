@@ -1,5 +1,5 @@
-use earshot_linux::daemon::Daemon;
-use earshot_linux::service::{self, Service};
+use pinna_linux::daemon::Daemon;
+use pinna_linux::service::{self, Service};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -9,6 +9,6 @@ async fn main() -> anyhow::Result<()> {
     conn.object_server().at(service::PATH, Service { d: d.clone() }).await?;
     conn.request_name(service::NAME).await?;
     tokio::spawn(service::pump(conn.clone(), d.clone()));
-    log::info!("earshotd hazır");
+    log::info!("pinnad hazır");
     d.run().await
 }

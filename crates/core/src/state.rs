@@ -173,7 +173,7 @@ pub struct Config {
 }
 
 fn config_path() -> PathBuf {
-    dirs::config_dir().unwrap_or_else(|| PathBuf::from(".")).join("earshot").join("config.json")
+    dirs::config_dir().unwrap_or_else(|| PathBuf::from(".")).join("pinna").join("config.json")
 }
 
 impl Config {
