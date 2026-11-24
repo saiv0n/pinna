@@ -259,6 +259,13 @@ Pinna asks BlueZ for the music profile once on its own. If it stays silent, chec
 </details>
 
 <details>
+<summary>Sound comes from only one bud</summary>
+
+If both buds show as in the ear and `speaker-test -c2 -t wav` is heard on one side only, the buds lost their link to each other. Pinna cannot see that over Bluetooth. Put the silent bud in the case for a few seconds and take it out again.
+
+</details>
+
+<details>
 <summary>The case card or the case battery never shows up</summary>
 
 Connect the headphones once so they hand over their keys, and keep "Show battery when case opens" on.

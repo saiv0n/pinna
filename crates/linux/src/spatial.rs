@@ -25,6 +25,10 @@ pub struct Spatial {
     parked: bool,
 }
 
+unsafe extern "C" {
+    fn prctl(option: i32, ...) -> i32;
+}
+
 async fn pactl(args: &[&str]) -> Option<String> {
     let out = Command::new("pactl").args(args).output().await.ok()?;
     out.status.success().then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
@@ -56,13 +60,24 @@ impl Spatial {
     /// Opens the virtual output and makes it default, unless the buds were not the default.
     pub async fn start(sink: &str, name: &str) -> Option<Spatial> {
         let desc: String = format!("{name} (Spatial)").chars().filter(|c| c.is_alphanumeric() || " ()-.".contains(*c)).collect();
-        let child = Command::new("pw-cli")
-            .args(["-m", "load-module", "libpipewire-module-filter-chain", &conf(sink, &desc)])
+        // a chain left by a daemon that was killed would otherwise sit next to the new one
+        let stale = Command::new("pkill").args(["-f", &format!("node.name = {NODE} media.class")]).status().await;
+        if stale.is_ok_and(|s| s.success()) {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+        }
+        let mut cmd = Command::new("pw-cli");
+        cmd.args(["-m", "load-module", "libpipewire-module-filter-chain", &conf(sink, &desc)])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .kill_on_drop(true)
-            .spawn()
-            .ok()?;
+            .kill_on_drop(true);
+        // kill_on_drop does not run when the daemon itself is killed; PR_SET_PDEATHSIG takes the chain down with it
+        unsafe {
+            cmd.pre_exec(|| {
+                prctl(1, 15);
+                Ok(())
+            });
+        }
+        let child = cmd.spawn().ok()?;
         let mut up = false;
         for _ in 0..30 {
             tokio::time::sleep(Duration::from_millis(100)).await;
