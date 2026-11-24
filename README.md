@@ -8,21 +8,21 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 
 - Shows left, right and case battery and keeps a battery chart of the last 24 hours. While the case is closed it shows the last known case level, and while the buds are away it says when they were last seen. It notifies you when the battery runs low (you pick the threshold) and when charging is done.
 - Switches between noise cancellation, transparency, adaptive and off right away. In adaptive mode you can set how much outside sound gets in, from 0 to 100.
-- Conversation awareness, personalized volume, noise cancellation with one AirPod, volume swipe, press speed, press and hold duration, case speaker volume, sleep detection, hearing assistance, and Loud Sound Reduction on models that report it (experimental).
+- Conversation awareness, personalized volume, noise cancellation with one AirPod, volume swipe, press speed, press and hold duration, case speaker volume, sleep detection, hearing assistance, and on models that report them Optimized Charging and Loud Sound Reduction (experimental).
 - You choose which modes press and hold cycles through and what the left and right bud do. The buds forget this on every new device, so Pinna writes it again on each connection.
 - Makes the buds the default output on connect, or only once you put one in. Volume and profile are in the app. The music codec is left to PipeWire (AAC on AirPods) unless you pick another one.
 - Three mic choices for calls. With the computer mic or the high quality AirPods mic the buds stay in music quality (AAC). The second one is experimental: the bud mic arrives as AAC-ELD over a separate channel, Pinna decodes it into a mic named "(Pinna)" and opens it when an app starts listening. The third is the Bluetooth headset profile, where both sound and mic drop to phone quality (LC3 at 24 kHz on these buds).
 - With several paired AirPods or Beats you can switch between them from the app or the tray, pair new ones and forget old ones. Each pair keeps its own keys, and the battery of the others shows up in the list and the tray tooltip when they are nearby.
 - Lives in the system tray: battery, mode switching, connect and disconnect. Closing the window keeps it in the tray, and it can start in the tray when you log in.
 - Pauses what is playing when you take a bud out and resumes when you put it back (any MPRIS player). Lowers the computer volume while you talk.
-- A small card pops up in a corner when you open the case or the buds connect.
+- A small card pops up in a corner when you open the case or the buds connect. Click it to open the app.
 - Reports the headphone battery to the system through BlueZ, so UPower, GNOME, KDE and bars show it in their own battery indicators.
 - While the buds are disconnected, helps you find them nearby from the signal strength of their advert, with the last two minutes of signal so you can tell if you are getting closer. There is no map of where they were last seen: the only location source on most Linux desktops is GeoClue, which sends nearby Wi-Fi networks to an online service, and Pinna keeps everything on the computer. Making them play a sound is not possible either, Apple does that through Find My.
 - Can turn off conversation awareness while only one bud is in and turn it back on when both are.
 - Turkish and English, and a new language is a single file (see Translations below). Follows the system language by default, and you can change it on the This Computer page.
 - Shows head tracking live: the angles follow as you turn and tilt your head.
 - Spatial audio (experimental): stereo sounds like it comes from two speakers in front of you, using the PipeWire HRTF filter. In head tracked mode the sound stays put when you turn your head. Needs `libmysofa` and `/usr/share/libmysofa/default.sofa`.
-- Press shortcuts (experimental): bind a double, triple or long press on each bud to something on the computer, like muting the mic, volume, changing tracks or a command of your own. Unassigned presses do what the buds normally do.
+- Press shortcuts (experimental): bind a double, triple or long press on each bud to something on the computer, like muting the mic, volume, changing tracks, switching that bud between two modes of your choice or a command of your own. Unassigned presses do what the buds normally do.
 - Head gestures (experimental): nod or shake your head a few times to play or pause, skip a track or run a command. It keeps the motion sensor on while enabled.
 - Estimates how much listening time is left, and how long until full while charging, from the recent battery history. Shown in the app, the tray and `pinnactl`.
 - Custom EQ (experimental) with bass, mids and treble, stored in the headphones themselves. Only shown when the model reports it.
@@ -34,7 +34,7 @@ Tested on AirPods Pro 2 (USB-C) on x86_64. AirPods Max show one battery, and set
 
 ## Install
 
-You need Rust (1.85 or newer), Qt 6.8 or newer (Widgets, Quick, QuickControls2, QuickEffects, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` and `pactl`) and the FFmpeg libavcodec development package (`libavcodec-dev` on Ubuntu). The Turkish translation needs `lrelease`; without it the app is English only.
+You need Rust (1.85 or newer), Qt 6.8 or newer (Widgets, Quick, QuickControls2, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` and `pactl`) and the FFmpeg libavcodec development package (`libavcodec-dev` on Ubuntu). Translations need `lrelease`; without it the app is English only.
 
 ```bash
 ./install.sh

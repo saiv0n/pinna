@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets Quick QuickControls2 QuickEffects DBus Svg)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets Quick QuickControls2 DBus Svg)
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(pinna src/main.cpp src/backend.cpp src/backend.h src/tray.cpp src/tray.h src/shortcuts.cpp src/shortcuts.h)
@@ -79,6 +79,6 @@ if(LRELEASE AND TS_FILES)
 endif()
 
 target_include_directories(pinna PRIVATE src)
-target_link_libraries(pinna PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::QuickEffects Qt6::DBus Qt6::Svg)
+target_link_libraries(pinna PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Quick Qt6::QuickControls2 Qt6::DBus Qt6::Svg)
 
 install(TARGETS pinna RUNTIME DESTINATION bin)
