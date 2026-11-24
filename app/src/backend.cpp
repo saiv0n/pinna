@@ -22,7 +22,8 @@
 #include <QStandardPaths>
 #include <QSystemTrayIcon>
 
-static const QString SERVICE = QStringLiteral("dev.pinna.Daemon");
+// PINNA_BUS points the app at a test daemon
+static const QString SERVICE = qEnvironmentVariable("PINNA_BUS", QStringLiteral("dev.pinna.Daemon"));
 static const QString PATH = QStringLiteral("/dev/pinna/Daemon");
 static const QString IFACE = QStringLiteral("dev.pinna.Daemon1");
 

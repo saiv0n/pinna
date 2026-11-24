@@ -111,7 +111,12 @@ async fn main() {
 
 async fn run(cli: Cli) -> anyhow::Result<()> {
     let conn = zbus::Connection::session().await?;
-    let p = DaemonProxy::new(&conn).await?;
+    let mut b = DaemonProxy::builder(&conn);
+    // PINNA_BUS talks to a test daemon instead of the real one
+    if let Ok(name) = std::env::var("PINNA_BUS") {
+        b = b.destination(name);
+    }
+    let p = b.build().await?;
     match cli.cmd.unwrap_or(Cmd::Status) {
         Cmd::Status => print_status(&serde_json::from_str(&p.state().await?)?),
         Cmd::Json => println!("{}", p.state().await?),

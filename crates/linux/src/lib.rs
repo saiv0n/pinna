@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod battery;
 pub mod daemon;
+pub mod fake;
 pub mod history;
 pub mod media;
 pub mod mic;

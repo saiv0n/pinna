@@ -7,8 +7,14 @@ async fn main() -> anyhow::Result<()> {
     let conn = zbus::Connection::session().await?;
     let d = Daemon::new(conn.clone()).await?;
     conn.object_server().at(service::PATH, Service { d: d.clone() }).await?;
-    conn.request_name(service::NAME).await?;
+    // PINNA_BUS lets a test daemon run next to the real one
+    let name = std::env::var("PINNA_BUS").unwrap_or_else(|_| service::NAME.into());
+    conn.request_name(name.as_str()).await?;
     tokio::spawn(service::pump(conn.clone(), d.clone()));
+    if std::env::var_os("PINNA_FAKE").is_some() {
+        log::info!("pinnad ready with fake airpods on {name}");
+        return d.run_fake().await;
+    }
     let b = d.clone();
     tokio::spawn(async move {
         if let Err(e) = pinna_linux::battery::run(b).await {

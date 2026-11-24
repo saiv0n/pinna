@@ -52,6 +52,30 @@ struct Inner {
     ear_gen: u64,
 }
 
+/// What a session needs from its channel: whole packets in, whole packets out.
+pub trait Link {
+    fn send(&self, b: &[u8]) -> impl std::future::Future<Output = std::io::Result<usize>>;
+    fn recv(&self, b: &mut [u8]) -> impl std::future::Future<Output = std::io::Result<usize>>;
+}
+
+impl Link for bluer::l2cap::SeqPacket {
+    async fn send(&self, b: &[u8]) -> std::io::Result<usize> {
+        bluer::l2cap::SeqPacket::send(self, b).await
+    }
+    async fn recv(&self, b: &mut [u8]) -> std::io::Result<usize> {
+        bluer::l2cap::SeqPacket::recv(self, b).await
+    }
+}
+
+impl Link for tokio::net::UnixDatagram {
+    async fn send(&self, b: &[u8]) -> std::io::Result<usize> {
+        tokio::net::UnixDatagram::send(self, b).await
+    }
+    async fn recv(&self, b: &mut [u8]) -> std::io::Result<usize> {
+        tokio::net::UnixDatagram::recv(self, b).await
+    }
+}
+
 /// After this long without an advert from our buds the case scan goes part time,
 /// on for SCAN_ON and off for SCAN_REST, so the radio and bluetoothd can idle.
 const SCAN_IDLE: Duration = Duration::from_secs(10 * 60);
@@ -654,6 +678,35 @@ impl Daemon {
         pick(true).and_then(|d| d.address.parse().ok())
     }
 
+    /// Talks to the pretend buds in crate::fake instead of BlueZ, reconnecting if it ends.
+    pub async fn run_fake(self) -> Result<()> {
+        loop {
+            let (ours, theirs) = tokio::net::UnixDatagram::pair()?;
+            tokio::spawn(crate::fake::headset(theirs));
+            {
+                let mut g = self.inner.lock().await;
+                g.state.adapter = true;
+                g.state.connected = true;
+                g.state.address = Some(crate::fake::ADDRESS.into());
+                g.state.model_name = "AirPods Pro 2 (USB-C)".into();
+                g.state.devices = vec![Device {
+                    address: crate::fake::ADDRESS.into(),
+                    name: "Fake AirPods Pro".into(),
+                    model_name: "AirPods Pro 2 (USB-C)".into(),
+                    model_id: 0x2024,
+                    connected: true,
+                }];
+            }
+            self.changed();
+            ours.send(aap::HANDSHAKE).await?;
+            if let Err(e) = self.talk(ours).await {
+                warn!("fake session ended: {e:#}");
+            }
+            self.on_disconnect().await;
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        }
+    }
+
     pub async fn run(self) -> Result<()> {
         tokio::spawn(self.clone().scan_loop());
         tokio::spawn(self.clone().pair_loop());
@@ -901,6 +954,11 @@ impl Daemon {
             }
         });
 
+        self.talk(sock).await
+    }
+
+    /// The packet loop of a session, over the real L2CAP socket or a fake one.
+    async fn talk<L: Link>(&self, sock: L) -> Result<()> {
         let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
         self.inner.lock().await.tx = Some(tx.clone());
 

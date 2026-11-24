@@ -81,6 +81,15 @@ Three parts:
 - `crates/linux` is the `pinnad` service that talks to BlueZ, plus `pinnactl`. The service publishes its state on D-Bus as `dev.pinna.Daemon`.
 - `app` is the Qt Quick interface. Source strings are English; after adding new ones, `app/i18n/update.py` updates the Turkish translation file.
 
+To work without a headset, run a second daemon with pretend AirPods next to the real one and point the app or `pinnactl` at it:
+
+```bash
+PINNA_FAKE=1 PINNA_BUS=dev.pinna.Test XDG_CONFIG_HOME=/tmp/pinna-test XDG_STATE_HOME=/tmp/pinna-test target/release/pinnad
+PINNA_BUS=dev.pinna.Test app/build/pinna
+```
+
+For screenshots without any daemon, `PINNA_STATE=app/fixtures/connected.json` loads a fixed state, and `PINNA_SHOT=file.png` saves the window and quits.
+
 The headphone images are rendered in Blender. The model is Jed Falcone's [AirPods Pro](https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model is not in the repo; download it from Sketchfab and rebuild the images with:
 
 ```bash
