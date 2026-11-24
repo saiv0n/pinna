@@ -1291,6 +1291,10 @@
         <translation>Pinna’yı aç</translation>
     </message>
     <message>
+        <source>%1 left</source>
+        <translation>%1 kaldı</translation>
+    </message>
+    <message>
         <source>Connecting…</source>
         <translation>Bağlanıyor…</translation>
     </message>

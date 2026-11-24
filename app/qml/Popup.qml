@@ -86,8 +86,14 @@ Window {
                 elide: Text.ElideRight
             }
             Text {
+                // the shorter estimate, since the first bud to run out ends listening
+                readonly property var mins: [(win.s.estimate || {}).left, (win.s.estimate || {}).right]
+                    .filter(v => v !== null && v !== undefined).reduce((a, b) => Math.min(a, b), Infinity)
+                readonly property string time: isFinite(mins) && mins > 0 ? qsTr("%1 left").arg(Store.duration(mins)) : ""
+                width: parent.width - 28
+                elide: Text.ElideRight
                 text: win.connecting ? qsTr("Connecting…")
-                    : win.connected ? (Store.modeNames[win.s.mode] ? qsTr("Connected") + "  ·  " + Store.modeNames[win.s.mode] : qsTr("Connected"))
+                    : win.connected ? [Store.modeNames[win.s.mode] || qsTr("Connected"), time].filter(x => x).join("  ·  ")
                     : qsTr("Case open, ready to connect")
                 font: Theme.footnote
                 color: Theme.text2
