@@ -1143,7 +1143,7 @@ impl Daemon {
                         }
                         continue;
                     }
-                    debug!("<- {}", Config::hex(data));
+                    debug!("<- {}", loggable(data));
                     if let Some(p) = aap::parse(data) {
                         if matches!(p, Packet::HandshakeAck) {
                             self.after_handshake(&tx).await;
@@ -1680,6 +1680,15 @@ fn is_headphone(product: u16) -> bool {
     product & 0xff00 == 0x2000
 }
 
+/// Packet hex for the debug log, without the BLE keys (0x31) or serial numbers (0x1d).
+fn loggable(d: &[u8]) -> String {
+    match d.get(4) {
+        Some(0x31) => "04000400 3100 (keys, hidden)".into(),
+        Some(0x1d) => "04000400 1d00 (device info, hidden)".into(),
+        _ => Config::hex(d),
+    }
+}
+
 /// True when the lid goes from closed (or unseen for a while) to open.
 fn lid_opened(open_at: &mut Option<Instant>, open: bool, now: Instant) -> bool {
     let was = open_at.is_some_and(|t| now.duration_since(t) < Duration::from_secs(90));
@@ -1702,6 +1711,13 @@ fn next_mode(cycle: u8, mode: Option<Mode>, allow_off: bool) -> Option<Mode> {
 #[cfg(test)]
 mod cycle_tests {
     use super::*;
+
+    #[test]
+    fn keys_stay_out_of_the_log() {
+        let keys = [&[0x04, 0x00, 0x04, 0x00, 0x31, 0x00, 0x02][..], &[0xAB; 40][..]].concat();
+        assert!(!loggable(&keys).contains("abab"));
+        assert_eq!(loggable(&[0x04, 0x00, 0x04, 0x00, 0x06, 0x00, 0x00, 0x00]), "0400040006000000");
+    }
 
     #[test]
     fn lid_open_once_per_opening() {

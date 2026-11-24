@@ -21,6 +21,7 @@
 #include <QJsonObject>
 #include <QLocale>
 #include <QProcess>
+#include <QRegularExpression>
 #include "shortcuts.h"
 #include <QSettings>
 #include <QStandardPaths>
@@ -486,7 +487,7 @@ QString Backend::exportLog()
     QString dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     if (dir.isEmpty())
         dir = QDir::homePath();
-    const QString path = dir + QStringLiteral("/pinna-gunluk-%1.txt").arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmm")));
+    const QString path = dir + QStringLiteral("/pinna-log-%1.txt").arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmm")));
     QProcess p;
     p.start(QStringLiteral("journalctl"), {"--user", "-u", "pinnad", "--no-pager", "-n", "3000", "-o", "short-iso"});
     p.waitForFinished(5000);
@@ -495,10 +496,25 @@ QString Backend::exportLog()
         emit error(QStringLiteral("file"), tr("Couldn't write the log to %1.").arg(path));
         return {};
     }
+    // this file ends up in bug reports: no serial numbers or names, and addresses keep only the maker part
+    QVariantMap state = m_state;
+    for (const auto &k : {"serial", "serialLeft", "serialRight", "name"})
+        if (state.contains(QLatin1String(k)))
+            state[QLatin1String(k)] = QStringLiteral("(hidden)");
+    static const QRegularExpression mac(QStringLiteral("([0-9A-Fa-f]{2}[:_]){2}[0-9A-Fa-f]{2}([:_][0-9A-Fa-f]{2}){3}"));
+    auto scrub = [](QString t) {
+        QRegularExpressionMatchIterator it = mac.globalMatch(t);
+        QList<QRegularExpressionMatch> found;
+        while (it.hasNext())
+            found.prepend(it.next());
+        for (const auto &m : found)
+            t.replace(m.capturedStart() + 8, 9, m.captured().at(2) == QLatin1Char('_') ? QStringLiteral("_XX_XX_XX") : QStringLiteral(":XX:XX:XX"));
+        return t;
+    };
     f.write("Pinna " + version().toUtf8() + "\n\n");
-    f.write(QJsonDocument::fromVariant(m_state).toJson());
+    f.write(scrub(QString::fromUtf8(QJsonDocument::fromVariant(state).toJson())).toUtf8());
     f.write("\n");
-    f.write(p.readAllStandardOutput());
+    f.write(scrub(QString::fromUtf8(p.readAllStandardOutput())).toUtf8());
     emit notice(tr("Log saved: %1").arg(path));
     return path;
 }
