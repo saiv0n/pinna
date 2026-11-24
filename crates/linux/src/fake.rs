@@ -159,7 +159,7 @@ pub async fn headset(sock: UnixDatagram) {
                 if d.starts_with(&[0x00, 0x00, 0x04, 0x00, 0x01]) {
                     let _ = sock.send(&[0x01, 0x00, 0x04, 0x00]).await;
                     up = true;
-                    let mut list = vec![info(prof), battery(prof, left, right, None), pkt(0x06, &[0x00, 0x00])];
+                    let mut list = vec![info(prof), battery(prof, left, right, Some(30)), pkt(0x06, &[0x00, 0x00])];
                     list.extend(prof.controls.iter().map(|(id, v)| aap::control(*id, *v)));
                     if prof.eq {
                         list.push(aap::eq(aap::Eq { enabled: false, low: 50, mid: 50, high: 50 }));
@@ -191,7 +191,7 @@ pub async fn headset(sock: UnixDatagram) {
                 if ticks.is_multiple_of(5) {
                     left = left.saturating_sub(1);
                     right = right.saturating_sub(1);
-                    let _ = sock.send(&battery(prof, left, right, None)).await;
+                    let _ = sock.send(&battery(prof, left, right, Some(30))).await;
                 }
             }
         }
