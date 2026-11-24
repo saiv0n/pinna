@@ -36,6 +36,10 @@ impl Service {
         self.d.set_mode(short(mode)?).await.map_err(err)
     }
 
+    async fn show_card(&self) {
+        self.d.show_card().await;
+    }
+
     async fn cycle_mode(&self) -> fdo::Result<String> {
         self.d.cycle_mode().await.map(|m| m.name().to_string()).map_err(err)
     }

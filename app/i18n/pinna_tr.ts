@@ -1476,6 +1476,10 @@
         <source>Adaptive</source>
         <translation>Uyarlanabilir</translation>
     </message>
+    <message>
+        <source>Show the battery card</source>
+        <translation>Pil kartını göster</translation>
+    </message>
 </context>
 <context>
     <name>Tray</name>

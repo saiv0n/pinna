@@ -65,6 +65,7 @@ hl.window_rule({ name = "pinna-card", match = { class = "^(dev.pinna.Popup)$" },
 pinnactl                     # status
 pinnactl mode adaptive       # off, anc, transparency, adaptive
 pinnactl cycle               # step through the modes
+pinnactl card                # show the battery card
 pinnactl set conversationAwareness on
 pinnactl watch               # one JSON line per change
 ```
@@ -75,7 +76,7 @@ pinnactl watch               # one JSON line per change
 bind = SUPER, A, exec, pinnactl cycle
 ```
 
-On KDE, GNOME and other desktops with the global shortcuts portal, turn on Global shortcuts on the This Computer page and pick the keys in the desktop's shortcut settings. There is one for the next mode and one for each mode.
+On KDE, GNOME and other desktops with the global shortcuts portal, turn on Global shortcuts on the This Computer page and pick the keys in the desktop's shortcut settings. There is one for the next mode, one for each mode and one that shows the battery card.
 
 ## Caelestia bar
 

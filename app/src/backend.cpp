@@ -287,6 +287,8 @@ void Backend::setGlobalShortcuts(bool on)
         connect(m_shortcuts, &Shortcuts::activated, this, [this](const QString &id) {
             if (id == QLatin1String("cycle"))
                 cycleMode();
+            else if (id == QLatin1String("card"))
+                call(QStringLiteral("ShowCard"), {});
             else
                 setMode(id);
         });

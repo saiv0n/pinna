@@ -773,11 +773,20 @@ impl Daemon {
     }
 
     pub async fn popup(&self) {
+        self.card(false).await;
+    }
+
+    /// Shows the battery card on request, from a shortcut or pinnactl card.
+    pub async fn show_card(&self) {
+        self.card(true).await;
+    }
+
+    async fn card(&self, asked: bool) {
         let mut g = self.inner.lock().await;
-        if !g.state.prefs.popup {
+        if !asked && !g.state.prefs.popup {
             return;
         }
-        if g.last_popup.is_some_and(|t| t.elapsed() < Duration::from_secs(20)) {
+        if g.last_popup.is_some_and(|t| t.elapsed() < Duration::from_secs(if asked { 2 } else { 20 })) {
             return;
         }
         g.last_popup = Some(Instant::now());

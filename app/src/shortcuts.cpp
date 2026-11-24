@@ -90,6 +90,7 @@ void Shortcuts::onCreated(uint code, const QVariantMap &results)
         item(QStringLiteral("anc"), tr("Noise cancellation")),
         item(QStringLiteral("transparency"), tr("Transparency")),
         item(QStringLiteral("adaptive"), tr("Adaptive")),
+        item(QStringLiteral("card"), tr("Show the battery card")),
     };
     list.first().props.insert(QStringLiteral("preferred_trigger"), QStringLiteral("CTRL+SHIFT+F12"));
 

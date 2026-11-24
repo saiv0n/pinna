@@ -12,6 +12,7 @@ trait Daemon {
     async fn state(&self) -> zbus::Result<String>;
     async fn set_mode(&self, mode: &str) -> zbus::Result<()>;
     async fn cycle_mode(&self) -> zbus::Result<String>;
+    async fn show_card(&self) -> zbus::Result<()>;
     async fn set_setting(&self, key: &str, value: &str) -> zbus::Result<()>;
     async fn set_pref(&self, key: &str, value: &str) -> zbus::Result<()>;
     async fn rename(&self, name: &str) -> zbus::Result<()>;
@@ -40,8 +41,10 @@ enum Cmd {
     Watch,
     /// Listening mode: off, anc, transparency, adaptive
     Mode { mode: String },
-    /// Cycle through ANC, adaptive and transparency
+    /// Switch to the next of the modes picked for press and hold
     Cycle,
+    /// Show the battery card
+    Card,
     /// Change a headphone setting, e.g. conversationAwareness on
     Set { key: String, value: String },
     /// Change an app preference, e.g. autoPause off
@@ -162,6 +165,7 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
         }
         Cmd::Mode { mode } => p.set_mode(&mode).await?,
         Cmd::Cycle => println!("{}", mode_name(&p.cycle_mode().await?)),
+        Cmd::Card => p.show_card().await?,
         Cmd::Set { key, value } => p.set_setting(&key, &value).await?,
         Cmd::Pref { key, value } => p.set_pref(&key, &value).await?,
         Cmd::Rename { name } => p.rename(&name).await?,
