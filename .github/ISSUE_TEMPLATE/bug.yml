@@ -1,0 +1,36 @@
+name: Bug report
+description: Something doesn't work the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Headphones
+      placeholder: AirPods Pro 2 (USB-C)
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Distribution and desktop
+      placeholder: Arch Linux, Hyprland
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Exported log
+      description: This Computer, Export. Drag the file here. Names, serials and addresses are already removed.
+  - type: textarea
+    id: doctor
+    attributes:
+      label: pinnactl doctor
+      description: Only if you can't export the log.
+      render: text

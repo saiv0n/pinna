@@ -1,0 +1,36 @@
+name: Headphones report
+description: Tell us how Pinna works with your model
+labels: [device report]
+body:
+  - type: markdown
+    attributes:
+      value: Pinna is tested on AirPods Pro 2. A report from any other model helps, even if everything works.
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: As shown on the About page, with the model number if you know it.
+      placeholder: AirPods 4 (ANC), A3056
+    validations:
+      required: true
+  - type: dropdown
+    id: overall
+    attributes:
+      label: How well does it work
+      options:
+        - Everything I tried works
+        - Most things work
+        - Battery works, settings don't
+        - Doesn't connect
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What works and what doesn't
+      description: Settings that are missing, settings that show up but do nothing, anything that looks wrong.
+  - type: textarea
+    id: log
+    attributes:
+      label: Exported log
+      description: This Computer, Export. Drag the file here.
