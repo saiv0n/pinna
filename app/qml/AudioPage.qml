@@ -175,12 +175,20 @@ Page {
             }
         }
         Setting {
-            title: qsTr("Switch output on connect")
-            subtitle: qsTr("System audio is routed to the headphones when they connect.")
+            id: output
+            readonly property int pick: !Store.pref("autoOutput", true) ? 2 : Store.pref("outputOnEar", false) ? 1 : 0
+            title: qsTr("Use for system sound")
+            subtitle: [qsTr("System audio is routed to the headphones when they connect."),
+                       qsTr("System audio moves to the headphones when you put one in, not while they sit in the open case."),
+                       qsTr("Pick the output yourself in the system sound settings.")][output.pick]
             enabled: Backend.daemon
-            Switch {
-                checked: Store.pref("autoOutput", true)
-                onToggled: v => Backend.setPref("autoOutput", v)
+            Dropdown {
+                model: [qsTr("When connected"), qsTr("When worn"), qsTr("Never")]
+                currentIndex: output.pick
+                onPicked: i => {
+                    Backend.setPref("autoOutput", i !== 2)
+                    if (i !== 2) Backend.setPref("outputOnEar", i === 1)
+                }
             }
         }
     }

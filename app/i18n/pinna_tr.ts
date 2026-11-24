@@ -250,12 +250,32 @@
         <translation>Otomatik</translation>
     </message>
     <message>
-        <source>Switch output on connect</source>
-        <translation>Bağlanınca bu kulaklığa geç</translation>
+        <source>Use for system sound</source>
+        <translation>Sistem sesi için kullan</translation>
     </message>
     <message>
         <source>System audio is routed to the headphones when they connect.</source>
         <translation>Kulaklık bağlanınca sistem sesi kendiliğinden ona yönlendirilir.</translation>
+    </message>
+    <message>
+        <source>System audio moves to the headphones when you put one in, not while they sit in the open case.</source>
+        <translation>Sistem sesi kulaklıklardan birini taktığında onlara geçer, açık kutuda dururken geçmez.</translation>
+    </message>
+    <message>
+        <source>Pick the output yourself in the system sound settings.</source>
+        <translation>Çıkışı sistemin ses ayarlarından kendin seç.</translation>
+    </message>
+    <message>
+        <source>When connected</source>
+        <translation>Bağlanınca</translation>
+    </message>
+    <message>
+        <source>When worn</source>
+        <translation>Takınca</translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation>Hiçbir zaman</translation>
     </message>
     <message>
         <source>Smart Audio</source>

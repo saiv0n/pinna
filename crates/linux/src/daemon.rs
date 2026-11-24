@@ -533,9 +533,12 @@ impl Daemon {
             }
             g = self.inner.lock().await;
         }
-        let make_default = a.available && !a.is_default && !g.audio_set && g.state.prefs.auto_output;
+        // buds connected inside the open case should not take the sound until one is worn
+        let worn = in_ear(&g.state.ear.left) + in_ear(&g.state.ear.right) > 0;
+        let wait = g.state.prefs.output_on_ear && !worn;
+        let make_default = a.available && !a.is_default && !g.audio_set && g.state.prefs.auto_output && !wait;
         let codec = (a.available && !g.audio_set && !g.state.prefs.codec.is_empty()).then(|| g.state.prefs.codec.clone());
-        if a.available {
+        if a.available && !wait {
             g.audio_set = true;
         }
         let mut a = a;
@@ -1269,8 +1272,15 @@ impl Daemon {
                                 me.media.lock().await.pause_all().await;
                             }
                         });
-                    } else if after > before && prefs.auto_resume {
-                        m.resume().await;
+                    } else if after > before {
+                        if prefs.output_on_ear && before == 0 {
+                            drop(m);
+                            self.refresh_audio().await;
+                            m = self.media.lock().await;
+                        }
+                        if prefs.auto_resume {
+                            m.resume().await;
+                        }
                     }
                 }
             }
