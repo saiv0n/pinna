@@ -102,6 +102,50 @@ Page {
         }
     }
 
+    // runs off the head tracking stream, so it stays on while this is enabled
+    Section {
+        id: gestures
+        title: qsTr("Head Gestures")
+        experimental: true
+        enabled: Store.ready
+        readonly property bool on: Store.pref("headGestures", false)
+        footer: qsTr("Nod or shake your head a few times to run an action. Keeps the motion sensor on, which uses a bit more battery.")
+        Setting {
+            title: qsTr("Head gestures")
+            Switch { checked: gestures.on; onToggled: v => Backend.setPref("headGestures", v) }
+        }
+        Repeater {
+            model: [["gestureNod", qsTr("Nod"), "playPause"], ["gestureShake", qsTr("Shake"), "next"]]
+            Setting {
+                id: grow
+                required property var modelData
+                visible: gestures.on
+                readonly property string cur: Store.pref(modelData[0], modelData[2])
+                readonly property bool isCmd: cur.startsWith("cmd:") || gpick.currentIndex === 9
+                title: modelData[1]
+                Field {
+                    id: gcmd
+                    visible: grow.isCmd
+                    width: 180
+                    placeholderText: qsTr("e.g. grim ~/shot.png")
+                    text: grow.cur.startsWith("cmd:") ? grow.cur.slice(4) : ""
+                    Accessible.name: qsTr("Command")
+                    onAccepted: { if (text.trim()) Backend.setPref(grow.modelData[0], "cmd:" + text.trim()); focus = false }
+                }
+                Dropdown {
+                    id: gpick
+                    model: press.names
+                    currentIndex: grow.cur.startsWith("cmd:") ? 9 : Math.max(0, press.actions.indexOf(grow.cur) - 1)
+                    Accessible.name: grow.title
+                    onPicked: i => {
+                        if (i === 9) { gcmd.forceActiveFocus(); return }
+                        Backend.setPref(grow.modelData[0], press.actions[i + 1])
+                    }
+                }
+            }
+        }
+    }
+
     Section {
         title: qsTr("Volume Swipe")
         visible: Store.has("volumeSwipe")

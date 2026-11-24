@@ -649,6 +649,26 @@
         <translation>Komut</translation>
     </message>
     <message>
+        <source>Head Gestures</source>
+        <translation>Baş Hareketleri</translation>
+    </message>
+    <message>
+        <source>Nod or shake your head a few times to run an action. Keeps the motion sensor on, which uses a bit more battery.</source>
+        <translation>Bir işlemi çalıştırmak için başını birkaç kez salla ya da evet der gibi eğ. Hareket algılayıcı açık kalır, bu biraz daha pil harcar.</translation>
+    </message>
+    <message>
+        <source>Head gestures</source>
+        <translation>Baş hareketleri</translation>
+    </message>
+    <message>
+        <source>Nod</source>
+        <translation>Evet (baş eğme)</translation>
+    </message>
+    <message>
+        <source>Shake</source>
+        <translation>Hayır (baş sallama)</translation>
+    </message>
+    <message>
         <source>Volume Swipe</source>
         <translation>Ses Düzeyi Kaydırma</translation>
     </message>

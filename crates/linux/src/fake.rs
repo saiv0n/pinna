@@ -119,6 +119,28 @@ fn battery(p: &Profile, left: u8, right: u8, case: Option<u8>) -> Vec<u8> {
     pkt(0x04, &b)
 }
 
+/// A head tracking packet with these angles, laid out like the real 0x17 stream.
+fn head(yaw: f32, pitch: f32) -> Vec<u8> {
+    let mut p = vec![0u8; 55];
+    p[..6].copy_from_slice(&[0x04, 0x00, 0x04, 0x00, 0x17, 0x00]);
+    let a = ((pitch + yaw) * 32000.0 / 180.0) as i16;
+    let b = ((pitch - yaw) * 32000.0 / 180.0) as i16;
+    p[45..47].copy_from_slice(&a.to_le_bytes());
+    p[47..49].copy_from_slice(&b.to_le_bytes());
+    p
+}
+
+/// Every eight seconds: still, a nod, still, a shake.
+fn head_at(t: f32) -> (f32, f32) {
+    let t = t % 8.0;
+    let w = (t * 2.0 * std::f32::consts::PI * 2.0).sin();
+    match t {
+        t if (1.0..2.5).contains(&t) => (0.0, 12.0 * w),
+        t if (4.5..6.0).contains(&t) => (15.0 * w, 0.0),
+        _ => (0.0, 0.0),
+    }
+}
+
 /// Runs the pretend buds on one end of a datagram pair.
 pub async fn headset(sock: UnixDatagram) {
     let prof = profile();
@@ -127,6 +149,8 @@ pub async fn headset(sock: UnixDatagram) {
     let mut tick = tokio::time::interval(Duration::from_secs(20));
     let mut up = false;
     let mut ticks = 0u32;
+    let mut stream: Option<std::time::Instant> = None;
+    let mut frame = tokio::time::interval(Duration::from_millis(66));
     loop {
         tokio::select! {
             r = sock.recv(&mut buf) => {
@@ -148,10 +172,18 @@ pub async fn headset(sock: UnixDatagram) {
                     if d[7] & 0x02 != 0 {
                         let _ = sock.send(&pkt(0x19, &[0x06, 0x01])).await;
                     }
+                } else if d == aap::HEAD_START {
+                    stream = Some(std::time::Instant::now());
+                } else if d == aap::HEAD_STOP {
+                    stream = None;
                 } else if d.len() > 6 && (d[4] == 0x09 || d[4] == 0x63) {
                     // the buds confirm a setting by sending it back
                     let _ = sock.send(&d).await;
                 }
+            }
+            _ = frame.tick(), if stream.is_some() => {
+                let (yaw, pitch) = head_at(stream.map_or(0.0, |s| s.elapsed().as_secs_f32()));
+                let _ = sock.send(&head(yaw, pitch)).await;
             }
             _ = tick.tick(), if up => {
                 // 1% every 100 s, faster than real use so estimates show up within minutes

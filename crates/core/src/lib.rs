@@ -3,4 +3,5 @@
 pub mod aap;
 pub mod proximity;
 pub mod estimate;
+pub mod gesture;
 pub mod state;

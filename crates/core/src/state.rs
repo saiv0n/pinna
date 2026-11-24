@@ -158,6 +158,10 @@ pub struct Prefs {
     pub spatial: String,
     /// music codec to switch to on connect; empty leaves PipeWire's choice alone
     pub codec: String,
+    /// nod and shake run actions; keeps head tracking on, so it costs some battery
+    pub head_gestures: bool,
+    pub gesture_nod: String,
+    pub gesture_shake: String,
 }
 
 impl Default for Prefs {
@@ -178,6 +182,9 @@ impl Default for Prefs {
             spatial: "off".into(),
             ca_one_bud: false,
             codec: String::new(),
+            head_gestures: false,
+            gesture_nod: "playPause".into(),
+            gesture_shake: "next".into(),
         }
     }
 }
@@ -203,6 +210,16 @@ impl Prefs {
             "spatial" => anyhow::bail!("invalid value: {v}"),
             "codec" if v.len() <= 32 && v.chars().all(|c| c.is_ascii_alphanumeric() || "-_ .".contains(c)) => self.codec = v.into(),
             "codec" => anyhow::bail!("invalid value: {v}"),
+            "headGestures" => self.head_gestures = b()?,
+            "gestureNod" | "gestureShake" => {
+                let ok = STEM_ACTIONS.contains(&v) || v.strip_prefix("cmd:").is_some_and(|c| !c.trim().is_empty());
+                anyhow::ensure!(ok, "invalid value: {v}");
+                if key == "gestureNod" {
+                    self.gesture_nod = v.into();
+                } else {
+                    self.gesture_shake = v.into();
+                }
+            }
             k if k.starts_with("stem.") => {
                 let slot = &k[5..];
                 let ok_slot = matches!(slot.split_once('.'), Some(("double" | "triple" | "long", "left" | "right")));

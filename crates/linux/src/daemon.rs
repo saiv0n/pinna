@@ -53,6 +53,10 @@ struct Inner {
     ear_gen: u64,
     /// last advert battery of paired headphones other than the selected one
     others: HashMap<String, state::Last>,
+    /// whether we asked the buds for the head tracking stream
+    head_on: bool,
+    gestures: pinna_core::gesture::Detector,
+    epoch: Instant,
 }
 
 /// What a session needs from its channel: whole packets in, whole packets out.
@@ -132,6 +136,9 @@ impl Daemon {
                 mic_on: false,
                 ca_paused: false,
                 others: HashMap::new(),
+                head_on: false,
+                gestures: Default::default(),
+                epoch: Instant::now(),
                 spatial_head: false,
                 ca_held: false,
                 ear_gen: 0,
@@ -247,6 +254,9 @@ impl Daemon {
         }
         if key == "codec" {
             self.apply_codec(v).await;
+        }
+        if key == "headGestures" {
+            let _ = self.sync_head().await;
         }
         if key == "spatial" || key == "codec" {
             self.refresh_audio().await;
@@ -537,12 +547,8 @@ impl Daemon {
         let mut g = self.inner.lock().await;
         if g.state.ready && head != g.spatial_head {
             g.spatial_head = head;
-            // the live view may be using the stream too
-            let send = !g.state.head_tracking;
             drop(g);
-            if send {
-                let _ = self.send(if head { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await;
-            }
+            let _ = self.sync_head().await;
         }
     }
 
@@ -674,13 +680,23 @@ impl Daemon {
     }
 
     pub async fn head_tracking(&self, on: bool) -> Result<()> {
-        // keep the stream if spatial audio still needs it
-        if on || !self.inner.lock().await.spatial_head {
-            self.send(if on { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await?;
-        }
         self.inner.lock().await.state.head_tracking = on;
+        self.sync_head().await?;
         self.changed();
         Ok(())
+    }
+
+    /// One head tracking stream shared by the live view, spatial audio and head gestures.
+    async fn sync_head(&self) -> Result<()> {
+        let mut g = self.inner.lock().await;
+        let want = g.state.ready && (g.state.head_tracking || g.spatial_head || g.state.prefs.head_gestures);
+        if want == g.head_on {
+            return Ok(());
+        }
+        g.head_on = want;
+        g.gestures.reset();
+        drop(g);
+        self.send(if want { aap::HEAD_START } else { aap::HEAD_STOP }.to_vec()).await
     }
 
     /// Refreshes the list of paired Apple headphones.
@@ -956,6 +972,7 @@ impl Daemon {
         g.state.battery = Default::default();
         g.state.head_tracking = false;
         g.spatial_head = false;
+        g.head_on = false;
         g.state.audio = Default::default();
         g.audio_set = false;
         g.a2dp_fixed = false;
@@ -1102,6 +1119,7 @@ impl Daemon {
             }
         }
         self.send_stem_mask().await;
+        let _ = self.sync_head().await;
         self.changed();
     }
 
@@ -1240,7 +1258,21 @@ impl Daemon {
             }
             Packet::Head(v) => {
                 let feed = g.spatial_head;
+                let gesture = if g.state.prefs.head_gestures {
+                    let (yaw, pitch) = pinna_core::gesture::angles(v);
+                    let t = g.epoch.elapsed().as_secs_f32();
+                    g.gestures.feed(t, yaw, pitch).map(|x| match x {
+                        pinna_core::gesture::Gesture::Nod => ("nod", g.state.prefs.gesture_nod.clone()),
+                        pinna_core::gesture::Gesture::Shake => ("shake", g.state.prefs.gesture_shake.clone()),
+                    })
+                } else {
+                    None
+                };
                 drop(g);
+                if let Some((name, action)) = gesture {
+                    info!("head gesture: {name}, {action}");
+                    self.act(&action).await;
+                }
                 if feed && let Some(s) = self.spatial.lock().await.as_mut() {
                     s.head(v).await;
                 }
@@ -1274,20 +1306,25 @@ impl Daemon {
             _ => return,
         };
         let side = if left { "left" } else { "right" };
-        let (action, mode) = {
+        let action = {
             let g = self.inner.lock().await;
             let hold = g.state.settings.get(if left { "holdLeft" } else { "holdRight" }).and_then(|v| v.as_u64());
             let fb = if press == 8 && hold == Some(5) { "nothing" } else { fallback };
-            let a = g.state.prefs.stem.get(&format!("{name}.{side}")).cloned().unwrap_or_else(|| fb.into());
-            (a, g.state.mode)
+            g.state.prefs.stem.get(&format!("{name}.{side}")).cloned().unwrap_or_else(|| fb.into())
         };
         info!("stem press: {name} {side}, {action}");
+        self.act(&action).await;
+    }
+
+    /// What a stem press or head gesture was bound to.
+    async fn act(&self, action: &str) {
+        let mode = self.inner.lock().await.state.mode;
         let wpctl = |args: &[&str]| {
             let mut c = tokio::process::Command::new("wpctl");
             c.args(args);
             c
         };
-        match action.as_str() {
+        match action {
             "playPause" => self.media.lock().await.player("PlayPause").await,
             "next" => self.media.lock().await.player("Next").await,
             "previous" => self.media.lock().await.player("Previous").await,
@@ -1319,7 +1356,7 @@ impl Daemon {
                         .status()
                         .await;
                     if !r.is_ok_and(|s| s.success()) {
-                        warn!("stem command failed: {cmd}");
+                        warn!("command failed: {cmd}");
                     }
                 }
             }

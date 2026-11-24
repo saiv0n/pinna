@@ -23,6 +23,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 - Shows head tracking live: the angles follow as you turn and tilt your head.
 - Spatial audio (experimental): stereo sounds like it comes from two speakers in front of you, using the PipeWire HRTF filter. In head tracked mode the sound stays put when you turn your head. Needs `libmysofa` and `/usr/share/libmysofa/default.sofa`.
 - Press shortcuts (experimental): bind a double, triple or long press on each bud to something on the computer, like muting the mic, volume, changing tracks or a command of your own. Unassigned presses do what the buds normally do.
+- Head gestures (experimental): nod or shake your head a few times to play or pause, skip a track or run a command. It keeps the motion sensor on while enabled.
 - Estimates how much listening time is left, and how long until full while charging, from the recent battery history. Shown in the app, the tray and `pinnactl`.
 - Custom EQ (experimental) with bass, mids and treble, stored in the headphones themselves. Only shown when the model reports it.
 - While the buds are away, the case scan goes part time to save power, and the "(Pinna)" mic stays in place so apps recording from it never see it vanish.
