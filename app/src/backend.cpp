@@ -512,6 +512,11 @@ QString Backend::exportLog()
         return t;
     };
     f.write("Pinna " + version().toUtf8() + "\n\n");
+    // the setup check answers most "it does not connect" reports by itself
+    QProcess doctor;
+    doctor.start(QStringLiteral("pinnactl"), {QStringLiteral("doctor")});
+    if (doctor.waitForFinished(5000))
+        f.write(doctor.readAllStandardOutput() + "\n");
     f.write(scrub(QString::fromUtf8(QJsonDocument::fromVariant(state).toJson())).toUtf8());
     f.write("\n");
     f.write(scrub(QString::fromUtf8(p.readAllStandardOutput())).toUtf8());
