@@ -14,7 +14,9 @@ Item {
     opacity: enabled ? 1 : 0.45
     activeFocusOnTab: true
     Keys.onSpacePressed: flip()
+    property string label
     Accessible.role: Accessible.CheckBox
+    Accessible.name: label
     Accessible.checked: checked
 
     Rectangle {

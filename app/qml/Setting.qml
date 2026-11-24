@@ -62,6 +62,12 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 8
     }
+    // controls in the row are read out with the row's title
+    Component.onCompleted: {
+        for (const c of slot.children)
+            if (c.label !== undefined && c.label === "")
+                c.label = Qt.binding(() => root.title)
+    }
     MouseArea {
         id: area
         z: -1

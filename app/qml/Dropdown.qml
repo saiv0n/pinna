@@ -7,6 +7,9 @@ C.ComboBox {
     id: root
     signal picked(int index)
     onActivated: i => picked(i)
+    property string label
+    Accessible.name: label
+    Accessible.description: displayText
 
     implicitWidth: Math.max(120, textWidth + 44)
     readonly property real textWidth: {

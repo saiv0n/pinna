@@ -15,6 +15,10 @@ Rectangle {
     color: Theme.control
     opacity: enabled ? 1 : 0.45
     activeFocusOnTab: true
+    property string label
+    Accessible.role: Accessible.PageTabList
+    Accessible.name: label
+    Accessible.description: options[current] || ""
     Keys.onLeftPressed: pick(current - 1)
     Keys.onRightPressed: pick(current + 1)
     FocusRing {}

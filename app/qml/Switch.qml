@@ -15,7 +15,10 @@ Item {
     activeFocusOnTab: true
     Keys.onSpacePressed: flip()
     Keys.onReturnPressed: flip()
+    // filled in by Setting from the row title
+    property string label
     Accessible.role: Accessible.CheckBox
+    Accessible.name: label
     Accessible.checked: checked
 
     Rectangle {
