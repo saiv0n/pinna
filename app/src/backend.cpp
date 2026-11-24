@@ -272,12 +272,12 @@ void Backend::headTracking(bool on)
 void Backend::loadHistory()
 {
     if (!m_fake.isEmpty()) {
-        // fixture history uses negative times, seconds before now, so it never goes stale
+        // fixture history uses times of zero or below, seconds before now, so it never goes stale
         const qint64 now = QDateTime::currentSecsSinceEpoch();
         m_history.clear();
         for (const auto &row : m_state.value(QStringLiteral("history")).toList()) {
             auto r = row.toList();
-            if (!r.isEmpty() && r[0].toLongLong() < 0)
+            if (!r.isEmpty() && r[0].toLongLong() <= 0)
                 r[0] = now + r[0].toLongLong();
             m_history << QVariant(r);
         }
