@@ -59,6 +59,8 @@ enum Cmd {
     Connect,
     /// Disconnect
     Disconnect,
+    /// Check the setup: service, Bluetooth, PipeWire tools, tray
+    Doctor,
     /// Print shell completions: bash, zsh or fish
     Completions { shell: clap_complete::Shell },
 }
@@ -118,6 +120,88 @@ fn print_status(s: &Value) {
             None => println!("  Firmware: {f}"),
         }
     }
+}
+
+async fn has_name(conn: &zbus::Connection, name: &str) -> bool {
+    let Ok(dbus) = zbus::fdo::DBusProxy::new(conn).await else { return false };
+    let Ok(n) = zbus::names::BusName::try_from(name) else { return false };
+    dbus.name_has_owner(n).await.unwrap_or(false)
+}
+
+fn in_path(tool: &str) -> bool {
+    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(tool).is_file()))
+}
+
+/// Walks through what Pinna needs and says what to do about anything missing.
+async fn doctor(conn: &zbus::Connection) -> anyhow::Result<()> {
+    let mut failed = false;
+    let mut line = |level: &str, what: &str, hint: &str| {
+        failed |= level == "fail";
+        if hint.is_empty() {
+            println!("{level:>4}  {what}");
+        } else {
+            println!("{level:>4}  {what}\n      {hint}");
+        }
+    };
+    let name = std::env::var("PINNA_BUS").unwrap_or_else(|_| "dev.pinna.Daemon".into());
+    let state: Option<Value> = if has_name(conn, &name).await {
+        let p = DaemonProxy::builder(conn).destination(name.as_str()).build().await?;
+        p.state().await.ok().and_then(|s| serde_json::from_str(&s).ok())
+    } else {
+        None
+    };
+    match &state {
+        Some(_) => line("ok", "pinnad is running", ""),
+        None => line("fail", "pinnad is not running", "systemctl --user enable --now pinnad.service"),
+    }
+    let system = zbus::Connection::system().await.ok();
+    match &system {
+        Some(c) if has_name(c, "org.bluez").await => line("ok", "BlueZ is running", ""),
+        _ => line("fail", "BlueZ is not running", "start bluetooth.service, Pinna needs it for everything"),
+    }
+    if let Some(s) = &state {
+        if s["adapter"].as_bool() == Some(true) {
+            line("ok", "Bluetooth is on", "");
+        } else {
+            line("fail", "Bluetooth is off or there is no adapter", "turn it on in the system settings or with bluetoothctl power on");
+        }
+        let n = s["devices"].as_array().map_or(0, |d| d.len());
+        if n == 0 {
+            line("warn", "no paired AirPods or Beats", "pair them once from the system Bluetooth settings or with Start Pairing in the app");
+        } else {
+            line("ok", &format!("{n} paired headphones"), "");
+        }
+        if n > 0 && s["hasKeys"].as_bool() != Some(true) {
+            line("warn", "no case keys yet", "connect the headphones once; the case battery and finder need the keys they send");
+        }
+    }
+    for tool in ["pactl", "wpctl", "pw-cli"] {
+        if in_path(tool) {
+            line("ok", &format!("{tool} found"), "");
+        } else {
+            line("warn", &format!("{tool} not found"), "install the PipeWire tools; without them audio settings and volume features stay off");
+        }
+    }
+    let main = std::fs::read_to_string("/etc/bluetooth/main.conf").unwrap_or_default();
+    if main.lines().any(|l| l.trim_start().starts_with("DeviceID") && l.contains("bluetooth:004C")) {
+        line("ok", "DeviceID is set to Apple", "");
+    } else {
+        line("info", "DeviceID is not set", "optional; some features want an Apple device, see This Computer > Bluetooth");
+    }
+    if std::path::Path::new("/usr/share/libmysofa/default.sofa").exists() {
+        line("ok", "spatial audio filter found", "");
+    } else {
+        line("info", "no /usr/share/libmysofa/default.sofa", "only needed for spatial audio; install libmysofa");
+    }
+    if has_name(conn, "org.kde.StatusNotifierWatcher").await {
+        line("ok", "a system tray is available", "");
+    } else {
+        line("info", "no system tray found", "the app still works; closing the window quits it");
+    }
+    if failed {
+        anyhow::bail!("some checks failed");
+    }
+    Ok(())
 }
 
 /// One line per state change, built from the full state; nothing is printed when the line
@@ -204,6 +288,9 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
         return Ok(());
     }
     let conn = zbus::Connection::session().await?;
+    if let Some(Cmd::Doctor) = cli.cmd {
+        return doctor(&conn).await;
+    }
     let mut b = DaemonProxy::builder(&conn);
     // PINNA_BUS talks to a test daemon instead of the real one
     if let Ok(name) = std::env::var("PINNA_BUS") {
@@ -224,7 +311,7 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
         Cmd::Audio { key, value } => p.set_audio(&key, &value).await?,
         Cmd::Connect => p.connect().await?,
         Cmd::Disconnect => p.disconnect().await?,
-        Cmd::Completions { .. } => {}
+        Cmd::Completions { .. } | Cmd::Doctor => {}
     }
     Ok(())
 }

@@ -69,6 +69,7 @@ pinnactl card                # show the battery card
 pinnactl set conversationAwareness on
 pinnactl watch               # one JSON line per change
 pinnactl waybar              # lines for a Waybar custom module
+pinnactl doctor              # check the setup when something does not work
 ```
 
 `install.sh` and the Arch package also install bash, zsh and fish completions for `pinnactl`.
