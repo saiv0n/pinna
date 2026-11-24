@@ -101,6 +101,14 @@ On KDE, GNOME and other desktops with the global shortcuts portal, turn on Globa
 
 `shell/caelestia/PinnaStatus.qml` shows a headphone icon, the lowest battery and the mode in the bar. Left click changes the mode, right click opens the app. Put the file under `modules/bar/components/status/` and add a `DelegateChoice` to `StatusIcons.qml`.
 
+## When something does not work
+
+Run `pinnactl doctor` first. It checks the service, BlueZ, the adapter, the paired headphones, the PipeWire tools and the tray, and says what to do about anything missing.
+
+If the headphones connect but there is no sound, open the Audio page: Pinna asks for the music profile once on its own, and the profile can be switched there. If the case card or the case battery never shows up, connect the headphones once so they hand over their keys, and keep "Show battery when case opens" on. A Bluetooth mouse or keyboard that is slow to reconnect can come from scanning; the scan already rests most of the time, and turning that option off stops it.
+
+For a bug report, use Export on the This Computer page. The file starts with the doctor output and leaves out serial numbers, names and the device part of Bluetooth addresses.
+
 ## Translations
 
 Each language is one file, `app/i18n/pinna_<code>.ts`, and it covers the app, the tray and the notifications the service sends. To start one, run `app/i18n/update.py de` (any language code), fill in the translations with Qt Linguist or a text editor, and rebuild. The new language shows up on the This Computer page by itself. Run `app/i18n/update.py` again after changing texts to add the new ones to every file.
