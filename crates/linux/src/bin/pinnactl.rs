@@ -90,6 +90,14 @@ fn print_status(s: &Value) {
         _ => "?",
     };
     println!("  Left {}, right {}", ear(&s["ear"]["left"]), ear(&s["ear"]["right"]));
+    let left = ["left", "right"].iter().filter_map(|k| s["estimate"][k].as_u64()).min();
+    if let Some(m) = left {
+        println!("  About {}h {:02}m of listening left", m / 60, m % 60);
+    }
+    if s["eq"]["enabled"].as_bool() == Some(true) {
+        let b = |k: &str| s["eq"][k].as_i64().unwrap_or(50) - 50;
+        println!("  EQ: bass {:+}, mids {:+}, treble {:+}", b("low"), b("mid"), b("high"));
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]
