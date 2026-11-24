@@ -117,7 +117,12 @@ fn print_status(s: &Value) {
     if s["oneBattery"].as_bool() != Some(true) {
         println!("  Left {}, right {}", ear(&s["ear"]["left"]), ear(&s["ear"]["right"]));
     }
-    let left = ["left", "right"].iter().filter_map(|k| s["estimate"][k].as_u64()).min();
+    // a charging bud's estimate is time to full, not listening time
+    let left = ["left", "right"]
+        .iter()
+        .filter(|k| s["battery"][**k]["charging"].as_bool() != Some(true))
+        .filter_map(|k| s["estimate"][k].as_u64())
+        .min();
     if let Some(m) = left {
         println!("  About {}h {:02}m of listening left", m / 60, m % 60);
     }

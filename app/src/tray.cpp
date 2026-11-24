@@ -94,8 +94,12 @@ void Tray::rebuild()
     QString left;
     if (live) {
         const auto est = s.value(QStringLiteral("estimate")).toMap();
+        const auto bat = s.value(QStringLiteral("battery")).toMap();
         int m = -1;
         for (const auto &k : {QStringLiteral("left"), QStringLiteral("right")}) {
+            // a charging bud's estimate is time to full
+            if (bat.value(k).toMap().value(QStringLiteral("charging")).toBool())
+                continue;
             const auto v = est.value(k);
             if (v.isValid() && !v.isNull() && (m < 0 || v.toInt() < m))
                 m = v.toInt();

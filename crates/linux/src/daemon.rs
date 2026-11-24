@@ -1534,7 +1534,13 @@ impl Daemon {
             }
         }
         // the first bud to run out ends listening, so the shorter estimate
-        let est = [g.state.estimate.left, g.state.estimate.right].into_iter().flatten().min();
+        // a charging bud's estimate is time to full
+        let b = &g.state.battery;
+        let est = [(g.state.estimate.left, b.left.charging), (g.state.estimate.right, b.right.charging)]
+            .into_iter()
+            .filter(|e| !e.1)
+            .filter_map(|e| e.0)
+            .min();
         msg.map(|m| match est {
             Some(min) if min > 0 => format!("{m}, {}", t("about %s left").replace("%s", &duration(min))),
             _ => m,
