@@ -22,6 +22,7 @@ pub struct Spatial {
     last_t: Instant,
     sent: f32,
     sent_at: Instant,
+    parked: bool,
 }
 
 async fn pactl(args: &[&str]) -> Option<String> {
@@ -79,7 +80,19 @@ impl Spatial {
         // streams are not moved by hand: WirePlumber would remember the target and they could go silent later.
         // Streams that follow the default move on their own.
         let now = Instant::now();
-        Some(Spatial { child, sink: sink.into(), base: None, last_t: now, sent: 0.0, sent_at: now })
+        Some(Spatial { child, sink: sink.into(), base: None, last_t: now, sent: 0.0, sent_at: now, parked: false })
+    }
+
+    /// Off without removing the sink: browsers pause when the sink they play on vanishes.
+    pub async fn park(&mut self, park: bool) {
+        if self.parked == park {
+            return;
+        }
+        self.parked = park;
+        let (from, to) = if park { (NODE, self.sink.as_str()) } else { (self.sink.as_str(), NODE) };
+        if pactl(&["get-default-sink"]).await.as_deref() == Some(from) {
+            pactl(&["set-default-sink", to]).await;
+        }
     }
 
     pub fn sink(&self) -> &str {

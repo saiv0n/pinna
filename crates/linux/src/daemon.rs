@@ -589,13 +589,19 @@ impl Daemon {
             let g = self.inner.lock().await;
             (g.state.prefs.spatial.clone(), g.state.name.clone())
         };
-        let sink = sink.filter(|_| mode != "off" && spatial::available());
+        let sink = sink.filter(|_| spatial::available());
         let mut sp = self.spatial.lock().await;
-        if sp.as_ref().map(|s| s.sink()) != sink.as_deref() {
+        if let Some(s) = sp.as_mut()
+            && Some(s.sink()) == sink.as_deref()
+        {
+            s.park(mode == "off").await;
+        } else {
             if let Some(s) = sp.take() {
                 s.stop().await;
             }
-            if let Some(k) = &sink {
+            if mode != "off"
+                && let Some(k) = &sink
+            {
                 *sp = Spatial::start(k, &name).await;
                 if sp.is_none() {
                     warn!("could not start spatial audio");
@@ -608,7 +614,8 @@ impl Daemon {
         }
         drop(sp);
         let mut g = self.inner.lock().await;
-        if g.state.ready && head != g.spatial_head {
+        // sync_head waits for ready itself, and runs again after the handshake
+        if head != g.spatial_head {
             g.spatial_head = head;
             drop(g);
             let _ = self.sync_head().await;
