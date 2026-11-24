@@ -8,6 +8,7 @@ edition = "2024"
 # let chains
 rust-version = "1.88"
 license = "GPL-3.0-or-later"
+authors = ["saivon"]
 
 [profile.release]
 lto = "thin"

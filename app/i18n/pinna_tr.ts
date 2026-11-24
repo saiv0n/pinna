@@ -48,6 +48,14 @@
         <translation>Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0). Pinna'nın Apple ile bir bağı yoktur.</translation>
     </message>
     <message>
+        <source>Made by</source>
+        <translation>Geliştiren</translation>
+    </message>
+    <message>
+        <source>Source code</source>
+        <translation>Kaynak kod</translation>
+    </message>
+    <message>
         <source>License</source>
         <translation>Lisans</translation>
     </message>

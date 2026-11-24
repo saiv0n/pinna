@@ -42,6 +42,17 @@ Page {
         title: "Pinna"
         footer: qsTr("Headphone renders from Jed Falcone's AirPods Pro model (CC BY 4.0). Pinna is not affiliated with Apple.")
         Setting { title: qsTr("Version"); Text { text: Backend.version; font: Theme.body; color: Theme.text2 } }
+        Setting { title: qsTr("Made by"); Text { text: "saivon"; font: Theme.body; color: Theme.text2 } }
+        Setting {
+            title: qsTr("Source code")
+            Text {
+                text: "github.com/saiv0n/pinna"
+                font: Theme.body
+                color: Theme.accent
+                TapHandler { onTapped: Qt.openUrlExternally("https://github.com/saiv0n/pinna") }
+                HoverHandler { cursorShape: Qt.PointingHandCursor }
+            }
+        }
         Setting { title: qsTr("License"); Text { text: "GPL-3.0"; font: Theme.body; color: Theme.text2 } }
     }
 }
