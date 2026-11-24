@@ -32,7 +32,8 @@ struct Inner {
     config: Config,
     tx: Option<mpsc::UnboundedSender<Vec<u8>>>,
     primary_left: bool,
-    warned: [u8; 2],
+    /// lowest warning step already shown: left, right, case
+    warned: [u8; 3],
     last_popup: Option<Instant>,
     history: History,
     /// whether the charged notification went out: left, right, case
@@ -135,7 +136,7 @@ impl Daemon {
                 config,
                 tx: None,
                 primary_left: true,
-                warned: [100, 100],
+                warned: [100, 100, 100],
                 last_popup: None,
                 history: History::default(),
                 full: [true; 3],
@@ -1456,6 +1457,22 @@ impl Daemon {
                     Some(name) => format!("{name} {lvl}%"),
                     None => format!("{side} AirPod {lvl}%"),
                 });
+            }
+        }
+        // the case only gets one warning per charge; it lasts days
+        let case = g.state.battery.case_;
+        if let Some(lvl) = case.level.filter(|_| !g.state.one_battery) {
+            if case.charging || lvl > g.state.prefs.low_battery {
+                g.warned[2] = 100;
+            } else if g.warned[2] == 100 {
+                g.warned[2] = lvl;
+                let m = format!("{} {lvl}%", t("Case"));
+                msg = Some(match msg {
+                    Some(buds) => format!("{buds}, {m}"),
+                    None => m,
+                });
+                // the time left is about the buds, not the case
+                return msg;
             }
         }
         // the first bud to run out ends listening, so the shorter estimate
