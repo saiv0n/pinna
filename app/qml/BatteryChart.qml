@@ -41,27 +41,53 @@ Item {
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke()
             }
             const rows = root.rows || []
-            for (const s of root.series) {
-                ctx.strokeStyle = s.color
-                ctx.lineWidth = 1.8
-                ctx.lineJoin = "round"
-                ctx.beginPath()
-                let open = false, last = 0, lone = null
-                const dot = () => { if (lone) { ctx.moveTo(lone[0] + 1.5, lone[1]); ctx.arc(lone[0], lone[1], 1.5, 0, 2 * Math.PI) } }
+            // split each series into runs; gaps longer than 20 minutes break the line
+            const runs = root.series.map(s => {
+                const out = []
+                let cur = null, last = 0
                 for (const r of rows) {
                     const v = r[s.i]
-                    // gaps longer than 20 minutes break the line
-                    if (v < 0 || (open && r[0] - last > 1200)) { dot(); lone = null; open = false; if (v < 0) continue }
+                    if (v < 0 || (cur && r[0] - last > 1200)) { cur = null; if (v < 0) continue }
                     if (r[0] < from) continue
-                    const x = (r[0] - from) / root.span * w
-                    const y = h - v / 100 * (h - 4)
-                    if (open) { ctx.lineTo(x, y); lone = null } else { ctx.moveTo(x, y); lone = [x, y] }
-                    open = true
+                    if (!cur) { cur = []; out.push(cur) }
+                    cur.push([(r[0] - from) / root.span * w, h - v / 100 * (h - 4)])
                     last = r[0]
                 }
-                dot()
-                ctx.stroke()
-            }
+                return out
+            })
+            // soft fill under every run first, so no line is hidden under another fill
+            root.series.forEach((s, k) => {
+                for (const run of runs[k]) {
+                    if (run.length < 2) continue
+                    const g = ctx.createLinearGradient(0, 0, 0, h)
+                    g.addColorStop(0, Qt.alpha(s.color, Theme.dark ? 0.22 : 0.16))
+                    g.addColorStop(1, Qt.alpha(s.color, 0))
+                    ctx.fillStyle = g
+                    ctx.beginPath()
+                    ctx.moveTo(run[0][0], h)
+                    for (const p of run) ctx.lineTo(p[0], p[1])
+                    ctx.lineTo(run[run.length - 1][0], h)
+                    ctx.closePath()
+                    ctx.fill()
+                }
+            })
+            root.series.forEach((s, k) => {
+                ctx.strokeStyle = s.color
+                ctx.fillStyle = s.color
+                ctx.lineWidth = 2
+                ctx.lineJoin = "round"
+                ctx.lineCap = "round"
+                for (const run of runs[k]) {
+                    ctx.beginPath()
+                    if (run.length === 1) {
+                        ctx.arc(run[0][0], run[0][1], 2, 0, 2 * Math.PI)
+                        ctx.fill()
+                        continue
+                    }
+                    run.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))
+                    ctx.stroke()
+                }
+            })
         }
         MouseArea {
             id: hover
@@ -85,6 +111,22 @@ Item {
             width: 1
             height: canvas.height
             color: Theme.text3
+        }
+        Repeater {
+            model: root.series
+            Rectangle {
+                required property var modelData
+                readonly property var v: canvas.picked ? canvas.picked[modelData.i] : -1
+                visible: v >= 0
+                width: 9
+                height: 9
+                radius: 4.5
+                color: modelData.color
+                border.width: 2
+                border.color: Theme.card
+                x: (canvas.picked ? (canvas.picked[0] - Date.now() / 1000 + root.span) / root.span * canvas.width : 0) - width / 2
+                y: canvas.height - v / 100 * (canvas.height - 4) - height / 2
+            }
         }
         Rectangle {
             visible: !!canvas.picked
