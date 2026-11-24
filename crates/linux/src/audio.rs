@@ -147,6 +147,14 @@ impl Target {
     }
 }
 
+pub async fn default_sink() -> Option<String> {
+    pactl(&["get-default-sink"]).await.map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+}
+
+pub async fn set_default_sink(name: &str) -> bool {
+    pactl(&["set-default-sink", name]).await.is_some()
+}
+
 const AUTOSWITCH: &str = "bluetooth.autoswitch-to-headset-profile";
 
 /// While on, WirePlumber does not switch the buds to HFP when recording starts.

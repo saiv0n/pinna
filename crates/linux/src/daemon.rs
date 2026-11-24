@@ -39,6 +39,8 @@ struct Inner {
     /// whether the charged notification went out: left, right, case
     full: [bool; 3],
     audio_set: bool,
+    /// where the sound went before the buds showed up, for "when worn"
+    other_sink: Option<String>,
     a2dp_fixed: bool,
     /// was connected when Bluetooth went off, reconnect when it is back
     reconnect: bool,
@@ -141,6 +143,7 @@ impl Daemon {
                 history: History::default(),
                 full: [true; 3],
                 audio_set: false,
+                other_sink: None,
                 a2dp_fixed: false,
                 reconnect: false,
                 dropped: None,
@@ -553,6 +556,20 @@ impl Daemon {
         // buds connected inside the open case should not take the sound until one is worn
         let worn = in_ear(&g.state.ear.left) + in_ear(&g.state.ear.right) > 0;
         let wait = g.state.prefs.output_on_ear && !worn;
+        if !a.available {
+            drop(g);
+            let d = audio::default_sink().await.filter(|d| !d.starts_with("bluez_output.") && d != spatial::NODE);
+            g = self.inner.lock().await;
+            if d.is_some() {
+                g.other_sink = d;
+            }
+        } else if wait && a.is_default && !g.audio_set && let Some(o) = g.other_sink.take() {
+            // WirePlumber brings back the buds by itself if they were the default last time
+            drop(g);
+            info!("buds not worn yet, sound back to {o}");
+            audio::set_default_sink(&o).await;
+            return Box::pin(self.refresh_audio()).await;
+        }
         let make_default = a.available && !a.is_default && !g.audio_set && g.state.prefs.auto_output && !wait;
         let codec = (a.available && !g.audio_set && !g.state.prefs.codec.is_empty()).then(|| g.state.prefs.codec.clone());
         if a.available && !wait {
@@ -1209,15 +1226,23 @@ impl Daemon {
         g.state.ready = true;
         let sticky = g.state.address.as_ref().and_then(|a| g.config.sticky_by.get(&a.to_uppercase())).cloned().unwrap_or_default();
         drop(g);
-        for (k, v) in sticky {
-            let s = match &v {
-                Value::Bool(b) => b.to_string(),
-                other => other.to_string(),
-            };
-            if let Err(e) = self.set_setting(&k, &s).await {
-                debug!("could not restore {k}: {e}");
+        // the buds send all their settings right after the handshake and drop anything set before that
+        let me = self.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(1500)).await;
+            for (k, v) in sticky {
+                if !me.inner.lock().await.state.ready {
+                    return;
+                }
+                let s = match &v {
+                    Value::Bool(b) => b.to_string(),
+                    other => other.to_string(),
+                };
+                if let Err(e) = me.set_setting(&k, &s).await {
+                    debug!("could not restore {k}: {e}");
+                }
             }
-        }
+        });
         self.send_stem_mask().await;
         let _ = self.sync_head().await;
         self.changed();
