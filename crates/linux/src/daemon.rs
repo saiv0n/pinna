@@ -48,6 +48,8 @@ struct Inner {
     spatial_head: bool,
     /// we turned conversation awareness off because only one bud is in
     ca_held: bool,
+    /// bumped on every ear packet so a pending pause can tell it is stale
+    ear_gen: u64,
 }
 
 /// After this long without an advert from our buds the case scan goes part time,
@@ -55,6 +57,8 @@ struct Inner {
 const SCAN_IDLE: Duration = Duration::from_secs(10 * 60);
 const SCAN_ON: Duration = Duration::from_secs(10);
 const SCAN_REST: Duration = Duration::from_secs(20);
+/// How long a bud must stay out before playback pauses.
+const EAR_SETTLE: Duration = Duration::from_millis(500);
 
 #[derive(Clone)]
 pub struct Daemon {
@@ -102,6 +106,7 @@ impl Daemon {
                 ca_paused: false,
                 spatial_head: false,
                 ca_held: false,
+                ear_gen: 0,
             })),
             events,
             media: Arc::new(Mutex::new(Media::new(bus))),
@@ -990,6 +995,8 @@ impl Daemon {
                 let after = in_ear(&l) + in_ear(&r);
                 let prefs = g.state.prefs.clone();
                 let all_in_case = l == Pod::Case && r == Pod::Case;
+                g.ear_gen += 1;
+                let ear_gen = g.ear_gen;
                 let ca_on = g.state.settings.get("conversationAwareness").and_then(|v| v.as_bool()) == Some(true);
                 // with one bud in, conversation awareness ducks everything; it comes back with both in
                 let ca = if prefs.ca_one_bud && after == 1 && ca_on && !g.ca_held {
@@ -1010,7 +1017,17 @@ impl Daemon {
                     if all_in_case {
                         m.forget();
                     } else if after < before && prefs.auto_pause {
-                        m.pause_all().await;
+                        // ear sensors flicker for a moment when you adjust a bud; only pause if it stays out
+                        let me = self.clone();
+                        tokio::spawn(async move {
+                            tokio::time::sleep(EAR_SETTLE).await;
+                            let g = me.inner.lock().await;
+                            let now = in_ear(&g.state.ear.left) + in_ear(&g.state.ear.right);
+                            if g.ear_gen == ear_gen && now < before {
+                                drop(g);
+                                me.media.lock().await.pause_all().await;
+                            }
+                        });
                     } else if after > before && prefs.auto_resume {
                         m.resume().await;
                     }
