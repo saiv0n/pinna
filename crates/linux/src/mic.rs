@@ -138,11 +138,44 @@ impl Mic {
 
 /// Whether some app is recording from the virtual source
 pub async fn in_use() -> bool {
-    let Some(s) = pactl(&["-f", "json", "list", "sources"]).await else { return false };
-    let Ok(Value::Array(list)) = serde_json::from_str::<Value>(&s) else { return false };
-    list.iter().any(|x| x["name"] == SOURCE && x["state"] == "RUNNING")
+    let (Some(src), Some(out)) = (pactl(&["-f", "json", "list", "sources"]).await, pactl(&["-f", "json", "list", "source-outputs"]).await) else {
+        return false;
+    };
+    let parse = |s: &str| serde_json::from_str::<Value>(s).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default();
+    recording(&parse(&src), &parse(&out))
 }
+
+/// A real recorder on our source. Level meters (pavucontrol, the Plasma volume applet) open
+/// 25 Hz peak streams that would otherwise wake the headset mic (LibrePods #888).
+fn recording(sources: &[Value], outputs: &[Value]) -> bool {
+    let Some(idx) = sources.iter().find(|x| x["name"] == SOURCE).and_then(|x| x["index"].as_u64()) else { return false };
+    outputs.iter().any(|o| {
+        let p = &o["properties"];
+        let peaks = p["resample.peaks"] == "true" || p["media.name"].as_str().is_some_and(|n| n.contains("Peak detect"));
+        o["source"].as_u64() == Some(idx) && !peaks && o["corked"] != true
+    })
+}
+
 
 pub async fn make_default() {
     pactl(&["set-default-source", SOURCE]).await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn level_meters_are_not_recorders() {
+        let sources = [json!({ "index": 7, "name": SOURCE }), json!({ "index": 3, "name": "alsa_input.pci" })];
+        let meter = json!({ "source": 7, "corked": false, "properties": { "media.name": "Peak detect", "resample.peaks": "true" } });
+        let discord = json!({ "source": 7, "corked": false, "properties": { "application.name": "WEBRTC VoiceEngine" } });
+        let other = json!({ "source": 3, "corked": false, "properties": {} });
+        assert!(!recording(&sources, &[meter.clone(), other.clone()]));
+        assert!(recording(&sources, &[meter, discord.clone()]));
+        let paused = json!({ "source": 7, "corked": true, "properties": {} });
+        assert!(!recording(&sources, &[paused]));
+        assert!(!recording(&sources[1..], &[discord]));
+    }
 }

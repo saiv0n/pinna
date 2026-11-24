@@ -573,8 +573,13 @@ impl Daemon {
     async fn mic_watchdog(self) {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            if !self.inner.lock().await.mic_on {
-                continue;
+            {
+                let g = self.inner.lock().await;
+                // with no bud worn the buds send nothing, restarting would only loop
+                let worn = g.state.ear.left == Pod::Ear || g.state.ear.right == Pod::Ear;
+                if !g.mic_on || !worn {
+                    continue;
+                }
             }
             let stale = {
                 let mut g = self.mic.lock().unwrap_or_else(|e| e.into_inner());
@@ -1067,6 +1072,8 @@ impl Daemon {
                 let after = in_ear(&l) + in_ear(&r);
                 let prefs = g.state.prefs.clone();
                 let all_in_case = l == Pod::Case && r == Pod::Case;
+                // only pause when the sound goes to the buds, not music on the speakers
+                let ours = !g.state.audio.available || g.state.audio.is_default;
                 g.ear_gen += 1;
                 let ear_gen = g.ear_gen;
                 let ca_on = g.state.settings.get("conversationAwareness").and_then(|v| v.as_bool()) == Some(true);
@@ -1088,7 +1095,7 @@ impl Daemon {
                     let mut m = self.media.lock().await;
                     if all_in_case {
                         m.forget();
-                    } else if after < before && prefs.auto_pause {
+                    } else if after < before && prefs.auto_pause && ours {
                         // ear sensors flicker for a moment when you adjust a bud; only pause if it stays out
                         let me = self.clone();
                         tokio::spawn(async move {
