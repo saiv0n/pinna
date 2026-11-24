@@ -22,6 +22,7 @@ const A2DP_SINK: bluer::Uuid = bluer::Uuid::from_u128(0x0000110b_0000_1000_8000_
 #[derive(Debug, Clone)]
 pub enum Event {
     State,
+    AdapterChanged,
     CaseOpened(Advert),
     Head([i16; 5]),
 }
@@ -83,9 +84,11 @@ impl Link for tokio::net::UnixDatagram {
     }
 }
 
-/// After this long without an advert from our buds the case scan goes part time,
-/// on for SCAN_ON and off for SCAN_REST, so the radio and bluetoothd can idle.
-const SCAN_IDLE: Duration = Duration::from_secs(10 * 60);
+/// After this long without seeing the lid open the case scan goes part time,
+/// on for SCAN_ON and off for SCAN_REST. Nonstop discovery keeps bluetoothd busy and can keep
+/// BLE mice and keyboards from reconnecting (MagicPodsCore #23); a closed case in a bag
+/// nearby would otherwise keep it going all day.
+const SCAN_IDLE: Duration = Duration::from_secs(2 * 60);
 const SCAN_ON: Duration = Duration::from_secs(10);
 const SCAN_REST: Duration = Duration::from_secs(20);
 /// How long a bud must stay out before playback pauses.
@@ -96,7 +99,8 @@ pub struct Daemon {
     inner: Arc<Mutex<Inner>>,
     pub events: broadcast::Sender<Event>,
     media: Arc<Mutex<Media>>,
-    adapter: Adapter,
+    /// swapped when the controller comes back under another name, like hci1 after a failed resume
+    adapter: Arc<std::sync::RwLock<Adapter>>,
     scan: watch::Sender<bool>,
     pairing: watch::Sender<bool>,
     /// wakes the main loop when BlueZ reports a change
@@ -149,7 +153,7 @@ impl Daemon {
             })),
             events,
             media: Arc::new(Mutex::new(Media::new(bus))),
-            adapter,
+            adapter: Arc::new(std::sync::RwLock::new(adapter)),
             scan,
             pairing,
             wake: Arc::new(Notify::new()),
@@ -159,8 +163,36 @@ impl Daemon {
         })
     }
 
+    fn adapter(&self) -> Adapter {
+        self.adapter.read().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
     pub fn adapter_name(&self) -> String {
-        self.adapter.name().to_string()
+        self.adapter().name().to_string()
+    }
+
+    /// Follows BlueZ when our controller disappears and another one shows up.
+    async fn adapter_watch(self) {
+        let Ok(session) = bluer::Session::new().await else { return };
+        let Ok(ev) = session.events().await else { return };
+        let mut ev = Box::pin(ev);
+        while let Some(e) = ev.next().await {
+            let bluer::SessionEvent::AdapterAdded(name) = e else { continue };
+            let current = self.adapter_name();
+            let names = session.adapter_names().await.unwrap_or_default();
+            if names.contains(&current) {
+                continue;
+            }
+            match session.adapter(&name) {
+                Ok(a) => {
+                    info!("adapter {current} is gone, using {name}");
+                    *self.adapter.write().unwrap_or_else(|e| e.into_inner()) = a;
+                    let _ = self.events.send(Event::AdapterChanged);
+                    self.wake.notify_one();
+                }
+                Err(e) => warn!("could not use adapter {name}: {e}"),
+            }
+        }
     }
 
     fn changed(&self) {
@@ -289,7 +321,7 @@ impl Daemon {
         };
         // change the BlueZ alias too so the audio output shows the new name
         if let Some(a) = addr.and_then(|a| a.parse::<Address>().ok())
-            && let Ok(d) = self.adapter.device(a)
+            && let Ok(d) = self.adapter().device(a)
         {
             let _ = d.set_alias(name.to_string()).await;
         }
@@ -304,7 +336,7 @@ impl Daemon {
     }
 
     async fn powered(&self) -> Result<()> {
-        if !self.adapter.is_powered().await.unwrap_or(false) {
+        if !self.adapter().is_powered().await.unwrap_or(false) {
             bail!("bluetooth-off: Bluetooth is off.");
         }
         Ok(())
@@ -323,7 +355,7 @@ impl Daemon {
     }
 
     pub async fn power_on(&self) -> Result<()> {
-        self.adapter.set_powered(true).await.map_err(Self::reason)?;
+        self.adapter().set_powered(true).await.map_err(Self::reason)?;
         self.wake.notify_one();
         Ok(())
     }
@@ -331,7 +363,7 @@ impl Daemon {
     pub async fn connect(&self) -> Result<()> {
         let a = self.target().await?;
         self.powered().await?;
-        let d = self.adapter.device(a)?;
+        let d = self.adapter().device(a)?;
         // with the case scan running BlueZ tries LE and fails; retry with the classic audio profile
         if let Err(e) = d.connect().await {
             debug!("connect failed ({e}), trying A2DP");
@@ -344,7 +376,7 @@ impl Daemon {
 
     pub async fn disconnect(&self) -> Result<()> {
         let a = self.target().await?;
-        self.adapter.device(a)?.disconnect().await.map_err(Self::reason)?;
+        self.adapter().device(a)?.disconnect().await.map_err(Self::reason)?;
         Ok(())
     }
 
@@ -376,17 +408,17 @@ impl Daemon {
             old
         };
         if let Some(o) = old.and_then(|o| o.parse::<Address>().ok()) {
-            let _ = self.adapter.device(o)?.disconnect().await;
+            let _ = self.adapter().device(o)?.disconnect().await;
         }
         self.refresh_devices().await;
         self.changed();
-        self.adapter.device(a)?.connect().await.map_err(Self::reason)?;
+        self.adapter().device(a)?.connect().await.map_err(Self::reason)?;
         Ok(())
     }
 
     pub async fn forget(&self, addr: &str) -> Result<()> {
         let a = self.known(addr, false).await?;
-        self.adapter.remove_device(a).await.map_err(Self::reason)?;
+        self.adapter().remove_device(a).await.map_err(Self::reason)?;
         {
             let mut g = self.inner.lock().await;
             if g.config.address.as_deref() == Some(addr) {
@@ -415,7 +447,7 @@ impl Daemon {
 
     pub async fn pair(&self, addr: &str) -> Result<()> {
         let a = self.known(addr, true).await?;
-        let d = self.adapter.device(a)?;
+        let d = self.adapter().device(a)?;
         if !d.is_paired().await.unwrap_or(false) {
             d.pair().await.map_err(|_| anyhow!("pair-failed: Pairing did not finish. With the lid open, hold the button on the back until the light flashes white."))?;
         }
@@ -490,7 +522,7 @@ impl Daemon {
         let fix_a2dp = target.as_ref().is_some_and(|t| t.lost_a2dp()) && !g.a2dp_fixed;
         if fix_a2dp {
             g.a2dp_fixed = true;
-            let d = addr.as_deref().and_then(|a| a.parse::<Address>().ok()).and_then(|a| self.adapter.device(a).ok());
+            let d = addr.as_deref().and_then(|a| a.parse::<Address>().ok()).and_then(|a| self.adapter().device(a).ok());
             drop(g);
             if let Some(d) = d {
                 info!("A2DP missing, asking for it again");
@@ -710,8 +742,8 @@ impl Daemon {
     /// Refreshes the list of paired Apple headphones.
     async fn refresh_devices(&self) -> Vec<Device> {
         let mut list = Vec::new();
-        for a in self.adapter.device_addresses().await.unwrap_or_default() {
-            let Ok(d) = self.adapter.device(a) else { continue };
+        for a in self.adapter().device_addresses().await.unwrap_or_default() {
+            let Ok(d) = self.adapter().device(a) else { continue };
             if !d.is_paired().await.unwrap_or(false) {
                 continue;
             }
@@ -817,6 +849,7 @@ impl Daemon {
     }
 
     pub async fn run(self) -> Result<()> {
+        tokio::spawn(self.clone().adapter_watch());
         tokio::spawn(self.clone().scan_loop());
         tokio::spawn(self.clone().pair_loop());
         tokio::spawn(self.clone().bluez_events());
@@ -827,7 +860,7 @@ impl Daemon {
             me.apply_call().await;
         });
         loop {
-            let powered = self.adapter.is_powered().await.unwrap_or(false);
+            let powered = self.adapter().is_powered().await.unwrap_or(false);
             {
                 let mut g = self.inner.lock().await;
                 if g.state.adapter != powered {
@@ -870,8 +903,8 @@ impl Daemon {
     }
 
     async fn watch_adapter(&self) -> Result<()> {
-        let mut events = self.adapter.events().await?;
-        for a in self.adapter.device_addresses().await? {
+        let mut events = self.adapter().events().await?;
+        for a in self.adapter().device_addresses().await? {
             self.watch_device(a);
         }
         while let Some(ev) = events.next().await {
@@ -923,7 +956,7 @@ impl Daemon {
         tokio::spawn(async move {
             // only Apple devices that are paired or have a fixed address; rotating addresses come and go
             // by the hundreds while scanning, and each watcher holds a system bus subscription
-            let ok = match me.adapter.device(a) {
+            let ok = match me.adapter().device(a) {
                 Ok(d) => {
                     matches!(d.modalias().await, Ok(Some(m)) if m.vendor == APPLE)
                         && (d.is_paired().await.unwrap_or(false)
@@ -931,7 +964,7 @@ impl Daemon {
                 }
                 Err(_) => false,
             };
-            if ok && let Ok(d) = me.adapter.device(a) && let Ok(mut ev) = d.events().await {
+            if ok && let Ok(d) = me.adapter().device(a) && let Ok(mut ev) = d.events().await {
                 while let Some(bluer::DeviceEvent::PropertyChanged(p)) = ev.next().await {
                     use bluer::DeviceProperty as P;
                     if matches!(p, P::Connected(_) | P::Paired(_) | P::Alias(_) | P::ServicesResolved(_)) {
@@ -1030,7 +1063,7 @@ impl Daemon {
                 Err(e) => {
                     debug!("L2CAP denemesi {i}: {e}");
                     tokio::time::sleep(Duration::from_millis(800)).await;
-                    if !self.adapter.device(addr)?.is_connected().await.unwrap_or(false) {
+                    if !self.adapter().device(addr)?.is_connected().await.unwrap_or(false) {
                         bail!("device closed the connection");
                     }
                 }
@@ -1063,7 +1096,7 @@ impl Daemon {
                 let g = me.inner.lock().await;
                 (g.state.audio.available, g.state.connected)
             };
-            if connected && !up && let Ok(d) = me.adapter.device(addr) {
+            if connected && !up && let Ok(d) = me.adapter().device(addr) {
                 info!("no audio device after connecting, asking for A2DP");
                 if let Err(e) = d.connect_profile(&A2DP_SINK).await {
                     debug!("A2DP request failed: {e}");
@@ -1457,10 +1490,10 @@ impl Daemon {
     }
 
     async fn pair_scan(&self, want: &mut watch::Receiver<bool>) -> Result<()> {
-        self.adapter
+        self.adapter()
             .set_discovery_filter(DiscoveryFilter { transport: DiscoveryTransport::BrEdr, ..Default::default() })
             .await?;
-        let mut stream = self.adapter.discover_devices().await?;
+        let mut stream = self.adapter().discover_devices().await?;
         loop {
             tokio::select! {
                 _ = want.changed() => if !*want.borrow() { return Ok(()) },
@@ -1469,7 +1502,7 @@ impl Daemon {
                         if ev.is_none() { return Ok(()) }
                         continue;
                     };
-                    let Ok(d) = self.adapter.device(a) else { continue };
+                    let Ok(d) = self.adapter().device(a) else { continue };
                     if d.is_paired().await.unwrap_or(true) {
                         continue;
                     }
@@ -1520,7 +1553,7 @@ impl Daemon {
 
     /// Returns true when it stopped to rest because our buds have been quiet for a while.
     async fn scan_once(&self, want: &mut watch::Receiver<bool>, seen: &mut Instant) -> Result<bool> {
-        self.adapter
+        self.adapter()
             .set_discovery_filter(DiscoveryFilter {
                 transport: DiscoveryTransport::Le,
                 duplicate_data: true,
@@ -1529,7 +1562,7 @@ impl Daemon {
                 ..Default::default()
             })
             .await?;
-        let mut stream = self.adapter.discover_devices_with_changes().await?;
+        let mut stream = self.adapter().discover_devices_with_changes().await?;
         debug!("case scan started");
         let mut lid_open = false;
         let started = Instant::now();
@@ -1568,7 +1601,9 @@ impl Daemon {
                             continue;
                         }
                     }
-                    *seen = Instant::now();
+                    if adv.lid_open {
+                        *seen = Instant::now();
+                    }
                     let opened = adv.lid_open && !lid_open;
                     lid_open = adv.lid_open;
                     {
@@ -1592,7 +1627,7 @@ impl Daemon {
 
     /// Whose advert this is: the address of the paired headphones it belongs to.
     async fn advert(&self, a: Address) -> Option<(String, Advert, i16)> {
-        let d = self.adapter.device(a).ok()?;
+        let d = self.adapter().device(a).ok()?;
         let rssi = d.rssi().await.ok()??;
         let data = d.manufacturer_data().await.ok()??;
         let raw = data.get(&(APPLE as u16))?;

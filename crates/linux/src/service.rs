@@ -118,6 +118,7 @@ pub async fn pump(conn: zbus::Connection, d: Daemon) -> zbus::Result<()> {
             },
         };
         match ev {
+            Event::AdapterChanged => {}
             Event::State => {
                 tokio::task::yield_now().await;
                 // do not lose another event that slipped in

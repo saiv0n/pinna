@@ -17,8 +17,12 @@ async fn main() -> anyhow::Result<()> {
     }
     let b = d.clone();
     tokio::spawn(async move {
-        if let Err(e) = pinna_linux::battery::run(b).await {
-            log::warn!("could not register with the system battery indicator: {e}");
+        loop {
+            match pinna_linux::battery::run(b.clone()).await {
+                Err(e) if e.to_string() == "adapter changed" => tokio::time::sleep(std::time::Duration::from_secs(2)).await,
+                Err(e) => break log::warn!("could not register with the system battery indicator: {e}"),
+                Ok(()) => break,
+            }
         }
     });
     log::info!("pinnad ready");

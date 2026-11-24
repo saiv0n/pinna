@@ -48,6 +48,8 @@ pub async fn run(d: Daemon) -> anyhow::Result<()> {
     loop {
         match rx.recv().await {
             Ok(Event::State) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+            // registered with the old controller; start over with the new one
+            Ok(Event::AdapterChanged) => anyhow::bail!("adapter changed"),
             Ok(_) => continue,
             Err(_) => return Ok(()),
         }
