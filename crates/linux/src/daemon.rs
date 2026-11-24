@@ -241,7 +241,10 @@ impl Daemon {
         if key == "callMic" {
             self.apply_call().await;
         }
-        if key == "spatial" {
+        if key == "codec" {
+            self.apply_codec(v).await;
+        }
+        if key == "spatial" || key == "codec" {
             self.refresh_audio().await;
         }
         if key.starts_with("stem.") && self.inner.lock().await.state.ready {
@@ -433,6 +436,19 @@ impl Daemon {
         Ok(())
     }
 
+    async fn apply_codec(&self, codec: &str) {
+        let addr = {
+            let g = self.inner.lock().await;
+            g.state.address.clone().filter(|_| g.state.connected)
+        };
+        if let Some(a) = addr
+            && let Some((t, _)) = audio::find(&a).await
+            && t.set_codec(codec).await
+        {
+            tokio::time::sleep(Duration::from_millis(800)).await;
+        }
+    }
+
     async fn refresh_audio(&self) {
         let (addr, connected) = {
             let g = self.inner.lock().await;
@@ -460,6 +476,7 @@ impl Daemon {
             g = self.inner.lock().await;
         }
         let make_default = a.available && !a.is_default && !g.audio_set && g.state.prefs.auto_output;
+        let codec = (a.available && !g.audio_set && !g.state.prefs.codec.is_empty()).then(|| g.state.prefs.codec.clone());
         if a.available {
             g.audio_set = true;
         }
@@ -468,6 +485,14 @@ impl Daemon {
         let changed = g.state.audio != a;
         g.state.audio = a;
         drop(g);
+        // a codec the user picked, once per connection; switching restarts the stream
+        if let (Some(c), Some(t)) = (codec, &target)
+            && t.set_codec(&c).await
+        {
+            info!("switched music to {c}");
+            tokio::time::sleep(Duration::from_millis(800)).await;
+            return Box::pin(self.refresh_audio()).await;
+        }
         if make_default && let Some(t) = target {
             t.make_default().await;
             return Box::pin(self.refresh_audio()).await;

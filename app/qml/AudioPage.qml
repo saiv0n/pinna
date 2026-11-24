@@ -161,6 +161,20 @@ Page {
 
     Section {
         Setting {
+            // only offered when PipeWire has more than one; Automatic never touches the profile
+            visible: (a.codecs || []).length > 1 || Store.pref("codec", "") !== ""
+            title: qsTr("Music codec")
+            subtitle: Store.pref("codec", "") === "" ? qsTr("PipeWire picks the best one, %1 on these headphones.").arg((a.codecs || [])[0] || "AAC")
+                                                    : qsTr("Switched to on every connection. Switching drops the sound for a moment.")
+            enabled: Store.live && !!a.available
+            Dropdown {
+                readonly property var codes: [""].concat(a.codecs || [])
+                model: [qsTr("Automatic")].concat(a.codecs || [])
+                currentIndex: Math.max(0, codes.indexOf(Store.pref("codec", "")))
+                onPicked: i => Backend.setPref("codec", codes[i])
+            }
+        }
+        Setting {
             title: qsTr("Switch output on connect")
             subtitle: qsTr("System audio is routed to the headphones when they connect.")
             enabled: Backend.daemon

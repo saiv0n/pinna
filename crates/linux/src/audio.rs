@@ -26,26 +26,45 @@ pub struct Target {
     pub card: String,
     addr: String,
     pub sink: Option<String>,
-    profiles: Vec<(String, u64)>,
+    active: String,
+    /// name, priority and codec of each available profile
+    profiles: Vec<(String, u64, String)>,
+}
+
+/// "High Fidelity Playback (A2DP Sink, codec AAC)" -> "AAC"
+fn codec_of(desc: &str) -> String {
+    desc.split("codec ").nth(1).map(|c| c.trim_end_matches(')').trim().to_string()).unwrap_or_default()
+}
+
+/// A2DP codecs, best first, each once; older PipeWire spells the profiles with underscores
+fn codecs(profiles: &[(String, u64, String)]) -> Vec<String> {
+    let mut v: Vec<&(String, u64, String)> = profiles.iter().filter(|p| kind(&p.0) == "a2dp" && !p.2.is_empty()).collect();
+    v.sort_by_key(|a| std::cmp::Reverse(a.1));
+    let mut out: Vec<String> = Vec::new();
+    for p in v {
+        if !out.contains(&p.2) {
+            out.push(p.2.clone());
+        }
+    }
+    out
 }
 
 pub async fn find(addr: &str) -> Option<(Target, Audio)> {
     let card = list("cards").await.into_iter().find(|c| ours(c, addr))?;
     let active = card["active_profile"].as_str().unwrap_or("off").to_string();
-    let profiles = card["profiles"]
+    let profiles: Vec<(String, u64, String)> = card["profiles"]
         .as_object()
         .map(|m| {
             m.iter()
                 .filter(|(_, p)| p["available"].as_bool().unwrap_or(true))
-                .map(|(k, p)| (k.clone(), p["priority"].as_u64().unwrap_or(0)))
+                .map(|(k, p)| (k.clone(), p["priority"].as_u64().unwrap_or(0), codec_of(p["description"].as_str().unwrap_or(""))))
                 .collect()
         })
         .unwrap_or_default();
     let sink = list("sinks").await.into_iter().find(|s| ours(s, addr));
     let default = pactl(&["get-default-sink"]).await.unwrap_or_default();
-    let desc = card["profiles"][&active]["description"].as_str().unwrap_or("");
-    let codec = desc.split("codec ").nth(1).map(|c| c.trim_end_matches(')').to_string()).unwrap_or_default();
-    let mut a = Audio { profile: kind(&active).into(), codec, ..Default::default() };
+    let codec = codec_of(card["profiles"][&active]["description"].as_str().unwrap_or(""));
+    let mut a = Audio { profile: kind(&active).into(), codec, codecs: codecs(&profiles), ..Default::default() };
     let mut name = None;
     if let Some(s) = &sink {
         let n = s["name"].as_str().unwrap_or("").to_string();
@@ -62,7 +81,7 @@ pub async fn find(addr: &str) -> Option<(Target, Audio)> {
         name = Some(n);
     }
     let card = card["name"].as_str().unwrap_or("").into();
-    Some((Target { card, addr: addr.into(), sink: name, profiles }, a))
+    Some((Target { card, addr: addr.into(), sink: name, active, profiles }, a))
 }
 
 fn kind(profile: &str) -> &'static str {
@@ -78,7 +97,7 @@ fn kind(profile: &str) -> &'static str {
 impl Target {
     pub async fn set_profile(&self, want: &str) -> bool {
         // several codecs per kind; the one PipeWire ranks highest is best (AAC, LC3)
-        let Some((p, _)) = self.profiles.iter().filter(|(p, _)| kind(p) == want).max_by_key(|(_, prio)| *prio) else {
+        let Some((p, _, _)) = self.profiles.iter().filter(|(p, _, _)| kind(p) == want).max_by_key(|(_, prio, _)| *prio) else {
             return false;
         };
         if pactl(&["set-card-profile", &self.card, p]).await.is_none() {
@@ -101,7 +120,20 @@ impl Target {
 
     /// After a WirePlumber restart the buds sometimes come back with HFP only.
     pub fn lost_a2dp(&self) -> bool {
-        !self.profiles.iter().any(|(p, _)| kind(p) == "a2dp")
+        !self.profiles.iter().any(|(p, _, _)| kind(p) == "a2dp")
+    }
+
+    /// Switches music to this codec, only while on A2DP so calls are left alone.
+    /// Returns false when nothing changed.
+    pub async fn set_codec(&self, codec: &str) -> bool {
+        if kind(&self.active) != "a2dp" {
+            return false;
+        }
+        let best = self.profiles.iter().filter(|p| kind(&p.0) == "a2dp" && (codec.is_empty() || p.2 == codec)).max_by_key(|p| p.1);
+        match best {
+            Some(p) if p.0 != self.active => pactl(&["set-card-profile", &self.card, &p.0]).await.is_some(),
+            _ => false,
+        }
     }
 
     pub async fn set_volume(&self, v: u8) -> bool {
@@ -133,5 +165,37 @@ pub async fn call_quality(on: bool) {
         && let Err(e) = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(&file, body))
     {
         log::warn!("could not write the wireplumber setting: {e}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn p(n: &str, prio: u64, desc: &str) -> (String, u64, String) {
+        (n.into(), prio, codec_of(desc))
+    }
+
+    #[test]
+    fn profile_names_old_and_new() {
+        assert_eq!(kind("a2dp-sink"), "a2dp");
+        assert_eq!(kind("a2dp_sink"), "a2dp");
+        assert_eq!(kind("a2dp-sink-sbc_xq"), "a2dp");
+        assert_eq!(kind("headset-head-unit"), "hfp");
+        assert_eq!(kind("headset_head_unit"), "hfp");
+        assert_eq!(kind("off"), "off");
+    }
+
+    #[test]
+    fn codec_list() {
+        let list = vec![
+            p("a2dp-sink", 18, "High Fidelity Playback (A2DP Sink, codec AAC)"),
+            p("a2dp-sink-sbc", 16, "High Fidelity Playback (A2DP Sink, codec SBC)"),
+            p("a2dp-sink-sbc_xq", 17, "High Fidelity Playback (A2DP Sink, codec SBC-XQ)"),
+            p("headset-head-unit", 1, "Headset Head Unit (HSP/HFP, codec LC3-24kHz)"),
+            p("off", 0, "Off"),
+        ];
+        assert_eq!(codecs(&list), vec!["AAC", "SBC-XQ", "SBC"]);
+        assert_eq!(codec_of("Off"), "");
     }
 }

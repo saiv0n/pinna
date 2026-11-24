@@ -114,6 +114,8 @@ pub struct Audio {
     pub codec: String,
     /// whether the Pinna virtual mic is feeding an app right now
     pub mic_active: bool,
+    /// music codecs PipeWire offers for these headphones, best first
+    pub codecs: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,6 +141,8 @@ pub struct Prefs {
     pub ca_one_bud: bool,
     /// off, fixed (virtual speakers) or head (head tracked)
     pub spatial: String,
+    /// music codec to switch to on connect; empty leaves PipeWire's choice alone
+    pub codec: String,
 }
 
 impl Default for Prefs {
@@ -158,6 +162,7 @@ impl Default for Prefs {
             stem: BTreeMap::new(),
             spatial: "off".into(),
             ca_one_bud: false,
+            codec: String::new(),
         }
     }
 }
@@ -181,6 +186,8 @@ impl Prefs {
             "callMic" => anyhow::bail!("invalid value: {v}"),
             "spatial" if ["off", "fixed", "head"].contains(&v) => self.spatial = v.into(),
             "spatial" => anyhow::bail!("invalid value: {v}"),
+            "codec" if v.len() <= 32 && v.chars().all(|c| c.is_ascii_alphanumeric() || "-_ .".contains(c)) => self.codec = v.into(),
+            "codec" => anyhow::bail!("invalid value: {v}"),
             k if k.starts_with("stem.") => {
                 let slot = &k[5..];
                 let ok_slot = matches!(slot.split_once('.'), Some(("double" | "triple" | "long", "left" | "right")));
@@ -356,6 +363,8 @@ mod tests {
         assert!(p.set("stem.double.left", "cmd: ").is_err());
         p.set("stem.double.left", "").unwrap();
         assert_eq!(p.stem_mask(), 0x08);
+        p.set("codec", "SBC-XQ").unwrap();
+        assert!(p.set("codec", "aac;reboot").is_err());
     }
 
     #[test]

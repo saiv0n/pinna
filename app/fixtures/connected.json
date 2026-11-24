@@ -67,7 +67,12 @@
   "muted": false,
   "isDefault": true,
   "codec": "AAC",
-  "micActive": false
+  "micActive": false,
+  "codecs": [
+   "AAC",
+   "SBC-XQ",
+   "SBC"
+  ]
  },
  "headTracking": false,
  "signal": null,

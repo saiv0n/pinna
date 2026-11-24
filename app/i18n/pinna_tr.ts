@@ -234,6 +234,22 @@
         <translation>Açık</translation>
     </message>
     <message>
+        <source>Music codec</source>
+        <translation>Müzik kodeği</translation>
+    </message>
+    <message>
+        <source>PipeWire picks the best one, %1 on these headphones.</source>
+        <translation>PipeWire en iyisini seçer, bu kulaklıkta %1.</translation>
+    </message>
+    <message>
+        <source>Switched to on every connection. Switching drops the sound for a moment.</source>
+        <translation>Her bağlantıda buna geçilir. Geçerken ses bir an kesilir.</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Otomatik</translation>
+    </message>
+    <message>
         <source>Switch output on connect</source>
         <translation>Bağlanınca bu kulaklığa geç</translation>
     </message>
