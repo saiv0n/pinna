@@ -752,6 +752,14 @@
         <translation>Çok yakın</translation>
     </message>
     <message>
+        <source>Getting closer</source>
+        <translation>Yaklaşıyorsun</translation>
+    </message>
+    <message>
+        <source>Getting farther</source>
+        <translation>Uzaklaşıyorsun</translation>
+    </message>
+    <message>
         <source>%1 dBm, %2</source>
         <translation>%1 dBm, %2</translation>
     </message>
@@ -766,6 +774,18 @@
     <message>
         <source>Turn On Scanning</source>
         <translation>Taramayı Aç</translation>
+    </message>
+    <message>
+        <source>Signal over the last two minutes</source>
+        <translation>Son iki dakikadaki sinyal</translation>
+    </message>
+    <message>
+        <source>2 min ago</source>
+        <translation>2 dk önce</translation>
+    </message>
+    <message>
+        <source>Now</source>
+        <translation>Şimdi</translation>
     </message>
     <message>
         <source>Headphones</source>

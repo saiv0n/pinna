@@ -70,12 +70,22 @@ Page {
         property real now: Date.now() / 1000
         Timer { interval: 2000; repeat: true; running: finder.visible; onTriggered: finder.now = Date.now() / 1000 }
         readonly property bool fresh: Store.s.signal !== null && Store.s.signal !== undefined && finder.now - (Store.s.signalAt || 0) < 30
-        readonly property int bars: !fresh ? 0 : Store.s.signal > -55 ? 4 : Store.s.signal > -67 ? 3 : Store.s.signal > -80 ? 2 : 1
+        readonly property var hist: (Store.s.signalHistory || []).filter(p => finder.now - p[0] < 120)
+        function mean(from, to) {
+            const v = hist.filter(p => finder.now - p[0] >= from && finder.now - p[0] < to).map(p => p[1])
+            return v.length ? v.reduce((a, b) => a + b, 0) / v.length : NaN
+        }
+        // a single advert jumps by 10 dB, a few seconds of them do not
+        readonly property real level: { const m = mean(-5, 8); return isNaN(m) ? (Store.s.signal || -100) : m }
+        readonly property real change: mean(-5, 8) - mean(8, 25)
+        readonly property int trend: !fresh || isNaN(change) ? 0 : change > 3 ? 1 : change < -3 ? -1 : 0
+        readonly property int bars: !fresh ? 0 : level > -55 ? 4 : level > -67 ? 3 : level > -80 ? 2 : 1
         Setting {
             title: !Store.pref("caseScan", true) ? qsTr("Scanning is off")
                 : !finder.fresh ? qsTr("Looking for a signal…")
                 : [qsTr("Very far"), qsTr("Far"), qsTr("Nearby"), qsTr("Very close")][finder.bars - 1]
-            subtitle: finder.fresh ? qsTr("%1 dBm, %2").arg(Store.s.signal).arg(Store.ago(Store.s.signalAt))
+            subtitle: finder.fresh ? (finder.trend > 0 ? qsTr("Getting closer") : finder.trend < 0 ? qsTr("Getting farther")
+                                      : qsTr("%1 dBm, %2").arg(Math.round(finder.level)).arg(Store.ago(Store.s.signalAt)))
                 : Store.pref("caseScan", true) ? qsTr("Open the case lid or take out an AirPod.") : ""
             Row {
                 visible: Store.pref("caseScan", true)
@@ -99,6 +109,48 @@ Page {
                 visible: !Store.pref("caseScan", true)
                 text: qsTr("Turn On Scanning")
                 onClicked: Backend.setPref("caseScan", true)
+            }
+        }
+        Block {
+            visible: finder.hist.length >= 3
+            Canvas {
+                id: spark
+                width: parent.width
+                height: 40
+                Accessible.role: Accessible.Graphic
+                Accessible.name: qsTr("Signal over the last two minutes")
+                property var pts: finder.hist
+                property real now: finder.now
+                onPtsChanged: requestPaint()
+                onNowChanged: requestPaint()
+                Connections { target: Theme; function onDarkChanged() { spark.requestPaint() } }
+                onPaint: {
+                    const c = getContext("2d")
+                    c.reset()
+                    const x = t => width - (now - t) / 120 * width
+                    const y = v => height - 3 - Math.max(0, Math.min(1, (v + 100) / 60)) * (height - 6)
+                    c.strokeStyle = Theme.line
+                    c.lineWidth = 1
+                    c.beginPath(); c.moveTo(0, height - 0.5); c.lineTo(width, height - 0.5); c.stroke()
+                    if (pts.length < 2)
+                        return
+                    c.strokeStyle = Theme.accent
+                    c.lineWidth = 2
+                    c.lineJoin = "round"
+                    c.lineCap = "round"
+                    c.beginPath()
+                    pts.forEach((p, i) => i ? c.lineTo(x(p[0]), y(p[1])) : c.moveTo(x(p[0]), y(p[1])))
+                    c.stroke()
+                    const l = pts[pts.length - 1]
+                    c.fillStyle = Theme.accent
+                    c.beginPath(); c.arc(x(l[0]), y(l[1]), 3, 0, 2 * Math.PI); c.fill()
+                }
+            }
+            Item {
+                width: parent.width
+                height: 14
+                Text { text: qsTr("2 min ago"); font: Theme.caption; color: Theme.text2 }
+                Text { anchors.right: parent.right; text: qsTr("Now"); font: Theme.caption; color: Theme.text2 }
             }
         }
     }

@@ -17,7 +17,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 - Pauses what is playing when you take a bud out and resumes when you put it back (any MPRIS player). Lowers the computer volume while you talk.
 - A small card pops up in a corner when you open the case or the buds connect.
 - Reports the headphone battery to the system through BlueZ, so UPower, GNOME, KDE and bars show it in their own battery indicators.
-- While the buds are disconnected, helps you find them nearby from the signal strength of their advert.
+- While the buds are disconnected, helps you find them nearby from the signal strength of their advert, with the last two minutes of signal so you can tell if you are getting closer. There is no map of where they were last seen: the only location source on most Linux desktops is GeoClue, which sends nearby Wi-Fi networks to an online service, and Pinna keeps everything on the computer. Making them play a sound is not possible either, Apple does that through Find My.
 - Can turn off conversation awareness while only one bud is in and turn it back on when both are.
 - Turkish and English. Follows the system language by default, and you can change it on the This Computer page.
 - Shows head tracking live: the angles follow as you turn and tilt your head.

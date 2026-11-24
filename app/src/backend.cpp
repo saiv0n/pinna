@@ -17,6 +17,8 @@
 #include <QDateTime>
 #include <QDir>
 #include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QProcess>
 #include "shortcuts.h"
 #include <QSettings>
@@ -57,8 +59,22 @@ Backend::Backend(QObject *parent) : QObject(parent)
     m_fake = qEnvironmentVariable("PINNA_STATE");
     if (!m_fake.isEmpty()) {
         QFile f(m_fake);
-        if (f.open(QIODevice::ReadOnly))
-            replaceState(QString::fromUtf8(f.readAll()));
+        if (f.open(QIODevice::ReadOnly)) {
+            // like the history, signal times of zero or below are seconds before now
+            QJsonObject o = QJsonDocument::fromJson(f.readAll()).object();
+            const qint64 now = QDateTime::currentSecsSinceEpoch();
+            if (o.contains(QStringLiteral("signalAt")) && o.value(QStringLiteral("signalAt")).toInteger() <= 0)
+                o[QStringLiteral("signalAt")] = now + o.value(QStringLiteral("signalAt")).toInteger();
+            QJsonArray h;
+            for (const auto &p : o.value(QStringLiteral("signalHistory")).toArray()) {
+                QJsonArray r = p.toArray();
+                if (r.at(0).toInteger() <= 0)
+                    r[0] = now + r.at(0).toInteger();
+                h.append(r);
+            }
+            o[QStringLiteral("signalHistory")] = h;
+            replaceState(QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact)));
+        }
         setDaemon(!m_state.isEmpty());
         return;
     }

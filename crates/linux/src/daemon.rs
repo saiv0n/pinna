@@ -1451,8 +1451,8 @@ impl Daemon {
                         g.state.battery.left = Cell { level: adv.left, charging: adv.left_charging };
                         g.state.battery.right = Cell { level: adv.right, charging: adv.right_charging };
                         g.state.battery.case_ = Cell { level: adv.case_, charging: adv.case_charging };
-                        g.state.signal = Some(rssi);
-                        g.state.signal_at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+                        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+                        g.state.note_signal(rssi, now);
                     }
                     self.changed();
                     if opened {

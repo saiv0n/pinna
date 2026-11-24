@@ -63,10 +63,25 @@ pub struct State {
     /// signal strength (dBm) and time of the last BLE advert while disconnected, for finding nearby buds
     pub signal: Option<i16>,
     pub signal_at: u64,
+    /// [time, dBm] pairs of the last two minutes, one every two seconds, for the finder's trend
+    pub signal_history: Vec<(u64, i16)>,
     /// custom EQ as the buds last reported it; None when the model has none
     pub eq: Option<crate::aap::Eq>,
     /// minutes until empty, or until full while charging; None until there is enough history
     pub estimate: Estimate,
+}
+
+impl State {
+    pub fn note_signal(&mut self, rssi: i16, now: u64) {
+        self.signal = Some(rssi);
+        self.signal_at = now;
+        self.signal_history.retain(|(t, _)| now.saturating_sub(*t) < 120);
+        match self.signal_history.last_mut() {
+            // several adverts in the same slot keep the strongest, the others are often reflections
+            Some((t, v)) if now.saturating_sub(*t) < 2 => *v = (*v).max(rssi),
+            _ => self.signal_history.push((now, rssi)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
@@ -350,5 +365,17 @@ mod tests {
         assert_eq!(decode(kind, 1), Some(Value::from(true)));
         assert_eq!(decode(kind, 2), Some(Value::from(false)));
         assert_eq!(encode(kind, "off"), Some(2));
+    }
+
+    #[test]
+    fn signal_history() {
+        let mut s = State::default();
+        s.note_signal(-80, 1000);
+        s.note_signal(-70, 1001);
+        s.note_signal(-75, 1002);
+        assert_eq!(s.signal_history, vec![(1000, -70), (1002, -75)]);
+        s.note_signal(-60, 1200);
+        assert_eq!(s.signal_history, vec![(1200, -60)]);
+        assert_eq!((s.signal, s.signal_at), (Some(-60), 1200));
     }
 }
