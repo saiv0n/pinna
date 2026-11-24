@@ -1631,6 +1631,10 @@
         <translation>Bilinmeyen mod.</translation>
     </message>
     <message>
+        <source>These headphones have no listening modes.</source>
+        <translation>Bu kulaklığın dinleme modları yok.</translation>
+    </message>
+    <message>
         <source>No mode to switch to.</source>
         <translation>Geçilecek mod yok.</translation>
     </message>

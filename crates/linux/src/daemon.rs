@@ -219,6 +219,13 @@ impl Daemon {
 
     pub async fn set_mode(&self, m: &str) -> Result<()> {
         let mode = Mode::parse(m).ok_or_else(|| anyhow!("invalid: Unknown mode."))?;
+        {
+            let g = self.inner.lock().await;
+            // models without listening modes never report one once they are set up
+            if g.state.ready && g.state.mode.is_none() {
+                bail!("invalid: These headphones have no listening modes.");
+            }
+        }
         self.send(aap::control(aap::cmd::LISTENING_MODE, [mode.byte(), 0, 0, 0])).await?;
         // the ack from the buds updates it anyway, the UI should not wait
         self.inner.lock().await.state.mode = Some(mode);

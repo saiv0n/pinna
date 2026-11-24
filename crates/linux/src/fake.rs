@@ -1,7 +1,7 @@
 // A pretend pair of AirPods for working on pinnad and the app without a headset.
 // It answers the handshake with packets shaped like real AirPods Pro 2 (USB-C) captures,
 // echoes settings back like the buds do, and drains the battery so estimates have data.
-// Start it with PINNA_FAKE=1, or PINNA_FAKE=pro3, max or airpods4 for the controls and
+// Start it with PINNA_FAKE=1, or PINNA_FAKE=pro3, max, airpods4 or airpods2 for the controls and
 // battery layout those models report (from LibrePods and CAPod captures); use PINNA_BUS and XDG_CONFIG_HOME / XDG_STATE_HOME to keep
 // it away from the real service and its files.
 
@@ -73,6 +73,17 @@ const PROFILES: &[(&str, Profile)] = &[
             (0x0D, [2, 0, 0, 0]), (0x17, [0, 0, 0, 0]), (0x18, [0, 0, 0, 0]), (0x1B, [2, 0, 0, 0]), (0x1F, [80, 80, 0, 0]),
             (0x24, [0, 3, 0, 0]), (0x26, [2, 0, 0, 0]), (0x28, [1, 0, 0, 0]), (0x34, [2, 0, 0, 0]),
         ],
+    }),
+    // no listening modes, no adaptive, no head sensor
+    ("airpods2", Profile {
+        name: "Fake AirPods",
+        model_name: "AirPods (2nd generation)",
+        product: 0x200f,
+        part: "A2032",
+        firmware: "6F8",
+        single: false,
+        eq: false,
+        controls: &[(0x17, [0, 0, 0, 0]), (0x18, [0, 0, 0, 0])],
     }),
     // AirPods 4 (ANC): no volume swipe, no case speaker setting, no noise cancellation with one bud
     ("airpods4", Profile {

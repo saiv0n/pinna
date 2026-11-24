@@ -1,0 +1,276 @@
+{
+ "adapter": true,
+ "address": "00:11:22:33:44:55",
+ "connected": true,
+ "ready": true,
+ "name": "AirPods",
+ "model": "A2032",
+ "modelName": "AirPods (2nd generation)",
+ "modelId": 8207,
+ "firmware": "6F8",
+ "serial": "TEST",
+ "serialLeft": "TEST",
+ "serialRight": "TEST",
+ "battery": {
+  "left": {
+   "level": 82,
+   "charging": false
+  },
+  "right": {
+   "level": 79,
+   "charging": false
+  },
+  "case": {
+   "level": 64,
+   "charging": true
+  }
+ },
+ "ear": {
+  "left": "ear",
+  "right": "ear"
+ },
+ "mode": null,
+ "speaking": false,
+ "settings": {
+  "pressSpeed": 0,
+  "holdDuration": 0
+ },
+ "prefs": {
+  "autoPause": true,
+  "autoResume": true,
+  "duckOnSpeech": true,
+  "duckLevel": 25,
+  "lowBatteryNotify": true,
+  "popup": true,
+  "caseScan": true,
+  "lowBattery": 20,
+  "chargedNotify": true,
+  "autoOutput": true,
+  "callMic": "airpods",
+  "stem": {},
+  "caOneBud": false,
+  "spatial": "off"
+ },
+ "hasKeys": true,
+ "devices": [
+  {
+   "address": "00:11:22:33:44:55",
+   "name": "AirPods",
+   "modelName": "AirPods (2nd generation)",
+   "modelId": 8207,
+   "connected": true
+  }
+ ],
+ "nearby": [],
+ "discovering": false,
+ "audio": {
+  "available": true,
+  "profile": "a2dp",
+  "volume": 60,
+  "muted": false,
+  "isDefault": true,
+  "codec": "AAC",
+  "micActive": false,
+  "codecs": [
+   "AAC",
+   "SBC-XQ",
+   "SBC"
+  ]
+ },
+ "headTracking": false,
+ "signal": null,
+ "signalAt": 0,
+ "eq": null,
+ "estimate": {
+  "left": 200,
+  "right": 185
+ },
+ "history": [
+  [
+   -9000,
+   100,
+   99,
+   64
+  ],
+  [
+   -8700,
+   99,
+   98,
+   64
+  ],
+  [
+   -8400,
+   98,
+   97,
+   64
+  ],
+  [
+   -8100,
+   98,
+   97,
+   64
+  ],
+  [
+   -7800,
+   97,
+   96,
+   -1
+  ],
+  [
+   -7500,
+   96,
+   95,
+   -1
+  ],
+  [
+   -7200,
+   96,
+   94,
+   -1
+  ],
+  [
+   -6900,
+   95,
+   93,
+   -1
+  ],
+  [
+   -6600,
+   94,
+   93,
+   -1
+  ],
+  [
+   -6300,
+   93,
+   92,
+   -1
+  ],
+  [
+   -6000,
+   92,
+   91,
+   -1
+  ],
+  [
+   -5700,
+   92,
+   90,
+   -1
+  ],
+  [
+   -5400,
+   91,
+   89,
+   -1
+  ],
+  [
+   -5100,
+   90,
+   89,
+   -1
+  ],
+  [
+   -4800,
+   90,
+   88,
+   -1
+  ],
+  [
+   -4500,
+   89,
+   87,
+   -1
+  ],
+  [
+   -4200,
+   88,
+   86,
+   -1
+  ],
+  [
+   -3900,
+   87,
+   85,
+   -1
+  ],
+  [
+   -3600,
+   86,
+   85,
+   -1
+  ],
+  [
+   -3300,
+   86,
+   84,
+   -1
+  ],
+  [
+   -3000,
+   85,
+   83,
+   -1
+  ],
+  [
+   -2700,
+   84,
+   82,
+   -1
+  ],
+  [
+   -2400,
+   84,
+   81,
+   -1
+  ],
+  [
+   -2100,
+   83,
+   81,
+   -1
+  ],
+  [
+   -1800,
+   82,
+   80,
+   -1
+  ],
+  [
+   -1500,
+   82,
+   79,
+   64
+  ],
+  [
+   -1200,
+   82,
+   79,
+   64
+  ],
+  [
+   -900,
+   82,
+   79,
+   64
+  ],
+  [
+   -600,
+   82,
+   79,
+   64
+  ],
+  [
+   -300,
+   82,
+   79,
+   64
+  ],
+  [
+   0,
+   82,
+   79,
+   64
+  ]
+ ]
+}

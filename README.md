@@ -120,9 +120,9 @@ PINNA_FAKE=1 PINNA_BUS=dev.pinna.Test XDG_CONFIG_HOME=/tmp/pinna-test XDG_STATE_
 PINNA_BUS=dev.pinna.Test app/build/pinna
 ```
 
-`PINNA_FAKE=pro3`, `max` or `airpods4` instead of `1` pretends to be that model, with the controls and battery layout it reports, so you can see which settings the app hides for it. The packets come from captures posted in LibrePods and CAPod; the parser tests in `crates/core/src/aap.rs` use the same ones with names and serials removed.
+`PINNA_FAKE=pro3`, `max`, `airpods4` or `airpods2` instead of `1` pretends to be that model, with the controls and battery layout it reports, so you can see which settings the app hides for it. The packets come from captures posted in LibrePods and CAPod; the parser tests in `crates/core/src/aap.rs` use the same ones with names and serials removed.
 
-For screenshots without any daemon, `PINNA_STATE=app/fixtures/connected.json` (or `max.json`, `finding.json`) loads a fixed state, and `PINNA_SHOT=file.png` saves the window and quits.
+For screenshots without any daemon, `PINNA_STATE=app/fixtures/connected.json` (or `max.json`, `airpods2.json`, `finding.json`) loads a fixed state, and `PINNA_SHOT=file.png` saves the window and quits.
 
 The headphone images are rendered in Blender. The model is Jed Falcone's [AirPods Pro](https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model is not in the repo; download it from Sketchfab and rebuild the images with:
 
