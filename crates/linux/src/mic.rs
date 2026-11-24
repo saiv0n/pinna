@@ -40,6 +40,8 @@ impl Drop for Decoder {
 
 pub struct Mic {
     module: String,
+    /// shown name, like "saivon's AirPods Pro (Pinna)"
+    pub desc: String,
     dec: Decoder,
     fifo: Option<std::fs::File>,
     path: PathBuf,
@@ -58,20 +60,29 @@ async fn pactl(args: &[&str]) -> Option<String> {
     out.status.success().then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
-/// Module ids of our virtual sources that are loaded right now.
-async fn loaded() -> Vec<String> {
+/// Our virtual sources loaded right now: module id and shown name.
+async fn loaded() -> Vec<(String, String)> {
     // the JSON output has no module ids, so the short list is used
     let Some(s) = pactl(&["list", "modules", "short"]).await else { return vec![] };
     let tag = format!("source_name={SOURCE} ");
     s.lines()
         .filter(|l| l.contains("module-pipe-source") && l.contains(&tag))
-        .filter_map(|l| l.split_whitespace().next().map(str::to_string))
+        .filter_map(|l| {
+            let id = l.split_whitespace().next()?.to_string();
+            let desc = l.split("device.description=\"").nth(1).and_then(|r| r.split('"').next()).unwrap_or("").to_string();
+            Some((id, desc))
+        })
         .collect()
+}
+
+pub fn description(name: &str) -> String {
+    // the pactl argument parser breaks on quotes and apostrophes
+    format!("{name} (Pinna)").chars().filter(|c| c.is_alphanumeric() || " ()-.".contains(*c)).collect()
 }
 
 /// Removes virtual sources left from a previous run.
 pub async fn cleanup() {
-    for id in loaded().await {
+    for (id, _) in loaded().await {
         pactl(&["unload-module", &id]).await;
     }
 }
@@ -96,14 +107,13 @@ impl Mic {
         let path = fifo_path();
         std::fs::create_dir_all(path.parent()?).ok()?;
         let old = loaded().await;
-        if let [id] = old.as_slice()
+        if let [(id, desc)] = old.as_slice()
             && path.exists()
         {
-            return Some(Mic { module: id.clone(), dec, fifo: None, path, pcm: vec![0.0; 960], bytes: Vec::new(), last: None });
+            return Some(Mic { module: id.clone(), desc: desc.clone(), dec, fifo: None, path, pcm: vec![0.0; 960], bytes: Vec::new(), last: None });
         }
         cleanup().await;
-        // the pactl argument parser breaks on quotes and apostrophes
-        let desc: String = format!("{name} (Pinna)").chars().filter(|c| c.is_alphanumeric() || " ()-.".contains(*c)).collect();
+        let desc = description(name);
         let module = pactl(&[
             "load-module",
             "module-pipe-source",
@@ -115,7 +125,7 @@ impl Mic {
             &format!("source_properties='device.description=\"{desc}\" device.icon_name=audio-headset-bluetooth'"),
         ])
         .await?;
-        Some(Mic { module, dec, fifo: None, path, pcm: vec![0.0; 960], bytes: Vec::new(), last: None })
+        Some(Mic { module, desc, dec, fifo: None, path, pcm: vec![0.0; 960], bytes: Vec::new(), last: None })
     }
 
     pub async fn close(self) {

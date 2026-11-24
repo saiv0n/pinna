@@ -466,6 +466,9 @@ impl Daemon {
     }
 
     async fn apply_spatial(&self, sink: Option<String>) {
+        if std::env::var_os("PINNA_FAKE").is_some() {
+            return;
+        }
         let (mode, name) = {
             let g = self.inner.lock().await;
             (g.state.prefs.spatial.clone(), g.state.name.clone())
@@ -502,6 +505,10 @@ impl Daemon {
 
     /// Applies the call setting: WirePlumber HFP switching and the Pinna virtual mic.
     async fn apply_call(&self) {
+        // the fake buds share PipeWire with the real service; leave its mic and settings alone
+        if std::env::var_os("PINNA_FAKE").is_some() {
+            return;
+        }
         let (mode, connected, name) = {
             let g = self.inner.lock().await;
             // the paired name while the buds are away, the source outlives the connection
@@ -528,6 +535,17 @@ impl Daemon {
                 None => mic::cleanup().await,
             }
             self.mic_activity().await;
+        }
+        // a source opened while the buds were away carries a generic name; rename it once
+        // they connect, but only while nothing records so no app sees it vanish
+        let stale = connected
+            && self.mic.lock().unwrap_or_else(|e| e.into_inner()).as_ref().is_some_and(|m| m.desc != mic::description(&name));
+        if stale && !mic::in_use().await {
+            let m = self.mic.lock().unwrap_or_else(|e| e.into_inner()).take();
+            if let Some(m) = m {
+                m.close().await;
+            }
+            *self.mic.lock().unwrap_or_else(|e| e.into_inner()) = mic::Mic::open(&name).await;
         }
         if want && self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
             if connected {
