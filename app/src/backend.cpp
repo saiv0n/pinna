@@ -73,6 +73,17 @@ Backend::Backend(QObject *parent) : QObject(parent)
                 h.append(r);
             }
             o[QStringLiteral("signalHistory")] = h;
+            QJsonArray devs;
+            for (const auto &v : o.value(QStringLiteral("devices")).toArray()) {
+                QJsonObject d = v.toObject();
+                QJsonObject last = d.value(QStringLiteral("last")).toObject();
+                if (!last.isEmpty() && last.value(QStringLiteral("at")).toInteger() <= 0) {
+                    last[QStringLiteral("at")] = now + last.value(QStringLiteral("at")).toInteger();
+                    d[QStringLiteral("last")] = last;
+                }
+                devs.append(d);
+            }
+            o[QStringLiteral("devices")] = devs;
             replaceState(QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact)));
         }
         setDaemon(!m_state.isEmpty());

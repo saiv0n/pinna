@@ -75,7 +75,27 @@ void Tray::rebuild()
                 : m % 60 == 0 ? tr("%1 h left").arg(m / 60)
                 : tr("%1 h %2 min left").arg(m / 60).arg(m % 60);
     }
-    m_icon->setToolTip(name + QStringLiteral("\n") + status + (left.isEmpty() ? QString() : QStringLiteral("\n") + left));
+    // other paired headphones heard nearby, so two pairs are never mixed up (LibrePods #670)
+    const QString selected = s.value(QStringLiteral("address")).toString();
+    const auto devices = s.value(QStringLiteral("devices")).toList();
+    QStringList others;
+    for (const auto &v : devices) {
+        const auto d = v.toMap();
+        const auto last = d.value(QStringLiteral("last")).toMap();
+        if (d.value(QStringLiteral("address")).toString().compare(selected, Qt::CaseInsensitive) == 0 || last.isEmpty())
+            continue;
+        QStringList p;
+        for (const auto &[k, label] : {std::pair{QStringLiteral("left"), tr("L")}, {QStringLiteral("right"), tr("R")}, {QStringLiteral("case"), tr("Case")}}) {
+            if (!last.value(k).isNull())
+                p << QStringLiteral("%1 %2%").arg(label).arg(last.value(k).toInt());
+        }
+        if (!p.isEmpty())
+            others << d.value(QStringLiteral("name")).toString() + QStringLiteral(": ") + p.join(QStringLiteral("  "));
+    }
+    QString tip = name + QStringLiteral("\n") + status + (left.isEmpty() ? QString() : QStringLiteral("\n") + left);
+    if (!others.isEmpty())
+        tip += QStringLiteral("\n\n") + others.join(QStringLiteral("\n"));
+    m_icon->setToolTip(tip);
 
     m_menu->clear();
     m_menu->addAction(name)->setEnabled(false);
@@ -111,6 +131,19 @@ void Tray::rebuild()
         connect(m_menu->addAction(tr("Connect")), &QAction::triggered, b, &Backend::connectDevice);
     } else {
         connect(m_menu->addAction(tr("Start Service")), &QAction::triggered, b, &Backend::startDaemon);
+    }
+    if (b->daemon() && devices.size() > 1) {
+        auto *sub = m_menu->addMenu(tr("Headphones"));
+        auto *group = new QActionGroup(sub);
+        for (const auto &v : devices) {
+            const auto d = v.toMap();
+            const QString addr = d.value(QStringLiteral("address")).toString();
+            auto *a = sub->addAction(d.value(QStringLiteral("name")).toString());
+            a->setCheckable(true);
+            a->setChecked(addr.compare(selected, Qt::CaseInsensitive) == 0);
+            a->setActionGroup(group);
+            connect(a, &QAction::triggered, b, [b, addr] { b->select(addr); });
+        }
     }
     connect(m_menu->addAction(tr("Open Settings")), &QAction::triggered, this, [this] {
         if (open)

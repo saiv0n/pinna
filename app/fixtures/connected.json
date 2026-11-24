@@ -56,6 +56,19 @@
    "modelName": "AirPods Pro 2 (USB-C)",
    "modelId": 8228,
    "connected": true
+  },
+  {
+   "address": "66:77:88:99:AA:BB",
+   "name": "AirPods 4",
+   "modelName": "AirPods 4 (ANC)",
+   "modelId": 8251,
+   "connected": false,
+   "last": {
+    "left": 64,
+    "right": 66,
+    "case": null,
+    "at": -300
+   }
   }
  ],
  "nearby": [],

@@ -860,6 +860,14 @@
         <translation>bağlı</translation>
     </message>
     <message>
+        <source>L</source>
+        <translation>Sol</translation>
+    </message>
+    <message>
+        <source>R</source>
+        <translation>Sağ</translation>
+    </message>
+    <message>
         <source>Switch to These</source>
         <translation>Bu Kulaklığa Geç</translation>
     </message>
@@ -1456,6 +1464,18 @@
         <translation>%1 sa %2 dk kaldı</translation>
     </message>
     <message>
+        <source>L</source>
+        <translation>Sol</translation>
+    </message>
+    <message>
+        <source>R</source>
+        <translation>Sağ</translation>
+    </message>
+    <message>
+        <source>Case</source>
+        <translation>Kutu</translation>
+    </message>
+    <message>
         <source>Off</source>
         <translation>Kapalı</translation>
     </message>
@@ -1486,6 +1506,10 @@
     <message>
         <source>Start Service</source>
         <translation>Servisi Başlat</translation>
+    </message>
+    <message>
+        <source>Headphones</source>
+        <translation>Kulaklık</translation>
     </message>
     <message>
         <source>Open Settings</source>

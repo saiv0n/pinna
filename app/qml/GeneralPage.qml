@@ -206,7 +206,11 @@ Page {
                 required property var modelData
                 readonly property bool current: modelData.address === Store.s.address
                 title: modelData.name + (current ? "  ·  " + qsTr("selected") : "")
+                readonly property var last: !current && modelData.last ? modelData.last : null
                 subtitle: (modelData.modelName || "") + (modelData.connected ? "  ·  " + qsTr("connected") : "")
+                          + (last ? "  ·  " + [[qsTr("L"), last.left], [qsTr("R"), last.right], [qsTr("Case"), last.case]]
+                                        .filter(p => p[1] !== null && p[1] !== undefined).map(p => p[0] + " " + p[1] + "%").join(" ")
+                                    + ", " + Store.ago(last.at) : "")
                 onMenu: devMenu.popup()
                 Button {
                     visible: !dev.current || !dev.modelData.connected

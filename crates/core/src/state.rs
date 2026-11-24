@@ -98,6 +98,18 @@ pub struct Device {
     pub model_name: String,
     pub model_id: u16,
     pub connected: bool,
+    /// battery from the last advert of a device that is not the selected one
+    pub last: Option<Last>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Last {
+    pub left: Option<u8>,
+    pub right: Option<u8>,
+    #[serde(rename = "case")]
+    pub case_: Option<u8>,
+    pub at: u64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -289,11 +301,22 @@ pub fn encode(kind: Kind, v: &str) -> Option<u8> {
 #[serde(default)]
 pub struct Config {
     pub address: Option<String>,
+    /// keys of a single device from older versions, moved into `keys` on load
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub irk: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub enc_key: Option<String>,
+    /// BLE keys per device address, so adverts of one pair are never read as another's
+    pub keys: BTreeMap<String, Keys>,
     pub prefs: Prefs,
     /// settings rewritten to the buds on every connection
     pub sticky: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct Keys {
+    pub irk: String,
+    pub enc: String,
 }
 
 /// The BLE keys live in this file too, so only the user may read it.
@@ -318,10 +341,29 @@ fn config_path() -> PathBuf {
 
 impl Config {
     pub fn load() -> Config {
-        std::fs::read_to_string(config_path())
+        let mut c: Config = std::fs::read_to_string(config_path())
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        c.migrate();
+        c
+    }
+
+    fn migrate(&mut self) {
+        if let (Some(a), Some(irk), Some(enc)) = (&self.address, &self.irk, &self.enc_key) {
+            self.keys.entry(a.to_uppercase()).or_insert(Keys { irk: irk.clone(), enc: enc.clone() });
+            self.irk = None;
+            self.enc_key = None;
+        }
+    }
+
+    pub fn keys_for(&self, addr: &str) -> Option<([u8; 16], [u8; 16])> {
+        let k = self.keys.get(&addr.to_uppercase())?;
+        Some((Self::key16(&Some(k.irk.clone()))?, Self::key16(&Some(k.enc.clone()))?))
+    }
+
+    pub fn set_keys(&mut self, addr: &str, irk: &[u8], enc: &[u8]) {
+        self.keys.insert(addr.to_uppercase(), Keys { irk: Self::hex(irk), enc: Self::hex(enc) });
     }
 
     pub fn save(&self) {
@@ -386,5 +428,22 @@ mod tests {
         s.note_signal(-60, 1200);
         assert_eq!(s.signal_history, vec![(1200, -60)]);
         assert_eq!((s.signal, s.signal_at), (Some(-60), 1200));
+    }
+
+    #[test]
+    fn keys_move_per_device() {
+        let mut c: Config = serde_json::from_str(
+            r#"{"address":"aa:bb:cc:dd:ee:ff","irk":"00112233445566778899aabbccddeeff","enc_key":"ffeeddccbbaa99887766554433221100"}"#,
+        )
+        .unwrap();
+        c.migrate();
+        assert!(c.irk.is_none() && c.enc_key.is_none());
+        let (irk, enc) = c.keys_for("AA:BB:CC:DD:EE:FF").unwrap();
+        assert_eq!(irk[0], 0x00);
+        assert_eq!(enc[0], 0xff);
+        assert!(c.keys_for("11:22:33:44:55:66").is_none());
+        c.set_keys("11:22:33:44:55:66", &[1; 16], &[2; 16]);
+        assert_eq!(c.keys_for("11:22:33:44:55:66"), Some(([1; 16], [2; 16])));
+        assert!(!serde_json::to_string(&c).unwrap().contains("enc_key"));
     }
 }

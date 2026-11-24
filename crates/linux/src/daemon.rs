@@ -12,6 +12,7 @@ use futures::StreamExt;
 use log::{debug, info, warn};
 use serde_json::Value;
 use std::sync::Arc;
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, Notify, broadcast, mpsc, watch};
 
@@ -50,6 +51,8 @@ struct Inner {
     ca_held: bool,
     /// bumped on every ear packet so a pending pause can tell it is stale
     ear_gen: u64,
+    /// last advert battery of paired headphones other than the selected one
+    others: HashMap<String, state::Last>,
 }
 
 /// What a session needs from its channel: whole packets in, whole packets out.
@@ -107,7 +110,7 @@ impl Daemon {
         // do not try to write settings from old versions that no longer exist
         config.sticky.retain(|k, _| state::STICKY.contains(&k.as_str()));
         let mut st = State { prefs: config.prefs.clone(), ..Default::default() };
-        st.has_keys = Config::key16(&config.enc_key).is_some();
+        st.has_keys = config.address.as_deref().is_some_and(|a| config.keys_for(a).is_some());
         st.address = config.address.clone();
         let (events, _) = broadcast::channel(64);
         let (scan, _) = watch::channel(false);
@@ -128,6 +131,7 @@ impl Daemon {
                 dropped: None,
                 mic_on: false,
                 ca_paused: false,
+                others: HashMap::new(),
                 spatial_head: false,
                 ca_held: false,
                 ear_gen: 0,
@@ -348,6 +352,7 @@ impl Daemon {
             if old.is_some() || !g.state.connected {
                 // do not show the old device until the new one reports
                 g.state.address = Some(addr.to_string());
+                g.state.has_keys = g.config.keys_for(addr).is_some();
                 g.state.model_id = 0;
                 g.state.name.clear();
             }
@@ -696,9 +701,13 @@ impl Daemon {
                 model_name: proximity::model_name(m.product as u16).into(),
                 model_id: m.product as u16,
                 connected: d.is_connected().await.unwrap_or(false),
+                last: None,
             });
         }
         let mut g = self.inner.lock().await;
+        for d in &mut list {
+            d.last = g.others.get(&d.address).cloned();
+        }
         if g.state.devices != list {
             g.state.devices = list.clone();
             drop(g);
@@ -768,6 +777,7 @@ impl Daemon {
                     model_name: "AirPods Pro 2 (USB-C)".into(),
                     model_id: 0x2024,
                     connected: true,
+                    last: None,
                 }];
             }
             self.changed();
@@ -1217,10 +1227,11 @@ impl Daemon {
             }
             Packet::Keys { irk, enc } => {
                 info!("got BLE keys");
-                g.config.irk = Some(Config::hex(&irk));
-                g.config.enc_key = Some(Config::hex(&enc));
-                g.state.has_keys = true;
-                g.config.save();
+                if let Some(a) = g.state.address.clone() {
+                    g.config.set_keys(&a, &irk, &enc);
+                    g.state.has_keys = true;
+                    g.config.save();
+                }
             }
             Packet::Head(v) => {
                 let feed = g.spatial_head;
@@ -1466,7 +1477,25 @@ impl Daemon {
                         if ev.is_none() { return Ok(false); }
                         continue;
                     };
-                    let Some((adv, rssi)) = self.advert(a).await else { continue };
+                    let Some((owner, adv, rssi)) = self.advert(a).await else { continue };
+                    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+                    {
+                        let mut g = self.inner.lock().await;
+                        let selected = g.state.address.as_deref().is_some_and(|s| s.eq_ignore_ascii_case(&owner));
+                        if !selected {
+                            let last = state::Last { left: adv.left, right: adv.right, case_: adv.case_, at: now };
+                            let key = g.state.devices.iter().find(|d| d.address.eq_ignore_ascii_case(&owner)).map(|d| d.address.clone());
+                            if let Some(k) = key {
+                                g.others.insert(k.clone(), last.clone());
+                                if let Some(d) = g.state.devices.iter_mut().find(|d| d.address == k) {
+                                    d.last = Some(last);
+                                }
+                                drop(g);
+                                self.changed();
+                            }
+                            continue;
+                        }
+                    }
                     *seen = Instant::now();
                     let opened = adv.lid_open && !lid_open;
                     lid_open = adv.lid_open;
@@ -1476,7 +1505,6 @@ impl Daemon {
                         g.state.battery.left = Cell { level: adv.left, charging: adv.left_charging };
                         g.state.battery.right = Cell { level: adv.right, charging: adv.right_charging };
                         g.state.battery.case_ = Cell { level: adv.case_, charging: adv.case_charging };
-                        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
                         g.state.note_signal(rssi, now);
                     }
                     self.changed();
@@ -1490,27 +1518,31 @@ impl Daemon {
         }
     }
 
-    async fn advert(&self, a: Address) -> Option<(Advert, i16)> {
+    /// Whose advert this is: the address of the paired headphones it belongs to.
+    async fn advert(&self, a: Address) -> Option<(String, Advert, i16)> {
         let d = self.adapter.device(a).ok()?;
         let rssi = d.rssi().await.ok()??;
         let data = d.manufacturer_data().await.ok()??;
         let raw = data.get(&(APPLE as u16))?;
-        let (irk, enc, model) = {
-            let g = self.inner.lock().await;
-            (Config::key16(&g.config.irk), Config::key16(&g.config.enc_key), g.state.model_id)
+        let g = self.inner.lock().await;
+        let selected = g.state.address.clone().unwrap_or_default();
+        let model = g.state.model_id;
+        let owner = g.config.keys.keys().find_map(|addr| {
+            let (irk, enc) = g.config.keys_for(addr)?;
+            proximity::rpa_matches(a.0, &irk).then(|| (addr.clone(), enc))
+        });
+        let (owner, enc) = match owner {
+            Some((addr, enc)) => (addr, Some(enc)),
+            // no keys yet for the selected pair: only something right next to us counts
+            None if g.config.keys_for(&selected).is_none() && rssi > -60 => (selected.to_uppercase(), None),
+            None => return None,
         };
-        let ours = match irk {
-            Some(k) => proximity::rpa_matches(a.0, &k),
-            None => rssi > -60,
-        };
-        if !ours {
-            return None;
-        }
+        drop(g);
         let adv = proximity::parse(raw, enc.as_ref())?;
-        if model != 0 && adv.model != model {
+        if owner.eq_ignore_ascii_case(&selected) && model != 0 && adv.model != model {
             return None;
         }
-        Some((adv, rssi))
+        Some((owner, adv, rssi))
     }
 }
 
