@@ -27,7 +27,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 - Custom EQ (experimental) with bass, mids and treble, stored in the headphones themselves. Only shown when the model reports it.
 - While the buds are away, the case scan goes part time to save power, and the "(Pinna)" mic stays in place so apps recording from it never see it vanish.
 
-Headphone accommodation, custom transparency, mic selection and turning off ear detection are not there yet. The buds never report these values back, so I could not make sure they work.
+Headphone accommodation, custom transparency, mic selection and turning off ear detection are not there yet. The buds never report these values back, so I could not make sure they work. The live noise level around you, which an Apple Watch shows, is not there either: no one has found it in the protocol yet.
 
 Tested on AirPods Pro 2 (USB-C). Other AirPods and Beats speak the same protocol, so most settings should work, but a setting does nothing if the model does not support it.
 
