@@ -1134,10 +1134,10 @@ impl Daemon {
                 drop(g);
                 let m = self.media.lock().await;
                 if let Some(msg) = low {
-                    m.notify(t("AirPods battery low", "AirPods pili azaldı"), &msg, "battery-caution").await;
+                    m.notify(t("AirPods battery low"), &msg, "battery-caution").await;
                 }
                 if let Some(msg) = full {
-                    m.notify(t("Charging complete", "Şarj tamamlandı"), &msg, "battery-full-charged").await;
+                    m.notify(t("Charging complete"), &msg, "battery-full-charged").await;
                 }
             }
             Packet::Ear(primary, secondary) => {
@@ -1292,7 +1292,7 @@ impl Daemon {
                 let _ = wpctl(&["set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]).status().await;
                 let out = wpctl(&["get-volume", "@DEFAULT_AUDIO_SOURCE@"]).output().await;
                 let muted = out.is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains("MUTED"));
-                let (title, icon) = if muted { (t("Microphone muted", "Mikrofon kapalı"), "microphone-sensitivity-muted") } else { (t("Microphone on", "Mikrofon açık"), "audio-input-microphone") };
+                let (title, icon) = if muted { (t("Microphone muted"), "microphone-sensitivity-muted") } else { (t("Microphone on"), "audio-input-microphone") };
                 self.media.lock().await.notify(title, "", icon).await;
             }
             "ancTransparency" => {
@@ -1326,7 +1326,7 @@ impl Daemon {
             return None;
         }
         let mut msg = None;
-        for (i, (cell, side)) in [(g.state.battery.left, t("Left", "Sol")), (g.state.battery.right, t("Right", "Sağ"))].iter().enumerate() {
+        for (i, (cell, side)) in [(g.state.battery.left, t("Left")), (g.state.battery.right, t("Right"))].iter().enumerate() {
             let Some(lvl) = cell.level else { continue };
             let limit = g.state.prefs.low_battery;
             if cell.charging || lvl > limit {
@@ -1344,7 +1344,7 @@ impl Daemon {
 
     fn charged(&self, g: &mut Inner) -> Option<String> {
         let b = &g.state.battery;
-        let cells = [(b.left, t("Left AirPod", "Sol AirPod")), (b.right, t("Right AirPod", "Sağ AirPod")), (b.case_, t("Case", "Kutu"))];
+        let cells = [(b.left, t("Left AirPod")), (b.right, t("Right AirPod")), (b.case_, t("Case"))];
         let mut done = Vec::new();
         for (i, (c, name)) in cells.iter().enumerate() {
             match c.level {

@@ -21,6 +21,7 @@ class Backend : public QObject
     Q_PROPERTY(QVariantList head READ head NOTIFY headChanged)
     Q_PROPERTY(bool closeToTray READ closeToTray WRITE setCloseToTray NOTIFY appChanged)
     Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY appChanged)
+    Q_PROPERTY(QVariantList languages READ languages CONSTANT)
     Q_PROPERTY(bool globalShortcuts READ globalShortcuts WRITE setGlobalShortcuts NOTIFY appChanged)
     Q_PROPERTY(bool shortcutsSupported READ shortcutsSupported NOTIFY appChanged)
     Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
@@ -42,6 +43,7 @@ public:
     void setCloseToTray(bool on);
     bool autostart() const;
     bool globalShortcuts() const;
+    QVariantList languages() const;
     void setGlobalShortcuts(bool on);
     bool shortcutsSupported();
     void setAutostart(bool on);

@@ -19,7 +19,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 - Reports the headphone battery to the system through BlueZ, so UPower, GNOME, KDE and bars show it in their own battery indicators.
 - While the buds are disconnected, helps you find them nearby from the signal strength of their advert, with the last two minutes of signal so you can tell if you are getting closer. There is no map of where they were last seen: the only location source on most Linux desktops is GeoClue, which sends nearby Wi-Fi networks to an online service, and Pinna keeps everything on the computer. Making them play a sound is not possible either, Apple does that through Find My.
 - Can turn off conversation awareness while only one bud is in and turn it back on when both are.
-- Turkish and English. Follows the system language by default, and you can change it on the This Computer page.
+- Turkish and English, and a new language is a single file (see Translations below). Follows the system language by default, and you can change it on the This Computer page.
 - Shows head tracking live: the angles follow as you turn and tilt your head.
 - Spatial audio (experimental): stereo sounds like it comes from two speakers in front of you, using the PipeWire HRTF filter. In head tracked mode the sound stays put when you turn your head. Needs `libmysofa` and `/usr/share/libmysofa/default.sofa`.
 - Press shortcuts (experimental): bind a double, triple or long press on each bud to something on the computer, like muting the mic, volume, changing tracks or a command of your own. Unassigned presses do what the buds normally do.
@@ -79,6 +79,10 @@ On KDE, GNOME and other desktops with the global shortcuts portal, turn on Globa
 ## Caelestia bar
 
 `shell/caelestia/PinnaStatus.qml` shows a headphone icon, the lowest battery and the mode in the bar. Left click changes the mode, right click opens the app. Put the file under `modules/bar/components/status/` and add a `DelegateChoice` to `StatusIcons.qml`.
+
+## Translations
+
+Each language is one file, `app/i18n/pinna_<code>.ts`, and it covers the app, the tray and the notifications the service sends. To start one, run `app/i18n/update.py de` (any language code), fill in the translations with Qt Linguist or a text editor, and rebuild. The new language shows up on the This Computer page by itself. Run `app/i18n/update.py` again after changing texts to add the new ones to every file.
 
 ## How it works
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="tr_TR" sourcelanguage="en_US">
+<TS version="2.1" language="tr" sourcelanguage="en_US">
 <context>
     <name>AboutPage</name>
     <message>
@@ -1593,6 +1593,45 @@
     <message>
         <source>Value is too long or invalid.</source>
         <translation>Değer çok uzun ya da geçersiz.</translation>
+    </message>
+</context>
+<context>
+    <name>Notify</name>
+    <message>
+        <source>AirPods battery low</source>
+        <translation>AirPods pili azaldı</translation>
+    </message>
+    <message>
+        <source>Charging complete</source>
+        <translation>Şarj tamamlandı</translation>
+    </message>
+    <message>
+        <source>Microphone muted</source>
+        <translation>Mikrofon kapalı</translation>
+    </message>
+    <message>
+        <source>Microphone on</source>
+        <translation>Mikrofon açık</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Sol</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Sağ</translation>
+    </message>
+    <message>
+        <source>Left AirPod</source>
+        <translation>Sol AirPod</translation>
+    </message>
+    <message>
+        <source>Right AirPod</source>
+        <translation>Sağ AirPod</translation>
+    </message>
+    <message>
+        <source>Case</source>
+        <translation>Kutu</translation>
     </message>
 </context>
 </TS>

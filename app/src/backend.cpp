@@ -19,6 +19,7 @@
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QLocale>
 #include <QProcess>
 #include "shortcuts.h"
 #include <QSettings>
@@ -257,6 +258,23 @@ void Backend::setMode(const QString &mode)
 }
 
 void Backend::cycleMode() { call(QStringLiteral("CycleMode"), {}); }
+
+// English plus every translation built into the app, each named in its own language
+QVariantList Backend::languages() const
+{
+    QVariantList out{QVariantMap{{QStringLiteral("code"), QStringLiteral("en")}, {QStringLiteral("name"), QStringLiteral("English")}}};
+    for (const QString &f : QDir(QStringLiteral(":/i18n")).entryList({QStringLiteral("pinna_*.qm")})) {
+        const QString code = f.mid(6).chopped(3);
+        QString name = QLocale(code).nativeLanguageName();
+        if (!name.isEmpty())
+            name[0] = name[0].toUpper();
+        out << QVariantMap{{QStringLiteral("code"), code}, {QStringLiteral("name"), name.isEmpty() ? code : name}};
+    }
+    std::sort(out.begin(), out.end(), [](const QVariant &a, const QVariant &b) {
+        return a.toMap().value(QStringLiteral("name")).toString().localeAwareCompare(b.toMap().value(QStringLiteral("name")).toString()) < 0;
+    });
+    return out;
+}
 
 bool Backend::globalShortcuts() const { return QSettings().value(QStringLiteral("globalShortcuts"), false).toBool(); }
 

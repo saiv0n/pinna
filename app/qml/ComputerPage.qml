@@ -53,8 +53,8 @@ Page {
         Setting {
             title: qsTr("Language")
             Dropdown {
-                readonly property var codes: ["", "tr", "en"]
-                model: [qsTr("System language"), "Türkçe", "English"]
+                readonly property var codes: [""].concat(Backend.languages.map(l => l.code))
+                model: [qsTr("System language")].concat(Backend.languages.map(l => l.name))
                 currentIndex: Math.max(0, codes.indexOf(Backend.language))
                 onPicked: i => Backend.language = codes[i]
             }

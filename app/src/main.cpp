@@ -114,15 +114,21 @@ int main(int argc, char *argv[])
         bus.registerObject(QStringLiteral("/"), &instance, QDBusConnection::ExportScriptableSlots);
     }
 
-    // source strings are English; Turkish loads from the translation
+    // source strings are English; other languages load from :/i18n/pinna_<lang>.qm
     QTranslator translator;
     auto applyLanguage = [&translator] {
         QString lang = qEnvironmentVariable("PINNA_LANG", Backend::instance()->language());
         if (lang.isEmpty())
             lang = QLocale::system().uiLanguages().value(0, QLocale::system().name());
         QCoreApplication::removeTranslator(&translator);
-        if (lang.startsWith(QLatin1String("tr")) && translator.load(QStringLiteral(":/i18n/pinna_tr.qm")))
-            QCoreApplication::installTranslator(&translator);
+        // "pt_BR" tries pinna_pt_BR, then pinna_pt
+        lang = lang.section(QLatin1Char('.'), 0, 0).replace(QLatin1Char('-'), QLatin1Char('_'));
+        for (const QString &code : {lang, lang.section(QLatin1Char('_'), 0, 0)}) {
+            if (translator.load(QStringLiteral(":/i18n/pinna_%1.qm").arg(code))) {
+                QCoreApplication::installTranslator(&translator);
+                break;
+            }
+        }
     };
     applyLanguage();
     QObject::connect(Backend::instance(), &Backend::languageChanged, &instance, [&] {

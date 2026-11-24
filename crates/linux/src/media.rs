@@ -129,17 +129,44 @@ impl Media {
     }
 }
 
+include!(concat!(env!("OUT_DIR"), "/notify.rs"));
+
 /// Notifications follow the language picked in the app, else the session locale.
-pub fn turkish() -> bool {
+fn language() -> String {
     let conf = dirs::config_dir().map(|d| d.join("pinna").join("Pinna.conf"));
     let picked = conf
         .and_then(|p| std::fs::read_to_string(p).ok())
         .and_then(|s| s.lines().find_map(|l| l.strip_prefix("language=").map(|v| v.trim().to_string())))
         .filter(|v| !v.is_empty());
-    let lang = picked.or_else(|| ["LC_ALL", "LC_MESSAGES", "LANG"].iter().find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty())));
-    lang.is_some_and(|l| l.starts_with("tr"))
+    picked
+        .or_else(|| ["LC_ALL", "LC_MESSAGES", "LANG"].iter().find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty())))
+        .unwrap_or_default()
 }
 
-pub fn t<'a>(en: &'a str, tr: &'a str) -> &'a str {
-    if turkish() { tr } else { en }
+/// English text in, the same text in the user's language out, from app/i18n.
+pub fn t(en: &'static str) -> &'static str {
+    lookup(&language(), en)
+}
+
+fn lookup(lang: &str, en: &'static str) -> &'static str {
+    // "pt_BR.UTF-8" tries pt_BR, then pt
+    let full = lang.split('.').next().unwrap_or("");
+    let short = full.split(['_', '-']).next().unwrap_or("");
+    [full, short]
+        .iter()
+        .filter(|l| !l.is_empty())
+        .find_map(|l| NOTIFY.iter().find(|(code, _)| code == l))
+        .and_then(|(_, table)| table.iter().find(|(src, _)| *src == en))
+        .map_or(en, |(_, tr)| tr)
+}
+
+#[cfg(test)]
+mod lang_tests {
+    #[test]
+    fn falls_back_to_english() {
+        assert_eq!(super::lookup("tr_TR.UTF-8", "Case"), "Kutu");
+        assert_eq!(super::lookup("tr", "Microphone muted"), "Mikrofon kapalı");
+        assert_eq!(super::lookup("xx_YY", "Case"), "Case");
+        assert_eq!(super::lookup("", "Case"), "Case");
+    }
 }
