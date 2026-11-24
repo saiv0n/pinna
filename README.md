@@ -68,11 +68,13 @@ pinnactl set conversationAwareness on
 pinnactl watch               # one JSON line per change
 ```
 
-`pinnactl cycle` works well on a Hyprland shortcut:
+`pinnactl cycle` steps through the same modes as press and hold on the stem. It works well on a Hyprland shortcut:
 
 ```
 bind = SUPER, A, exec, pinnactl cycle
 ```
+
+On KDE, GNOME and other desktops with the global shortcuts portal, turn on Global shortcuts on the This Computer page and pick the keys in the desktop's shortcut settings. There is one for the next mode and one for each mode.
 
 ## Caelestia bar
 

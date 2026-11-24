@@ -36,6 +36,10 @@ impl Service {
         self.d.set_mode(short(mode)?).await.map_err(err)
     }
 
+    async fn cycle_mode(&self) -> fdo::Result<String> {
+        self.d.cycle_mode().await.map(|m| m.name().to_string()).map_err(err)
+    }
+
     async fn set_setting(&self, key: &str, value: &str) -> fdo::Result<()> {
         self.d.set_setting(short(key)?, short(value)?).await.map_err(err)
     }

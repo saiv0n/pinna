@@ -16,7 +16,7 @@ if ts.exists():
 pat = re.compile(r'\b(?:qsTr|tr)\("((?:[^"\\]|\\.)*)"')
 contexts = {}
 for f in sorted(list((app / "qml").glob("*.qml")) + list((app / "src").glob("*.cpp"))):
-    name = f.stem if f.suffix == ".qml" else {"backend": "Backend", "tray": "Tray"}.get(f.stem, f.stem)
+    name = f.stem if f.suffix == ".qml" else {"backend": "Backend", "tray": "Tray", "shortcuts": "Shortcuts"}.get(f.stem, f.stem)
     for s in pat.findall(f.read_text()):
         s = s.encode().decode("unicode_escape").encode("latin-1").decode()
         contexts.setdefault(name, [])

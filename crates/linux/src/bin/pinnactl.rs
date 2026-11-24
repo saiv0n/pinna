@@ -11,6 +11,7 @@ use zbus::proxy;
 trait Daemon {
     async fn state(&self) -> zbus::Result<String>;
     async fn set_mode(&self, mode: &str) -> zbus::Result<()>;
+    async fn cycle_mode(&self) -> zbus::Result<String>;
     async fn set_setting(&self, key: &str, value: &str) -> zbus::Result<()>;
     async fn set_pref(&self, key: &str, value: &str) -> zbus::Result<()>;
     async fn rename(&self, name: &str) -> zbus::Result<()>;
@@ -98,6 +99,9 @@ fn print_status(s: &Value) {
         let b = |k: &str| s["eq"][k].as_i64().unwrap_or(50) - 50;
         println!("  EQ: bass {:+}, mids {:+}, treble {:+}", b("low"), b("mid"), b("high"));
     }
+    if let Some(f) = s["firmware"].as_str().filter(|f| !f.is_empty()) {
+        println!("  Firmware: {f}");
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -148,16 +152,7 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
             }
         }
         Cmd::Mode { mode } => p.set_mode(&mode).await?,
-        Cmd::Cycle => {
-            let s: Value = serde_json::from_str(&p.state().await?)?;
-            let next = match s["mode"].as_str() {
-                Some("anc") => "adaptive",
-                Some("adaptive") => "transparency",
-                _ => "anc",
-            };
-            p.set_mode(next).await?;
-            println!("{}", mode_name(next));
-        }
+        Cmd::Cycle => println!("{}", mode_name(&p.cycle_mode().await?)),
         Cmd::Set { key, value } => p.set_setting(&key, &value).await?,
         Cmd::Pref { key, value } => p.set_pref(&key, &value).await?,
         Cmd::Rename { name } => p.rename(&name).await?,

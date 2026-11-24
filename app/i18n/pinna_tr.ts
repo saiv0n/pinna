@@ -383,6 +383,18 @@
         <translation>Oturum açılınca tepside başlat</translation>
     </message>
     <message>
+        <source>Global shortcuts</source>
+        <translation>Genel kısayollar</translation>
+    </message>
+    <message>
+        <source>Pick keys for changing the listening mode in your desktop's shortcut settings.</source>
+        <translation>Dinleme modunu değiştiren tuşları masaüstünün kısayol ayarlarından seç.</translation>
+    </message>
+    <message>
+        <source>This desktop has no shortcut portal. Bind a key to “pinnactl cycle” instead.</source>
+        <translation>Bu masaüstünde kısayol portalı yok. Bunun yerine bir tuşa “pinnactl cycle” ata.</translation>
+    </message>
+    <message>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
@@ -1298,6 +1310,10 @@
         <translation>Pinna servisine ulaşılamadı.</translation>
     </message>
     <message>
+        <source>Show the AirPods battery in the tray after login</source>
+        <translation>Oturum açılınca AirPods pilini tepside göstermek için</translation>
+    </message>
+    <message>
         <source>The password prompt was closed; nothing changed.</source>
         <translation>Parola penceresi kapatıldı, hiçbir şey değişmedi.</translation>
     </message>
@@ -1320,6 +1336,25 @@
     <message>
         <source>Log saved: %1</source>
         <translation>Günlük kaydedildi: %1</translation>
+    </message>
+</context>
+<context>
+    <name>Shortcuts</name>
+    <message>
+        <source>Switch to the next listening mode</source>
+        <translation>Sonraki dinleme moduna geç</translation>
+    </message>
+    <message>
+        <source>Noise cancellation</source>
+        <translation>Gürültü engelleme</translation>
+    </message>
+    <message>
+        <source>Transparency</source>
+        <translation>Şeffaflık</translation>
+    </message>
+    <message>
+        <source>Adaptive</source>
+        <translation>Uyarlanabilir</translation>
     </message>
 </context>
 <context>
@@ -1414,6 +1449,10 @@
     <message>
         <source>Unknown mode.</source>
         <translation>Bilinmeyen mod.</translation>
+    </message>
+    <message>
+        <source>No mode to switch to.</source>
+        <translation>Geçilecek mod yok.</translation>
     </message>
     <message>
         <source>Invalid value for this setting.</source>

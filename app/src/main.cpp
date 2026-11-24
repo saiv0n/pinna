@@ -162,6 +162,8 @@ int main(int argc, char *argv[])
         tray->isOpen = [&instance] { return instance.window && instance.window->isVisible() && instance.window->isActive(); };
         tray->close = [&instance] { instance.release(); };
         Backend::instance()->setTray(true);
+        if (Backend::instance()->globalShortcuts())
+            Backend::instance()->setGlobalShortcuts(true);
         app.setQuitOnLastWindowClosed(false);
         // drop the engine when QML sends the window to the tray
         QObject::connect(Backend::instance(), &Backend::windowReleased, &instance, [&instance] { instance.release(); });

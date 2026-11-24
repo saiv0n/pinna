@@ -80,6 +80,14 @@ impl Mode {
             Mode::Adaptive => 4,
         }
     }
+    pub fn name(self) -> &'static str {
+        match self {
+            Mode::Off => "off",
+            Mode::Anc => "anc",
+            Mode::Transparency => "transparency",
+            Mode::Adaptive => "adaptive",
+        }
+    }
     pub fn from_byte(b: u8) -> Option<Mode> {
         Some(match b {
             1 => Mode::Off,

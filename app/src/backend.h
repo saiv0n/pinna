@@ -21,6 +21,8 @@ class Backend : public QObject
     Q_PROPERTY(QVariantList head READ head NOTIFY headChanged)
     Q_PROPERTY(bool closeToTray READ closeToTray WRITE setCloseToTray NOTIFY appChanged)
     Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY appChanged)
+    Q_PROPERTY(bool globalShortcuts READ globalShortcuts WRITE setGlobalShortcuts NOTIFY appChanged)
+    Q_PROPERTY(bool shortcutsSupported READ shortcutsSupported NOTIFY appChanged)
     Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
     Q_PROPERTY(bool trayAvailable READ trayAvailable NOTIFY appChanged)
     Q_PROPERTY(bool deviceIdOk READ deviceIdOk NOTIFY appChanged)
@@ -39,6 +41,9 @@ public:
     bool closeToTray() const;
     void setCloseToTray(bool on);
     bool autostart() const;
+    bool globalShortcuts() const;
+    void setGlobalShortcuts(bool on);
+    bool shortcutsSupported();
     void setAutostart(bool on);
     bool deviceIdOk() const;
     QString language() const;
@@ -51,6 +56,7 @@ public:
     void frameShown();
 
     Q_INVOKABLE void setMode(const QString &mode);
+    Q_INVOKABLE void cycleMode();
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
     Q_INVOKABLE void setPref(const QString &key, const QVariant &value);
     Q_INVOKABLE void setAudio(const QString &key, const QVariant &value);
@@ -115,6 +121,8 @@ private:
     QVariantList m_history;
     QVariantList m_head;
     bool m_daemon = false;
+    class Shortcuts *m_shortcuts = nullptr;
+    int m_shortcutsSupported = -1;
     bool m_tray = false;
     bool m_windowShown = true;
     QString m_fake;

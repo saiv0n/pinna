@@ -18,6 +18,7 @@
 #include <QDir>
 #include <QGuiApplication>
 #include <QProcess>
+#include "shortcuts.h"
 #include <QSettings>
 #include <QStandardPaths>
 #include <QSystemTrayIcon>
@@ -226,6 +227,36 @@ void Backend::setMode(const QString &mode)
 {
     optimistic({}, QStringLiteral("mode"), mode);
     call(QStringLiteral("SetMode"), {mode});
+}
+
+void Backend::cycleMode() { call(QStringLiteral("CycleMode"), {}); }
+
+bool Backend::globalShortcuts() const { return QSettings().value(QStringLiteral("globalShortcuts"), false).toBool(); }
+
+void Backend::setGlobalShortcuts(bool on)
+{
+    QSettings().setValue(QStringLiteral("globalShortcuts"), on);
+    // only the long running app owns the portal session, not the card or screenshots
+    if (on && m_tray && !m_shortcuts) {
+        m_shortcuts = new Shortcuts(this);
+        connect(m_shortcuts, &Shortcuts::activated, this, [this](const QString &id) {
+            if (id == QLatin1String("cycle"))
+                cycleMode();
+            else
+                setMode(id);
+        });
+    } else if (!on && m_shortcuts) {
+        delete m_shortcuts;
+        m_shortcuts = nullptr;
+    }
+    emit appChanged();
+}
+
+bool Backend::shortcutsSupported()
+{
+    if (m_shortcutsSupported < 0)
+        m_shortcutsSupported = Shortcuts::supported();
+    return m_shortcutsSupported;
 }
 
 void Backend::setSetting(const QString &key, const QVariant &value)

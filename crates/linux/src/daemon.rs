@@ -174,6 +174,19 @@ impl Daemon {
         Ok(())
     }
 
+    /// Next mode in the same order and selection as press and hold on the stem.
+    pub async fn cycle_mode(&self) -> Result<Mode> {
+        let (cycle, mode, allow_off) = {
+            let g = self.inner.lock().await;
+            let cycle = g.state.settings.get("listeningCycle").and_then(|v| v.as_u64()).unwrap_or(0x0E) as u8;
+            let allow_off = g.state.settings.get("allowOff").and_then(|v| v.as_bool()).unwrap_or(false);
+            (cycle, g.state.mode, allow_off)
+        };
+        let next = next_mode(cycle, mode, allow_off).ok_or_else(|| anyhow!("invalid: No mode to switch to."))?;
+        self.set_mode(next.name()).await?;
+        Ok(next)
+    }
+
     pub async fn set_setting(&self, key: &str, v: &str) -> Result<()> {
         let packet;
         let value: Value;
@@ -1220,14 +1233,12 @@ impl Daemon {
             _ => return,
         };
         let side = if left { "left" } else { "right" };
-        let (action, cycle, mode, allow_off) = {
+        let (action, mode) = {
             let g = self.inner.lock().await;
             let hold = g.state.settings.get(if left { "holdLeft" } else { "holdRight" }).and_then(|v| v.as_u64());
             let fb = if press == 8 && hold == Some(5) { "nothing" } else { fallback };
             let a = g.state.prefs.stem.get(&format!("{name}.{side}")).cloned().unwrap_or_else(|| fb.into());
-            let cycle = g.state.settings.get("listeningCycle").and_then(|v| v.as_u64()).unwrap_or(0x0E) as u8;
-            let allow_off = g.state.settings.get("allowOff").and_then(|v| v.as_bool()).unwrap_or(false);
-            (a, cycle, g.state.mode, allow_off)
+            (a, g.state.mode)
         };
         info!("stem press: {name} {side}, {action}");
         let wpctl = |args: &[&str]| {
@@ -1255,17 +1266,7 @@ impl Daemon {
                 }
             }
             "mode" => {
-                let order = [(Mode::Anc, 2), (Mode::Transparency, 4), (Mode::Adaptive, 8), (Mode::Off, 1)];
-                // without the off option the buds refuse it and the cycle gets stuck
-                let list: Vec<Mode> = order
-                    .iter()
-                    .filter(|(m, b)| cycle & b != 0 && (*m != Mode::Off || allow_off))
-                    .map(|(m, _)| *m)
-                    .collect();
-                let at = list.iter().position(|m| Some(*m) == mode);
-                if let Some(next) = at.map_or(list.first(), |i| list.get((i + 1) % list.len()))
-                    && let Err(e) = self.send(aap::control(aap::cmd::LISTENING_MODE, [next.byte(), 0, 0, 0])).await
-                {
+                if let Err(e) = self.cycle_mode().await {
                     warn!("could not change mode: {e}");
                 }
             }
@@ -1495,4 +1496,33 @@ fn in_ear(p: &Pod) -> u8 {
 fn is_headphone(product: u16) -> bool {
     // AirPods and Beats product ids are in the 0x20xx range
     product & 0xff00 == 0x2000
+}
+
+fn next_mode(cycle: u8, mode: Option<Mode>, allow_off: bool) -> Option<Mode> {
+    let order = [(Mode::Anc, 2), (Mode::Transparency, 4), (Mode::Adaptive, 8), (Mode::Off, 1)];
+    // without the off option the buds refuse it and the cycle gets stuck
+    let list: Vec<Mode> = order
+        .iter()
+        .filter(|(m, b)| cycle & b != 0 && (*m != Mode::Off || allow_off))
+        .map(|(m, _)| *m)
+        .collect();
+    let at = list.iter().position(|m| Some(*m) == mode);
+    at.map_or(list.first(), |i| list.get((i + 1) % list.len())).copied()
+}
+
+#[cfg(test)]
+mod cycle_tests {
+    use super::*;
+
+    #[test]
+    fn follows_the_stem_selection() {
+        assert_eq!(next_mode(0x0E, Some(Mode::Anc), false), Some(Mode::Transparency));
+        assert_eq!(next_mode(0x0E, Some(Mode::Adaptive), false), Some(Mode::Anc));
+        assert_eq!(next_mode(0x06, Some(Mode::Transparency), false), Some(Mode::Anc));
+        // off is selected but not allowed
+        assert_eq!(next_mode(0x03, Some(Mode::Anc), false), Some(Mode::Anc));
+        assert_eq!(next_mode(0x03, Some(Mode::Anc), true), Some(Mode::Off));
+        assert_eq!(next_mode(0x0E, None, false), Some(Mode::Anc));
+        assert_eq!(next_mode(0, None, false), None);
+    }
 }

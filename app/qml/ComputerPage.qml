@@ -69,6 +69,14 @@ Page {
             title: qsTr("Start in tray at login")
             Switch { checked: Backend.autostart; onToggled: v => Backend.autostart = v }
         }
+        Setting {
+            title: qsTr("Global shortcuts")
+            subtitle: Backend.shortcutsSupported
+                ? qsTr("Pick keys for changing the listening mode in your desktop's shortcut settings.")
+                : qsTr("This desktop has no shortcut portal. Bind a key to “pinnactl cycle” instead.")
+            enabled: Backend.shortcutsSupported
+            Switch { checked: Backend.globalShortcuts; onToggled: v => Backend.globalShortcuts = v }
+        }
     }
 
     Section {
