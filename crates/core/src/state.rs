@@ -373,10 +373,15 @@ fn config_path() -> PathBuf {
 
 impl Config {
     pub fn load() -> Config {
-        let mut c: Config = std::fs::read_to_string(config_path())
-            .ok()
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default();
+        let path = config_path();
+        let mut c: Config = match std::fs::read_to_string(&path) {
+            Ok(text) => serde_json::from_str(&text).unwrap_or_else(|_| {
+                // keep the unreadable one; the next save would otherwise lose the keys in it
+                let _ = write_private(&path.with_extension("json.bad"), text.as_bytes());
+                Config::default()
+            }),
+            Err(_) => Config::default(),
+        };
         c.migrate();
         c
     }
