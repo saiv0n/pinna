@@ -1173,6 +1173,10 @@
         <translation>Dış seslerin ne kadarını duyacağını seç. Değişiklik kulaklığa hemen gider.</translation>
     </message>
     <message>
+        <source>These headphones have no noise cancellation or transparency.</source>
+        <translation>Bu kulaklıkta gürültü engelleme ya da şeffaf mod yok.</translation>
+    </message>
+    <message>
         <source>Ambient sound in Adaptive mode</source>
         <translation>Uyarlanabilir modda ortam sesi</translation>
     </message>
@@ -1714,6 +1718,10 @@
         <translation>Sağ</translation>
     </message>
     <message>
+        <source>Case</source>
+        <translation>Kutu</translation>
+    </message>
+    <message>
         <source>about %s left</source>
         <translation>yaklaşık %s kaldı</translation>
     </message>
@@ -1724,10 +1732,6 @@
     <message>
         <source>Right AirPod</source>
         <translation>Sağ AirPod</translation>
-    </message>
-    <message>
-        <source>Case</source>
-        <translation>Kutu</translation>
     </message>
     <message>
         <source>min</source>

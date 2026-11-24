@@ -156,8 +156,8 @@ void Tray::rebuild()
         m_menu->addAction(left)->setEnabled(false);
     m_menu->addSeparator();
 
+    const QString mode = s.value(QStringLiteral("mode")).toString();
     if (live) {
-        const QString mode = s.value(QStringLiteral("mode")).toString();
         const bool allowOff = s.value(QStringLiteral("settings")).toMap().value(QStringLiteral("allowOff"), true).toBool();
         auto *group = new QActionGroup(m_menu);
         const QList<QPair<QString, QString>> modes = {
@@ -166,7 +166,8 @@ void Tray::rebuild()
             {QStringLiteral("adaptive"), tr("Adaptive")},
             {QStringLiteral("anc"), tr("Noise Cancellation")},
         };
-        for (const auto &[key, label] : modes) {
+        // models without listening modes never report one
+        for (const auto &[key, label] : mode.isEmpty() ? decltype(modes){} : modes) {
             if (key == QLatin1String("off") && !allowOff && mode != key)
                 continue;
             // same rule as the app: no adaptive mode on models that never report its strength
@@ -179,7 +180,8 @@ void Tray::rebuild()
             a->setActionGroup(group);
             connect(a, &QAction::triggered, b, [b, key] { b->setMode(key); });
         }
-        m_menu->addSeparator();
+        if (!mode.isEmpty())
+            m_menu->addSeparator();
         connect(m_menu->addAction(tr("Disconnect")), &QAction::triggered, b, &Backend::disconnectDevice);
     } else if (b->daemon() && !s.value(QStringLiteral("adapter")).toBool()) {
         connect(m_menu->addAction(tr("Turn On Bluetooth")), &QAction::triggered, b, &Backend::powerOn);

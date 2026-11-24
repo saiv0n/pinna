@@ -5,11 +5,13 @@ Page {
     id: page
     property Item confirm
     title: qsTr("Noise Control")
-    subtitle: qsTr("Choose how much of the outside world you hear. Changes are sent right away.")
+    subtitle: Store.noiseControl ? qsTr("Choose how much of the outside world you hear. Changes are sent right away.")
+                                 : qsTr("These headphones have no noise cancellation or transparency.")
     readonly property int mask: Store.setting("listeningCycle", 14)
     readonly property bool allowOff: Store.setting("allowOff", true)
 
     Section {
+        visible: Store.noiseControl
         enabled: Store.ready
         Block {
             ModePicker { width: parent.width }
@@ -34,6 +36,7 @@ Page {
     }
 
     Section {
+        visible: Store.noiseControl
         title: qsTr("Modes to Cycle Through")
         footer: qsTr("Pressing and holding the stem cycles through the selected modes. At least two must stay selected.")
         enabled: Store.ready
