@@ -50,6 +50,12 @@ struct Inner {
     ca_held: bool,
 }
 
+/// After this long without an advert from our buds the case scan goes part time,
+/// on for SCAN_ON and off for SCAN_REST, so the radio and bluetoothd can idle.
+const SCAN_IDLE: Duration = Duration::from_secs(10 * 60);
+const SCAN_ON: Duration = Duration::from_secs(10);
+const SCAN_REST: Duration = Duration::from_secs(20);
+
 #[derive(Clone)]
 pub struct Daemon {
     inner: Arc<Mutex<Inner>>,
@@ -1246,41 +1252,65 @@ impl Daemon {
 
     async fn scan_loop(self) {
         let mut want = self.scan.subscribe();
+        let mut seen = Instant::now();
         loop {
             while !*want.borrow_and_update() {
                 if want.changed().await.is_err() {
                     return;
                 }
+                // a fresh disconnect or a toggle starts with full scanning
+                seen = Instant::now();
             }
-            if let Err(e) = self.scan_once(&mut want).await {
-                debug!("scan error: {e}");
-                tokio::time::sleep(Duration::from_secs(5)).await;
+            match self.scan_once(&mut want, &mut seen).await {
+                // duty cycle: nothing of ours around, rest the radio for a while
+                Ok(true) => {
+                    tokio::select! {
+                        _ = want.changed() => {}
+                        _ = tokio::time::sleep(SCAN_REST) => {}
+                    }
+                }
+                Ok(false) => {}
+                Err(e) => {
+                    debug!("scan error: {e}");
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                }
             }
         }
     }
 
-    async fn scan_once(&self, want: &mut watch::Receiver<bool>) -> Result<()> {
+    /// Returns true when it stopped to rest because our buds have been quiet for a while.
+    async fn scan_once(&self, want: &mut watch::Receiver<bool>, seen: &mut Instant) -> Result<bool> {
         self.adapter
             .set_discovery_filter(DiscoveryFilter {
                 transport: DiscoveryTransport::Le,
                 duplicate_data: true,
+                // far away adverts are useless here and only cost wakeups
+                rssi: Some(-95),
                 ..Default::default()
             })
             .await?;
         let mut stream = self.adapter.discover_devices_with_changes().await?;
         debug!("case scan started");
         let mut lid_open = false;
+        let started = Instant::now();
+        let mut tick = tokio::time::interval(Duration::from_secs(1));
         loop {
             tokio::select! {
                 _ = want.changed() => {
-                    if !*want.borrow() { debug!("case scan stopped"); return Ok(()); }
+                    if !*want.borrow() { debug!("case scan stopped"); return Ok(false); }
+                }
+                _ = tick.tick() => {
+                    if seen.elapsed() > SCAN_IDLE && started.elapsed() > SCAN_ON {
+                        return Ok(true);
+                    }
                 }
                 ev = stream.next() => {
                     let Some(AdapterEvent::DeviceAdded(a)) = ev else {
-                        if ev.is_none() { return Ok(()); }
+                        if ev.is_none() { return Ok(false); }
                         continue;
                     };
                     let Some((adv, rssi)) = self.advert(a).await else { continue };
+                    *seen = Instant::now();
                     let opened = adv.lid_open && !lid_open;
                     lid_open = adv.lid_open;
                     {
