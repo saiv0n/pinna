@@ -56,22 +56,12 @@ Window {
         }
         HoverHandler { id: hover }
 
-        Row {
+        Buds {
             x: 10
             anchors.verticalCenter: parent.verticalCenter
             spacing: -6
-            Repeater {
-                model: [false, true]
-                Image {
-                    required property bool modelData
-                    source: "../assets/bud.png"
-                    mirror: modelData
-                    height: 96
-                    width: 52
-                    fillMode: Image.PreserveAspectFit
-                    mipmap: true
-                }
-            }
+            budWidth: 52
+            budHeight: 96
         }
 
         Column {

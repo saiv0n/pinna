@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import Pinna
 
 // Device card, sections and service status on the left.
@@ -47,32 +46,10 @@ Rectangle {
             Row {
                 width: parent.width
                 spacing: 10
-                Row {
+                Buds {
                     id: art
-                    spacing: -3
                     opacity: Store.live ? 1 : 0.5
                     Behavior on opacity { NumberAnimation { duration: Theme.medium } }
-                    // keep white buds visible on a light background
-                    layer.enabled: !Theme.dark
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: "#000000"
-                        shadowOpacity: 0.35
-                        shadowBlur: 0.35
-                        shadowVerticalOffset: 1
-                    }
-                    Repeater {
-                        model: [false, true]
-                        Image {
-                            required property bool modelData
-                            source: "../assets/bud.png"
-                            mirror: modelData
-                            width: 22
-                            height: 40
-                            fillMode: Image.PreserveAspectFit
-                            mipmap: true
-                        }
-                    }
                 }
                 Column {
                     width: parent.width - art.width - 10

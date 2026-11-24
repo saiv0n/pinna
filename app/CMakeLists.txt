@@ -24,6 +24,7 @@ qt_add_qml_module(pinna
         qml/BatteryRing.qml
         qml/BatteryTile.qml
         qml/Block.qml
+        qml/Buds.qml
         qml/Button.qml
         qml/CheckBox.qml
         qml/ComputerPage.qml
@@ -58,6 +59,7 @@ qt_add_qml_module(pinna
     RESOURCES
         fonts/Inter.ttf
         assets/bud.png
+        assets/bud-shadow.png
         assets/tray.png
 )
 

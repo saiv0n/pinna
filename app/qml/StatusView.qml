@@ -15,22 +15,12 @@ Item {
         anchors.centerIn: parent
         width: Math.min(parent.width - 64, 420)
         spacing: 10
-        Row {
+        Buds {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: -4
-            opacity: Theme.dark ? 0.85 : 0.6
-            Repeater {
-                model: [false, true]
-                Image {
-                    required property bool modelData
-                    source: "../assets/bud.png"
-                    mirror: modelData
-                    width: 44
-                    height: 76
-                    fillMode: Image.PreserveAspectFit
-                    mipmap: true
-                }
-            }
+            opacity: Theme.dark ? 0.85 : 0.75
+            budWidth: 44
+            budHeight: 76
         }
         Item { width: 1; height: 6 }
         Text {
