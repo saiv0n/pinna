@@ -51,9 +51,13 @@ Page {
         footer: qsTr("Bind presses to actions on this computer. Unassigned presses work as usual.")
         enabled: Store.ready
         property string side: "left"
-        readonly property var actions: ["", "playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "ancTransparency", "nothing", "cmd"]
+        // the two-mode toggles let each bud flip between its own pair (LibrePods #905)
+        readonly property var actions: ["", "playPause", "next", "previous", "volumeUp", "volumeDown", "micMute", "mode", "ancTransparency",
+            "toggle:anc+adaptive", "toggle:transparency+adaptive", "toggle:anc+off", "nothing", "cmd"]
         readonly property var names: [qsTr("Play / Pause"), qsTr("Next track"), qsTr("Previous track"), qsTr("Volume up"),
-            qsTr("Volume down"), qsTr("Mute microphone"), qsTr("Change listening mode"), qsTr("Noise Cancellation / Transparency"), qsTr("Nothing"), qsTr("Run command…")]
+            qsTr("Volume down"), qsTr("Mute microphone"), qsTr("Change listening mode"), qsTr("Noise Cancellation / Transparency"),
+            qsTr("Noise Cancellation / Adaptive"), qsTr("Transparency / Adaptive"), qsTr("Noise Cancellation / Off"), qsTr("Nothing"), qsTr("Run command…")]
+        readonly property int cmdIndex: actions.length - 1
         function value(slot) {
             const k = "stem." + slot
             const v = Store.prefs[k]
@@ -76,7 +80,7 @@ Page {
                 required property var modelData
                 readonly property string slot: modelData[0] + "." + press.side
                 readonly property string cur: press.value(slot)
-                readonly property bool isCmd: cur.startsWith("cmd:") || picker.currentIndex === 10
+                readonly property bool isCmd: cur.startsWith("cmd:") || picker.currentIndex === press.cmdIndex
                 title: modelData[1]
                 subtitle: cur === "" ? modelData[2] : ""
                 Field {
@@ -91,10 +95,10 @@ Page {
                 Dropdown {
                     id: picker
                     model: [qsTr("Default")].concat(press.names)
-                    currentIndex: row.cur.startsWith("cmd:") ? 10 : Math.max(0, press.actions.indexOf(row.cur))
+                    currentIndex: row.cur.startsWith("cmd:") ? press.cmdIndex : Math.max(0, press.actions.indexOf(row.cur))
                     Accessible.name: row.title
                     onPicked: i => {
-                        if (i === 10) { cmd.forceActiveFocus(); return }
+                        if (i === press.cmdIndex) { cmd.forceActiveFocus(); return }
                         Backend.setPref("stem." + row.slot, press.actions[i])
                     }
                 }
@@ -121,7 +125,7 @@ Page {
                 required property var modelData
                 visible: gestures.on
                 readonly property string cur: Store.pref(modelData[0], modelData[2])
-                readonly property bool isCmd: cur.startsWith("cmd:") || gpick.currentIndex === 9
+                readonly property bool isCmd: cur.startsWith("cmd:") || gpick.currentIndex === press.cmdIndex - 1
                 title: modelData[1]
                 Field {
                     id: gcmd
@@ -135,10 +139,10 @@ Page {
                 Dropdown {
                     id: gpick
                     model: press.names
-                    currentIndex: grow.cur.startsWith("cmd:") ? 9 : Math.max(0, press.actions.indexOf(grow.cur) - 1)
+                    currentIndex: grow.cur.startsWith("cmd:") ? press.cmdIndex - 1 : Math.max(0, press.actions.indexOf(grow.cur) - 1)
                     Accessible.name: grow.title
                     onPicked: i => {
-                        if (i === 9) { gcmd.forceActiveFocus(); return }
+                        if (i === press.cmdIndex - 1) { gcmd.forceActiveFocus(); return }
                         Backend.setPref(grow.modelData[0], press.actions[i + 1])
                     }
                 }

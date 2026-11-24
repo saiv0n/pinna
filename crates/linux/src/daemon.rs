@@ -1361,6 +1361,13 @@ impl Daemon {
                     warn!("could not change mode: {e}");
                 }
             }
+            t if state::toggle_pair(t).is_some() => {
+                let Some((a, b)) = state::toggle_pair(t) else { return };
+                let next = if mode == Some(a) { b } else { a };
+                if let Err(e) = self.set_mode(next.name()).await {
+                    warn!("could not change mode: {e}");
+                }
+            }
             "mode" => {
                 if let Err(e) = self.cycle_mode().await {
                     warn!("could not change mode: {e}");

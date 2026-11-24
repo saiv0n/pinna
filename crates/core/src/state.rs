@@ -212,8 +212,7 @@ impl Prefs {
             "codec" => anyhow::bail!("invalid value: {v}"),
             "headGestures" => self.head_gestures = b()?,
             "gestureNod" | "gestureShake" => {
-                let ok = STEM_ACTIONS.contains(&v) || v.strip_prefix("cmd:").is_some_and(|c| !c.trim().is_empty());
-                anyhow::ensure!(ok, "invalid value: {v}");
+                anyhow::ensure!(valid_action(v), "invalid value: {v}");
                 if key == "gestureNod" {
                     self.gesture_nod = v.into();
                 } else {
@@ -223,9 +222,7 @@ impl Prefs {
             k if k.starts_with("stem.") => {
                 let slot = &k[5..];
                 let ok_slot = matches!(slot.split_once('.'), Some(("double" | "triple" | "long", "left" | "right")));
-                let ok_val = v.is_empty()
-                    || STEM_ACTIONS.contains(&v)
-                    || v.strip_prefix("cmd:").is_some_and(|c| !c.trim().is_empty());
+                let ok_val = v.is_empty() || valid_action(v);
                 anyhow::ensure!(ok_slot, "unknown preference: {key}");
                 anyhow::ensure!(ok_val, "invalid value: {v}");
                 if v.is_empty() {
@@ -238,6 +235,17 @@ impl Prefs {
         }
         Ok(())
     }
+}
+
+/// "toggle:anc+adaptive" flips between two modes
+pub fn toggle_pair(v: &str) -> Option<(Mode, Mode)> {
+    let (a, b) = v.strip_prefix("toggle:")?.split_once('+')?;
+    let (a, b) = (Mode::parse(a)?, Mode::parse(b)?);
+    (a != b).then_some((a, b))
+}
+
+pub fn valid_action(v: &str) -> bool {
+    STEM_ACTIONS.contains(&v) || toggle_pair(v).is_some() || v.strip_prefix("cmd:").is_some_and(|c| !c.trim().is_empty())
 }
 
 pub const STEM_ACTIONS: &[&str] =
@@ -435,6 +443,10 @@ mod tests {
         assert!(p.set("stem.double.left", "cmd: ").is_err());
         p.set("stem.double.left", "").unwrap();
         assert_eq!(p.stem_mask(), 0x08);
+        p.set("stem.long.left", "toggle:anc+adaptive").unwrap();
+        assert!(p.set("stem.long.left", "toggle:anc+anc").is_err());
+        assert!(p.set("stem.long.left", "toggle:anc+loud").is_err());
+        assert_eq!(toggle_pair("toggle:transparency+off"), Some((Mode::Transparency, Mode::Off)));
         p.set("codec", "SBC-XQ").unwrap();
         assert!(p.set("codec", "aac;reboot").is_err());
     }

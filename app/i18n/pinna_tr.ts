@@ -597,6 +597,18 @@
         <translation>Gürültü engelleme / Şeffaf</translation>
     </message>
     <message>
+        <source>Noise Cancellation / Adaptive</source>
+        <translation>Gürültü engelleme / Uyarlanabilir</translation>
+    </message>
+    <message>
+        <source>Transparency / Adaptive</source>
+        <translation>Şeffaf / Uyarlanabilir</translation>
+    </message>
+    <message>
+        <source>Noise Cancellation / Off</source>
+        <translation>Gürültü engelleme / Kapalı</translation>
+    </message>
+    <message>
         <source>Nothing</source>
         <translation>Hiçbir şey</translation>
     </message>
