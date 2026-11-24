@@ -1702,6 +1702,10 @@
         <translation>Sağ</translation>
     </message>
     <message>
+        <source>about %s left</source>
+        <translation>yaklaşık %s kaldı</translation>
+    </message>
+    <message>
         <source>Left AirPod</source>
         <translation>Sol AirPod</translation>
     </message>
@@ -1712,6 +1716,14 @@
     <message>
         <source>Case</source>
         <translation>Kutu</translation>
+    </message>
+    <message>
+        <source>min</source>
+        <translation>dk</translation>
+    </message>
+    <message>
+        <source>h</source>
+        <translation>sa</translation>
     </message>
 </context>
 </TS>

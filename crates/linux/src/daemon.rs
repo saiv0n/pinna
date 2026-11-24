@@ -1458,7 +1458,12 @@ impl Daemon {
                 });
             }
         }
-        msg
+        // the first bud to run out ends listening, so the shorter estimate
+        let est = [g.state.estimate.left, g.state.estimate.right].into_iter().flatten().min();
+        msg.map(|m| match est {
+            Some(min) if min > 0 => format!("{m}, {}", t("about %s left").replace("%s", &duration(min))),
+            _ => m,
+        })
     }
 
     fn charged(&self, g: &mut Inner) -> Option<String> {
@@ -1689,6 +1694,16 @@ fn loggable(d: &[u8]) -> String {
     }
 }
 
+/// "25 min" or "1 h 20 min" in the notification language.
+fn duration(min: u32) -> String {
+    let (h, m) = (min / 60, min % 60);
+    match (h, m) {
+        (0, m) => format!("{m} {}", t("min")),
+        (h, 0) => format!("{h} {}", t("h")),
+        (h, m) => format!("{h} {} {m} {}", t("h"), t("min")),
+    }
+}
+
 /// True when the lid goes from closed (or unseen for a while) to open.
 fn lid_opened(open_at: &mut Option<Instant>, open: bool, now: Instant) -> bool {
     let was = open_at.is_some_and(|t| now.duration_since(t) < Duration::from_secs(90));
@@ -1717,6 +1732,14 @@ mod cycle_tests {
         let keys = [&[0x04, 0x00, 0x04, 0x00, 0x31, 0x00, 0x02][..], &[0xAB; 40][..]].concat();
         assert!(!loggable(&keys).contains("abab"));
         assert_eq!(loggable(&[0x04, 0x00, 0x04, 0x00, 0x06, 0x00, 0x00, 0x00]), "0400040006000000");
+    }
+
+    #[test]
+    fn durations() {
+        // units follow the user's language, so only the numbers are checked
+        assert_eq!(duration(25), format!("25 {}", t("min")));
+        assert_eq!(duration(60), format!("1 {}", t("h")));
+        assert_eq!(duration(80), format!("1 {} 20 {}", t("h"), t("min")));
     }
 
     #[test]
