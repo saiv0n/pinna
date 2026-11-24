@@ -87,7 +87,9 @@ void Tray::rebuild()
         parts << tr("Case %1").arg(c);
     const QString status = !b->daemon() ? tr("Service not running")
         : !s.value(QStringLiteral("adapter")).toBool() ? tr("Bluetooth is off")
-        : !live ? tr("Not connected") : parts.join(QStringLiteral("  "));
+        // the case advert still tells the levels while they are not connected
+        : !live ? (parts.isEmpty() ? tr("Not connected") : tr("Not connected") + QStringLiteral("\n") + parts.join(QStringLiteral("  ")))
+        : parts.join(QStringLiteral("  "));
     // the lower of the two estimates, since the first bud to run out ends listening
     QString left;
     if (live) {
