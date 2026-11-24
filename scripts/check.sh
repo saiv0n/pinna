@@ -8,6 +8,19 @@ cargo test -q
 cargo clippy -q --all-targets -- -D warnings
 cmake --build app/build >/dev/null
 
+# every text in the code is in the translation files, and Turkish is complete
+before=$(cat app/i18n/pinna_*.ts | md5sum)
+python3 app/i18n/update.py 2>/dev/null
+if [ "$(cat app/i18n/pinna_*.ts | md5sum)" != "$before" ]; then
+    echo "translation files were out of date; app/i18n/update.py updated them"
+    exit 1
+fi
+if grep -q 'type="unfinished"' app/i18n/pinna_tr.ts; then
+    echo "untranslated Turkish strings:"
+    grep -B2 'type="unfinished"' app/i18n/pinna_tr.ts | grep '<source>' | sed 's/^ */  /'
+    exit 1
+fi
+
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
 fail=0
