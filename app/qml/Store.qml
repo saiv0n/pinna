@@ -13,6 +13,8 @@ QtObject {
     readonly property bool live: Backend.daemon && !!s.connected
     readonly property bool ready: live && s.ready !== false
     readonly property string name: s.name || "AirPods"
+    // AirPods 1 and 2 have no motion sensor; AirPods 3 send motion over another channel we do not read yet
+    readonly property bool headSensor: [0x2002, 0x200f, 0x2013].indexOf(s.modelId || 0) < 0
     // over-ear headphones report one battery, carried in the left slot
     readonly property bool oneBattery: !!s.oneBattery
 

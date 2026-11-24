@@ -110,6 +110,7 @@ Page {
     Section {
         id: gestures
         title: qsTr("Head Gestures")
+        visible: Store.headSensor
         experimental: true
         enabled: Store.ready
         readonly property bool on: Store.pref("headGestures", false)
@@ -174,6 +175,7 @@ Page {
 
     Section {
         title: qsTr("Head Tracking")
+        visible: Store.headSensor
         footer: qsTr("Shows the direction of your head live using the headphones' motion sensor. Uses a bit more battery while on.")
         enabled: Store.ready
         Setting {

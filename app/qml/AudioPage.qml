@@ -46,8 +46,8 @@ Page {
             title: qsTr("Spatial audio")
             subtitle: Store.pref("spatial", "off") !== "off" && !Store.audio.available ? qsTr("Waiting for audio output…") : ""
             Segmented {
-                readonly property var keys: ["off", "fixed", "head"]
-                options: [qsTr("Off"), qsTr("Fixed"), qsTr("Head tracked")]
+                readonly property var keys: Store.headSensor ? ["off", "fixed", "head"] : ["off", "fixed"]
+                options: [qsTr("Off"), qsTr("Fixed"), qsTr("Head tracked")].slice(0, keys.length)
                 current: Math.max(0, keys.indexOf(Store.pref("spatial", "off")))
                 onPicked: i => Backend.setPref("spatial", keys[i])
             }
