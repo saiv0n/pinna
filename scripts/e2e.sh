@@ -21,7 +21,11 @@ field() { $ctl json | python3 -c "import json,sys; d=json.load(sys.stdin); print
 start() { # profile, extra env
     env PINNA_FAKE="$1" ${2:-} target/release/pinnad >"$tmp/pinnad.log" 2>&1 &
     daemon=$!
-    for _ in $(seq 30); do $ctl json >/dev/null 2>&1 && break; sleep 0.1; done
+    # ask the bus, not the service: calling it early would start the installed one
+    for _ in $(seq 30); do
+        gdbus call --session -d org.freedesktop.DBus -o /org/freedesktop/DBus -m org.freedesktop.DBus.NameHasOwner dev.pinna.Daemon 2>/dev/null | grep -q true && break
+        sleep 0.1
+    done
     sleep 0.5
 }
 stop() { kill "$daemon"; wait "$daemon" 2>/dev/null; rm -rf "$XDG_CONFIG_HOME"/* "$XDG_STATE_HOME"/*; }
