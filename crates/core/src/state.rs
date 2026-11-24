@@ -290,7 +290,7 @@ pub const SETTINGS: &[(&str, u8, Kind)] = &[
 ];
 
 /// Settings the buds never report, so we resend them on every connection.
-pub const STICKY: &[&str] = &["listeningCycle", "allowOff", "holdLeft", "holdRight"];
+pub const STICKY: &[&str] = &["listeningCycle", "allowOff", "holdLeft", "holdRight", "adaptiveStrength"];
 
 pub fn lookup(key: &str) -> Option<(u8, Kind)> {
     SETTINGS.iter().find(|s| s.0 == key).map(|s| (s.1, s.2))
@@ -330,8 +330,11 @@ pub struct Config {
     /// BLE keys per device address, so adverts of one pair are never read as another's
     pub keys: BTreeMap<String, Keys>,
     pub prefs: Prefs,
-    /// settings rewritten to the buds on every connection
+    /// settings of older versions, before they were kept per device
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub sticky: BTreeMap<String, Value>,
+    /// settings rewritten to the buds on every connection, per device address
+    pub sticky_by: BTreeMap<String, BTreeMap<String, Value>>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -371,6 +374,12 @@ impl Config {
     }
 
     fn migrate(&mut self) {
+        if let Some(a) = &self.address
+            && !self.sticky.is_empty()
+        {
+            let old = std::mem::take(&mut self.sticky);
+            self.sticky_by.entry(a.to_uppercase()).or_default().extend(old);
+        }
         if let (Some(a), Some(irk), Some(enc)) = (&self.address, &self.irk, &self.enc_key) {
             self.keys.entry(a.to_uppercase()).or_insert(Keys { irk: irk.clone(), enc: enc.clone() });
             self.irk = None;
@@ -466,5 +475,10 @@ mod tests {
         c.set_keys("11:22:33:44:55:66", &[1; 16], &[2; 16]);
         assert_eq!(c.keys_for("11:22:33:44:55:66"), Some(([1; 16], [2; 16])));
         assert!(!serde_json::to_string(&c).unwrap().contains("enc_key"));
+        let mut c: Config =
+            serde_json::from_str(r#"{"address":"aa:bb:cc:dd:ee:ff","sticky":{"allowOff":true}}"#).unwrap();
+        c.migrate();
+        assert!(c.sticky.is_empty());
+        assert_eq!(c.sticky_by["AA:BB:CC:DD:EE:FF"]["allowOff"], Value::Bool(true));
     }
 }

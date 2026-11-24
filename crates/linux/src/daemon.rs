@@ -114,7 +114,9 @@ impl Daemon {
         let adapter = session.default_adapter().await?;
         let mut config = Config::load();
         // do not try to write settings from old versions that no longer exist
-        config.sticky.retain(|k, _| state::STICKY.contains(&k.as_str()));
+        for m in config.sticky_by.values_mut() {
+            m.retain(|k, _| state::STICKY.contains(&k.as_str()));
+        }
         let mut st = State { prefs: config.prefs.clone(), ..Default::default() };
         st.has_keys = config.address.as_deref().is_some_and(|a| config.keys_for(a).is_some());
         st.address = config.address.clone();
@@ -236,8 +238,10 @@ impl Daemon {
         self.send(packet).await?;
         let mut g = self.inner.lock().await;
         g.state.settings.insert(key.to_string(), value.clone());
-        if state::STICKY.contains(&key) {
-            g.config.sticky.insert(key.to_string(), value);
+        if state::STICKY.contains(&key)
+            && let Some(a) = g.state.address.clone()
+        {
+            g.config.sticky_by.entry(a.to_uppercase()).or_default().insert(key.to_string(), value);
             g.config.save();
         }
         drop(g);
@@ -1121,7 +1125,7 @@ impl Daemon {
             let _ = tx.send(aap::REQUEST_KEYS.to_vec());
         }
         g.state.ready = true;
-        let sticky = g.config.sticky.clone();
+        let sticky = g.state.address.as_ref().and_then(|a| g.config.sticky_by.get(&a.to_uppercase())).cloned().unwrap_or_default();
         drop(g);
         for (k, v) in sticky {
             let s = match &v {
