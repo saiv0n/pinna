@@ -504,25 +504,37 @@ impl Daemon {
     async fn apply_call(&self) {
         let (mode, connected, name) = {
             let g = self.inner.lock().await;
-            (g.config.prefs.call_mic.clone(), g.state.connected, g.state.name.clone())
+            // the paired name while the buds are away, the source outlives the connection
+            let name = if g.state.name.is_empty() { g.state.devices.first().map(|d| d.name.clone()).unwrap_or_default() } else { g.state.name.clone() };
+            (g.config.prefs.call_mic.clone(), g.state.connected, name)
         };
         audio::call_quality(mode != "hfp").await;
-        let want = mode == "airpods" && connected;
+        // the source stays while the setting is on, even when the buds are away; only the
+        // default mic moves, so recording apps never see a device vanish
+        let want = mode == "airpods";
         let has = self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some();
         if want && !has {
             match mic::Mic::open(if name.is_empty() { "AirPods" } else { &name }).await {
-                Some(m) => {
-                    *self.mic.lock().unwrap_or_else(|e| e.into_inner()) = Some(m);
-                    mic::make_default().await;
-                }
+                Some(m) => *self.mic.lock().unwrap_or_else(|e| e.into_inner()) = Some(m),
                 None => warn!("could not open the virtual mic"),
             }
-        } else if !want && has {
+        } else if !want {
             let m = self.mic.lock().unwrap_or_else(|e| e.into_inner()).take();
-            if let Some(m) = m {
-                m.close().await;
+            match m {
+                Some(m) => {
+                    mic::park().await;
+                    m.close().await;
+                }
+                None => mic::cleanup().await,
             }
             self.mic_activity().await;
+        }
+        if want && self.mic.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
+            if connected {
+                mic::make_default().await;
+            } else {
+                mic::park().await;
+            }
         }
     }
 
@@ -720,7 +732,6 @@ impl Daemon {
         tokio::spawn(self.clone().mic_watchdog());
         let me = self.clone();
         tokio::spawn(async move {
-            mic::cleanup().await;
             me.apply_call().await;
         });
         loop {
