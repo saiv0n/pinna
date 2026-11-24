@@ -998,7 +998,9 @@ impl Daemon {
                 }
                 Err(_) => false,
             };
-            if ok && let Ok(d) = me.adapter().device(a) && let Ok(mut ev) = d.events().await {
+            // BlueZ drops some interfaces on disconnect, which ends the event stream,
+            // so subscribe again while the device is still there
+            while ok && let Ok(d) = me.adapter().device(a) && let Ok(mut ev) = d.events().await {
                 while let Some(bluer::DeviceEvent::PropertyChanged(p)) = ev.next().await {
                     use bluer::DeviceProperty as P;
                     if matches!(p, P::Connected(_) | P::Paired(_) | P::Alias(_) | P::ServicesResolved(_)) {
@@ -1006,6 +1008,12 @@ impl Daemon {
                         me.wake.notify_one();
                     }
                 }
+                debug!("{a}: device events ended");
+                if !d.is_paired().await.unwrap_or(false) {
+                    break;
+                }
+                me.wake.notify_one();
+                tokio::time::sleep(Duration::from_secs(1)).await;
             }
             me.watched.lock().unwrap_or_else(|e| e.into_inner()).remove(&a);
         });
