@@ -8,6 +8,7 @@
 #include <QFontDatabase>
 #include <QLocale>
 #include <QProcess>
+#include <QSettings>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -56,8 +57,20 @@ public:
                 }, Qt::DirectConnection);
             }
             connect(window, &QWindow::visibleChanged, this, [this](bool v) { Backend::instance()->windowShown(v); });
+            // the size it had last time; screenshots keep the fixed one
+            const QSize size = QSettings().value(QStringLiteral("windowSize")).toSize();
+            if (component == QLatin1String("Main") && size.isValid() && qEnvironmentVariable("PINNA_SHOT").isEmpty())
+                window->resize(size.expandedTo(window->minimumSize()));
+            if (qEnvironmentVariableIsSet("PINNA_TRACE"))
+                qInfo("pinna: window %dx%d", window->width(), window->height());
         }
         return window;
+    }
+
+    void saveSize()
+    {
+        if (window && component == QLatin1String("Main") && qEnvironmentVariable("PINNA_SHOT").isEmpty())
+            QSettings().setValue(QStringLiteral("windowSize"), window->size());
     }
 
     void release()
@@ -66,6 +79,7 @@ public:
             qInfo("pinna: releasing window (%s)", engine ? "engine alive" : "no engine");
         if (!engine)
             return;
+        saveSize();
         engine->deleteLater();
         engine = nullptr;
         window = nullptr;
@@ -162,6 +176,7 @@ int main(int argc, char *argv[])
     if (int h = qEnvironmentVariableIntValue("PINNA_SHOT_HEIGHT"))
         instance.prepare = [h](QQmlApplicationEngine *e) { e->setInitialProperties({{QStringLiteral("height"), h}}); };
 
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &instance, [&instance] { instance.saveSize(); });
     if (!popup && !shot) {
         auto *tray = new Tray(&app);
         tray->open = [&instance] { instance.Activate(); };
