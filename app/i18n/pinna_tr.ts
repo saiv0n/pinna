@@ -32,6 +32,10 @@
         <translation>Yazılım sürümü</translation>
     </message>
     <message>
+        <source>Version</source>
+        <translation>Sürüm</translation>
+    </message>
+    <message>
         <source>Bluetooth address</source>
         <translation>Bluetooth adresi</translation>
     </message>
@@ -42,10 +46,6 @@
     <message>
         <source>Headphone renders from Jed Falcone's AirPods Pro model (CC BY 4.0). Pinna is not affiliated with Apple.</source>
         <translation>Kulaklık görseli Jed Falcone'un AirPods Pro modelinden (CC BY 4.0). Pinna'nın Apple ile bir bağı yoktur.</translation>
-    </message>
-    <message>
-        <source>Version</source>
-        <translation>Sürüm</translation>
     </message>
     <message>
         <source>License</source>
@@ -288,6 +288,10 @@
 </context>
 <context>
     <name>BatteryChart</name>
+    <message>
+        <source>Battery</source>
+        <translation>Pil</translation>
+    </message>
     <message>
         <source>Left</source>
         <translation>Sol</translation>
@@ -820,6 +824,14 @@
         <translation>Kulaklık yakındaki aygıtlar arasında kendiliğinden bu bilgisayara geçebilir.</translation>
     </message>
     <message>
+        <source>Optimized Charging</source>
+        <translation>Optimize Şarj</translation>
+    </message>
+    <message>
+        <source>Charging pauses at 80% and finishes when the headphones expect you to use them.</source>
+        <translation>Şarj %80'de bekler ve kulaklığı kullanacağın zamana doğru tamamlanır.</translation>
+    </message>
+    <message>
         <source>Connection</source>
         <translation>Bağlantı</translation>
     </message>
@@ -1227,6 +1239,10 @@
         <translation>Kutu açık, bağlanmaya hazır</translation>
     </message>
     <message>
+        <source>Battery</source>
+        <translation>Pil</translation>
+    </message>
+    <message>
         <source>Left</source>
         <translation>Sol</translation>
     </message>
@@ -1279,6 +1295,10 @@
     <message>
         <source>Not connected</source>
         <translation>Bağlı değil</translation>
+    </message>
+    <message>
+        <source>Battery</source>
+        <translation>Pil</translation>
     </message>
     <message>
         <source>Left</source>
@@ -1427,6 +1447,10 @@
 </context>
 <context>
     <name>Tray</name>
+    <message>
+        <source>Battery %1</source>
+        <translation>Pil %1</translation>
+    </message>
     <message>
         <source>Left %1</source>
         <translation>Sol %1</translation>

@@ -29,7 +29,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 
 Headphone accommodation, custom transparency, mic selection and turning off ear detection are not there yet. The buds never report these values back, so I could not make sure they work. The live noise level around you, which an Apple Watch shows, is not there either: no one has found it in the protocol yet.
 
-Tested on AirPods Pro 2 (USB-C) on x86_64. There is no architecture specific code, so it should build the same on aarch64 (Asahi, Raspberry Pi); the PKGBUILD lists both. Other AirPods and Beats speak the same protocol, so most settings should work, but a setting does nothing if the model does not support it.
+Tested on AirPods Pro 2 (USB-C) on x86_64. AirPods Max show one battery, and settings a model never reports (like volume swipe on AirPods 4 or adaptive mode on AirPods Max) are hidden. There is no architecture specific code, so it should build the same on aarch64 (Asahi, Raspberry Pi); the PKGBUILD lists both. Other AirPods and Beats speak the same protocol, so most settings should work, but a setting does nothing if the model does not support it.
 
 ## Install
 
@@ -90,7 +90,7 @@ Three parts:
 
 - `crates/core` is the protocol itself: packets, BLE advert parsing, the settings table. It does not depend on the OS, so Windows and Android versions can use it later.
 - `crates/linux` is the `pinnad` service that talks to BlueZ, plus `pinnactl`. The service publishes its state on D-Bus as `dev.pinna.Daemon`.
-- `app` is the Qt Quick interface. Source strings are English; after adding new ones, `app/i18n/update.py` updates the Turkish translation file.
+- `app` is the Qt Quick interface. Source strings are English; after adding new ones, `app/i18n/update.py` updates every translation file.
 
 To work without a headset, run a second daemon with pretend AirPods next to the real one and point the app or `pinnactl` at it:
 
@@ -99,7 +99,9 @@ PINNA_FAKE=1 PINNA_BUS=dev.pinna.Test XDG_CONFIG_HOME=/tmp/pinna-test XDG_STATE_
 PINNA_BUS=dev.pinna.Test app/build/pinna
 ```
 
-For screenshots without any daemon, `PINNA_STATE=app/fixtures/connected.json` loads a fixed state, and `PINNA_SHOT=file.png` saves the window and quits.
+`PINNA_FAKE=pro3`, `max` or `airpods4` instead of `1` pretends to be that model, with the controls and battery layout it reports, so you can see which settings the app hides for it. The packets come from captures posted in LibrePods and CAPod; the parser tests in `crates/core/src/aap.rs` use the same ones with names and serials removed.
+
+For screenshots without any daemon, `PINNA_STATE=app/fixtures/connected.json` (or `max.json`, `finding.json`) loads a fixed state, and `PINNA_SHOT=file.png` saves the window and quits.
 
 The headphone images are rendered in Blender. The model is Jed Falcone's [AirPods Pro](https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model is not in the repo; download it from Sketchfab and rebuild the images with:
 

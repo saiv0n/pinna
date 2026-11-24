@@ -100,7 +100,7 @@ Window {
             y: 56
             spacing: 12
             Repeater {
-                model: [["left", qsTr("Left")], ["right", qsTr("Right")], ["case", qsTr("Case")]]
+                model: Store.oneBattery ? [["left", qsTr("Battery")]] : [["left", qsTr("Left")], ["right", qsTr("Right")], ["case", qsTr("Case")]]
                 BatteryTile {
                     required property var modelData
                     readonly property var now: win.level(modelData[0])

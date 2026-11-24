@@ -188,6 +188,7 @@ Page {
     Section {
         title: qsTr("Smart Audio")
         Setting {
+            visible: Store.has("adaptiveVolume")
             title: qsTr("Personalized volume")
             subtitle: qsTr("Adjusts volume based on your environment and listening habits.")
             enabled: Store.ready
@@ -224,6 +225,7 @@ Page {
 
     Section {
         title: qsTr("Case Speaker")
+        visible: Store.has("chimeVolume")
         enabled: Store.ready
         Block {
             Text { text: qsTr("Volume of the case chimes"); font: Theme.body; color: Theme.text }

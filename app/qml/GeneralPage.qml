@@ -13,7 +13,8 @@ Page {
             Row {
                 width: parent.width
                 Repeater {
-                    model: [["left", qsTr("Left AirPod"), 1], ["right", qsTr("Right AirPod"), 2], ["case", qsTr("Case"), 3]]
+                    model: Store.oneBattery ? [["left", Store.s.modelName || Store.name, 1]]
+                                          : [["left", qsTr("Left AirPod"), 1], ["right", qsTr("Right AirPod"), 2], ["case", qsTr("Case"), 3]]
                     Item {
                         id: cell
                         required property var modelData
@@ -21,7 +22,7 @@ Page {
                         readonly property var last: now === null ? Store.lastKnown(modelData[2]) : null
                         readonly property var lvl: now !== null ? now : last ? last.level : null
                         readonly property string ear: modelData[0] === "case" ? "" : ((Store.s.ear || {})[modelData[0]] || "")
-                        width: parent.width / 3
+                        width: parent.width / (Store.oneBattery ? 1 : 3)
                         height: 84
                         opacity: cell.last ? 0.6 : 1
                         Accessible.role: Accessible.StaticText
@@ -176,6 +177,17 @@ Page {
             Switch {
                 checked: Store.setting("autoConnect", true)
                 onToggled: v => Backend.setSetting("autoConnect", v)
+            }
+        }
+        Setting {
+            // newer models report it; waits at 80% while charging and finishes before you usually need them
+            visible: Store.settings.optimizedCharging !== undefined
+            enabled: Store.ready
+            title: qsTr("Optimized Charging")
+            subtitle: qsTr("Charging pauses at 80% and finishes when the headphones expect you to use them.")
+            Switch {
+                checked: Store.setting("optimizedCharging", true)
+                onToggled: v => Backend.setSetting("optimizedCharging", v)
             }
         }
         Setting {

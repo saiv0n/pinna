@@ -14,10 +14,10 @@ Item {
     }
     property real hoverX: -1
     readonly property var series: [
-        { i: 1, name: qsTr("Left"), color: Theme.accent },
+        { i: 1, name: Store.oneBattery ? qsTr("Battery") : qsTr("Left"), color: Theme.accent },
         { i: 2, name: qsTr("Right"), color: Theme.green },
         { i: 3, name: qsTr("Case"), color: Theme.orange }
-    ]
+    ].filter(x => !Store.oneBattery || x.i === 1)
     implicitHeight: 170
     onRowsChanged: canvas.requestPaint()
     onSpanChanged: canvas.requestPaint()

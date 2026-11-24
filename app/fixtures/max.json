@@ -1,0 +1,282 @@
+{
+ "adapter": true,
+ "address": "00:11:22:33:44:55",
+ "connected": true,
+ "ready": true,
+ "name": "AirPods Max",
+ "model": "A2096",
+ "modelName": "AirPods Max",
+ "modelId": 8202,
+ "firmware": "65.1868046005000000.109",
+ "serial": "TEST",
+ "serialLeft": "",
+ "serialRight": "",
+ "battery": {
+  "left": {
+   "level": 72,
+   "charging": false
+  },
+  "right": {
+   "level": null,
+   "charging": false
+  },
+  "case": {
+   "level": null,
+   "charging": false
+  }
+ },
+ "ear": {
+  "left": "ear",
+  "right": "ear"
+ },
+ "mode": "anc",
+ "speaking": false,
+ "settings": {
+  "conversationAwareness": true,
+  "adaptiveVolume": false,
+  "oneBudAnc": false,
+  "pressSpeed": 0,
+  "holdDuration": 0,
+  "chimeVolume": 80,
+  "allowOff": false
+ },
+ "prefs": {
+  "autoPause": true,
+  "autoResume": true,
+  "duckOnSpeech": true,
+  "duckLevel": 25,
+  "lowBatteryNotify": true,
+  "popup": true,
+  "caseScan": true,
+  "lowBattery": 20,
+  "chargedNotify": true,
+  "autoOutput": true,
+  "callMic": "airpods",
+  "stem": {},
+  "caOneBud": false,
+  "spatial": "off"
+ },
+ "hasKeys": true,
+ "devices": [
+  {
+   "address": "00:11:22:33:44:55",
+   "name": "AirPods Max",
+   "modelName": "AirPods Max",
+   "modelId": 8202,
+   "connected": true
+  }
+ ],
+ "nearby": [],
+ "discovering": false,
+ "audio": {
+  "available": true,
+  "profile": "a2dp",
+  "volume": 60,
+  "muted": false,
+  "isDefault": true,
+  "codec": "AAC",
+  "micActive": false,
+  "codecs": [
+   "AAC",
+   "SBC-XQ",
+   "SBC"
+  ]
+ },
+ "headTracking": false,
+ "signal": null,
+ "signalAt": 0,
+ "eq": null,
+ "estimate": {
+  "left": 250,
+  "right": null
+ },
+ "history": [
+  [
+   -9000,
+   100,
+   -1,
+   -1
+  ],
+  [
+   -8700,
+   99,
+   -1,
+   -1
+  ],
+  [
+   -8400,
+   98,
+   -1,
+   -1
+  ],
+  [
+   -8100,
+   98,
+   -1,
+   -1
+  ],
+  [
+   -7800,
+   97,
+   -1,
+   -1
+  ],
+  [
+   -7500,
+   96,
+   -1,
+   -1
+  ],
+  [
+   -7200,
+   96,
+   -1,
+   -1
+  ],
+  [
+   -6900,
+   95,
+   -1,
+   -1
+  ],
+  [
+   -6600,
+   94,
+   -1,
+   -1
+  ],
+  [
+   -6300,
+   93,
+   -1,
+   -1
+  ],
+  [
+   -6000,
+   92,
+   -1,
+   -1
+  ],
+  [
+   -5700,
+   92,
+   -1,
+   -1
+  ],
+  [
+   -5400,
+   91,
+   -1,
+   -1
+  ],
+  [
+   -5100,
+   90,
+   -1,
+   -1
+  ],
+  [
+   -4800,
+   90,
+   -1,
+   -1
+  ],
+  [
+   -4500,
+   89,
+   -1,
+   -1
+  ],
+  [
+   -4200,
+   88,
+   -1,
+   -1
+  ],
+  [
+   -3900,
+   87,
+   -1,
+   -1
+  ],
+  [
+   -3600,
+   86,
+   -1,
+   -1
+  ],
+  [
+   -3300,
+   86,
+   -1,
+   -1
+  ],
+  [
+   -3000,
+   85,
+   -1,
+   -1
+  ],
+  [
+   -2700,
+   84,
+   -1,
+   -1
+  ],
+  [
+   -2400,
+   84,
+   -1,
+   -1
+  ],
+  [
+   -2100,
+   83,
+   -1,
+   -1
+  ],
+  [
+   -1800,
+   82,
+   -1,
+   -1
+  ],
+  [
+   -1500,
+   82,
+   -1,
+   -1
+  ],
+  [
+   -1200,
+   82,
+   -1,
+   -1
+  ],
+  [
+   -900,
+   82,
+   -1,
+   -1
+  ],
+  [
+   -600,
+   82,
+   -1,
+   -1
+  ],
+  [
+   -300,
+   82,
+   -1,
+   -1
+  ],
+  [
+   0,
+   82,
+   -1,
+   -1
+  ]
+ ],
+ "oneBattery": true
+}

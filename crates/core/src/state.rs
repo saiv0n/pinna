@@ -43,6 +43,7 @@ pub struct State {
     pub model_name: String,
     pub model_id: u16,
     pub firmware: String,
+    pub version: String,
     pub serial: String,
     pub serial_left: String,
     pub serial_right: String,
@@ -63,6 +64,8 @@ pub struct State {
     /// signal strength (dBm) and time of the last BLE advert while disconnected, for finding nearby buds
     pub signal: Option<i16>,
     pub signal_at: u64,
+    /// one battery for the whole headset (AirPods Max); it is reported as the left one
+    pub one_battery: bool,
     /// [time, dBm] pairs of the last two minutes, one every two seconds, for the finder's trend
     pub signal_history: Vec<(u64, i16)>,
     /// custom EQ as the buds last reported it; None when the model has none
@@ -260,6 +263,7 @@ pub const SETTINGS: &[(&str, u8, Kind)] = &[
     ("hearingAssist", cmd::HEARING_ASSIST, Kind::Toggle),
     ("autoConnect", cmd::AUTO_CONNECT, Kind::Toggle),
     ("loudSoundReduction", cmd::LOUD_SOUND, Kind::Toggle),
+    ("optimizedCharging", cmd::OPTIMIZED_CHARGING, Kind::Toggle),
     ("volumeSwipeInterval", cmd::VOLUME_SWIPE_INTERVAL, Kind::Number(0, 2)),
     ("pressSpeed", cmd::PRESS_SPEED, Kind::Number(0, 2)),
     ("holdDuration", cmd::HOLD_DURATION, Kind::Number(0, 2)),

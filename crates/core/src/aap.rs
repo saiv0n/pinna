@@ -58,6 +58,8 @@ pub mod cmd {
     pub const HEARING_ASSIST: u8 = 0x33;
     pub const ALLOW_OFF: u8 = 0x34;
     pub const SLEEP_DETECTION: u8 = 0x35;
+    /// optimized charging, called dynamic end of charge
+    pub const OPTIMIZED_CHARGING: u8 = 0x3B;
     /// loud sound reduction, called hearing protection in some regions
     pub const LOUD_SOUND: u8 = 0x37;
     /// bit mask: 2 double, 4 triple, 8 long press; marked presses are forwarded to us
@@ -135,6 +137,8 @@ pub enum Component {
     Left,
     Right,
     Case,
+    /// over-ear headphones like AirPods Max have one battery
+    Single,
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +157,8 @@ pub struct DeviceInfo {
     pub firmware: String,
     pub serial_left: String,
     pub serial_right: String,
+    /// a plain number on newer firmware (like 8454624) next to the long build string
+    pub version: String,
 }
 
 #[derive(Debug, Clone)]
@@ -229,6 +235,7 @@ pub fn parse(d: &[u8]) -> Option<Packet> {
                     0x04 => Component::Left,
                     0x02 => Component::Right,
                     0x08 => Component::Case,
+                    0x01 => Component::Single,
                     _ => continue,
                 };
                 out.push(BatteryEntry {
@@ -278,8 +285,10 @@ fn parse_info(body: &[u8]) -> DeviceInfo {
         model: get(1),
         serial: get(3),
         firmware: get(4),
-        serial_left: get(8),
-        serial_right: get(9),
+        // over-ear models send "0" for the bud serials
+        serial_left: Some(get(8)).filter(|x| x != "0").unwrap_or_default(),
+        serial_right: Some(get(9)).filter(|x| x != "0").unwrap_or_default(),
+        version: Some(get(10)).filter(|x| !x.is_empty() && x.bytes().all(|b| b.is_ascii_digit())).unwrap_or_default(),
     }
 }
 
@@ -451,5 +460,51 @@ mod tests {
         let p = control(cmd::LISTENING_MODE, [2, 0, 0, 0]);
         let Packet::Control { id, data } = parse(&p).unwrap() else { panic!() };
         assert_eq!((id, data[0]), (0x0D, 2));
+    }
+
+    // AirPods Max (A2096), from a debug log in LibrePods issue #30; name and serial replaced
+    #[test]
+    fn real_airpods_max() {
+        let Some(Packet::Battery(b)) = parse(&hex("040004000400010101640201")) else { panic!() };
+        assert_eq!(b.len(), 1);
+        assert_eq!((b[0].component, b[0].level, b[0].charging, b[0].connected), (Component::Single, 100, false, true));
+        assert!(matches!(parse(&hex("0400040006000000")), Some(Packet::Ear(Pod::Ear, Pod::Ear))));
+        for (p, id, v) in [("0400040009000d04000000", 0x0D, 4), ("0400040009003402000000", 0x34, 2), ("0400040009001f50500000", 0x1F, 0x50)] {
+            let Some(Packet::Control { id: i, data }) = parse(&hex(p)) else { panic!("{p}") };
+            assert_eq!((i, data[0]), (id, v));
+        }
+        let mut body = hex("040004001d0002d4000800");
+        for f in ["AirPods Max", "A2096", "Apple Inc.", "XXXXXXXXXXXX", "65.1868046005000000.109", "65.1868046005000000.109",
+                  "1.0.0", "com.apple.accessory.updater.app.multiasset.56", "0", "0", "6619536"] {
+            body.extend_from_slice(f.as_bytes());
+            body.push(0);
+        }
+        let Some(Packet::Info(i)) = parse(&body) else { panic!() };
+        assert_eq!((i.name.as_str(), i.model.as_str(), i.firmware.as_str()), ("AirPods Max", "A2096", "65.1868046005000000.109"));
+        assert!(i.serial_left.is_empty() && i.serial_right.is_empty());
+    }
+
+    // AirPods Pro 3 (A3064), test vectors from CAPod's AirPodsPro3AapSessionTest; serials replaced
+    #[test]
+    fn real_airpods_pro_3() {
+        let Some(Packet::Battery(b)) = parse(&hex("040004000400030401500501020 14F050108013001 01".replace(' ', "").as_str())) else { panic!() };
+        assert_eq!(b.iter().map(|e| (e.component, e.level, e.charging, e.connected)).collect::<Vec<_>>(),
+                   vec![(Component::Left, 80, false, true), (Component::Right, 79, false, true), (Component::Case, 48, true, true)]);
+        let Some(Packet::Battery(b)) = parse(&hex("0400040004000302014D0201040150020108010004 01".replace(' ', "").as_str())) else { panic!() };
+        assert!(!b[2].connected);
+        for (p, id, v) in [("0400040009002E32000000", 0x2E, 50), ("0400040009003B01000000", 0x3B, 1), ("0400040009002400030000", 0x24, 0)] {
+            let Some(Packet::Control { id: i, data }) = parse(&hex(p)) else { panic!("{p}") };
+            assert_eq!((i, data[0]), (id, v));
+        }
+        assert!(matches!(parse(&hex("0400040006000102")), Some(Packet::Ear(Pod::Out, Pod::Case))));
+        let mut body = hex("040004001D0002ED000400");
+        for f in ["AirPods Pro 3", "A3064", "Apple Inc.", "XXXXXXXXXX", "81.2675000075000000.6503", "81.2675000075000000.6503",
+                  "1.0.0", "com.apple.accessory.updater.app.71", "XXXXXXXXXXXXXXXXL0", "XXXXXXXXXXXXXXXXR0", "8454624"] {
+            body.extend_from_slice(f.as_bytes());
+            body.push(0);
+        }
+        let Some(Packet::Info(i)) = parse(&body) else { panic!() };
+        assert_eq!((i.model.as_str(), i.firmware.as_str(), i.version.as_str()), ("A3064", "81.2675000075000000.6503", "8454624"));
+        assert_eq!(i.serial_right, "XXXXXXXXXXXXXXXXR0");
     }
 }

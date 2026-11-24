@@ -52,7 +52,7 @@ void Tray::rebuild()
     QStringList parts;
     const QString l = level(bat, QStringLiteral("left")), r = level(bat, QStringLiteral("right")), c = level(bat, QStringLiteral("case"));
     if (!l.isEmpty())
-        parts << tr("Left %1").arg(l);
+        parts << (s.value(QStringLiteral("oneBattery")).toBool() ? tr("Battery %1") : tr("Left %1")).arg(l);
     if (!r.isEmpty())
         parts << tr("Right %1").arg(r);
     if (!c.isEmpty())
@@ -116,6 +116,10 @@ void Tray::rebuild()
         };
         for (const auto &[key, label] : modes) {
             if (key == QLatin1String("off") && !allowOff && mode != key)
+                continue;
+            // same rule as the app: no adaptive mode on models that never report its strength
+            if (key == QLatin1String("adaptive") && mode != key && s.value(QStringLiteral("ready")).toBool()
+                && !s.value(QStringLiteral("settings")).toMap().contains(QStringLiteral("adaptiveStrength")))
                 continue;
             auto *a = m_menu->addAction(label);
             a->setCheckable(true);

@@ -15,7 +15,7 @@ Page {
             ModePicker { width: parent.width }
         }
         Block {
-            visible: Store.s.mode === "adaptive"
+            visible: Store.s.mode === "adaptive" && Store.has("adaptiveStrength")
             Text { text: qsTr("Ambient sound in Adaptive mode"); font: Theme.body; color: Theme.text }
             Slider {
                 width: parent.width
@@ -44,7 +44,7 @@ Page {
                 required property var modelData
                 readonly property int count: [1, 2, 4, 8].filter(b => page.mask & b).length
                 readonly property bool on: (page.mask & modelData.bit) !== 0
-                visible: page.allowOff || modelData.key !== "off"
+                visible: (page.allowOff || modelData.key !== "off") && (modelData.key !== "adaptive" || Store.adaptive)
                 title: Store.modeNames[modelData.key]
                 clickable: true
                 onClicked: box.flip()
@@ -68,6 +68,7 @@ Page {
     Section {
         enabled: Store.ready
         Setting {
+            visible: Store.has("conversationAwareness")
             title: qsTr("Conversation Awareness")
             subtitle: qsTr("When you start speaking, media is lowered and voices in front of you are brought forward.")
             Switch {
@@ -76,6 +77,7 @@ Page {
             }
         }
         Setting {
+            visible: Store.has("conversationAwareness") && !Store.oneBattery
             title: qsTr("Pause Conversation Awareness with one AirPod")
             subtitle: qsTr("Conversation Awareness turns off while only one AirPod is in and comes back when both are.")
             enabled: Store.setting("conversationAwareness", false) || Store.pref("caOneBud", false)
@@ -85,6 +87,7 @@ Page {
             }
         }
         Setting {
+            visible: Store.has("oneBudAnc") && !Store.oneBattery
             title: qsTr("Noise Cancellation with One AirPod")
             subtitle: qsTr("Keeps noise cancellation on with only one AirPod in.")
             Switch {

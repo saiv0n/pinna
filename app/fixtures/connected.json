@@ -31,7 +31,19 @@
  },
  "mode": "anc",
  "speaking": false,
- "settings": {},
+ "settings": {
+  "conversationAwareness": false,
+  "adaptiveVolume": false,
+  "oneBudAnc": false,
+  "volumeSwipe": true,
+  "volumeSwipeInterval": 0,
+  "sleepDetection": false,
+  "hearingAssist": false,
+  "pressSpeed": 0,
+  "holdDuration": 0,
+  "chimeVolume": 80,
+  "adaptiveStrength": 50
+ },
  "prefs": {
   "autoPause": true,
   "autoResume": true,

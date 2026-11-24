@@ -80,7 +80,11 @@ fn print_status(s: &Value) {
         return;
     }
     println!("{name}  ({})", s["modelName"].as_str().unwrap_or(""));
-    println!("  Left {}   Right {}   Case {}", bat(&s["battery"]["left"]), bat(&s["battery"]["right"]), bat(&s["battery"]["case"]));
+    if s["oneBattery"].as_bool() == Some(true) {
+        println!("  Battery {}", bat(&s["battery"]["left"]));
+    } else {
+        println!("  Left {}   Right {}   Case {}", bat(&s["battery"]["left"]), bat(&s["battery"]["right"]), bat(&s["battery"]["case"]));
+    }
     if let Some(m) = s["mode"].as_str() {
         println!("  Mode: {}", mode_name(m));
     }
@@ -90,7 +94,9 @@ fn print_status(s: &Value) {
         Some("case") => "in case",
         _ => "?",
     };
-    println!("  Left {}, right {}", ear(&s["ear"]["left"]), ear(&s["ear"]["right"]));
+    if s["oneBattery"].as_bool() != Some(true) {
+        println!("  Left {}, right {}", ear(&s["ear"]["left"]), ear(&s["ear"]["right"]));
+    }
     let left = ["left", "right"].iter().filter_map(|k| s["estimate"][k].as_u64()).min();
     if let Some(m) = left {
         println!("  About {}h {:02}m of listening left", m / 60, m % 60);
@@ -100,7 +106,10 @@ fn print_status(s: &Value) {
         println!("  EQ: bass {:+}, mids {:+}, treble {:+}", b("low"), b("mid"), b("high"));
     }
     if let Some(f) = s["firmware"].as_str().filter(|f| !f.is_empty()) {
-        println!("  Firmware: {f}");
+        match s["version"].as_str().filter(|v| !v.is_empty()) {
+            Some(v) => println!("  Firmware: {f} ({v})"),
+            None => println!("  Firmware: {f}"),
+        }
     }
 }
 

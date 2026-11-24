@@ -116,7 +116,7 @@ Rectangle {
                 spacing: 10
                 visible: root.hasLevels || (Store.lastSeen && root.paired && !Store.live)
                 Repeater {
-                    model: [["left", qsTr("Left"), 1], ["right", qsTr("Right"), 2], ["case", qsTr("Case"), 3]]
+                    model: Store.oneBattery ? [["left", qsTr("Battery"), 1]] : [["left", qsTr("Left"), 1], ["right", qsTr("Right"), 2], ["case", qsTr("Case"), 3]]
                     BatteryTile {
                         id: tile
                         required property var modelData

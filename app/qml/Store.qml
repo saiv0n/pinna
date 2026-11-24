@@ -3,6 +3,7 @@ import QtQuick
 
 // Shortcuts into the service state so pages do not parse the same thing again and again.
 QtObject {
+    id: store
     readonly property var s: Backend.state
     readonly property var settings: s.settings || ({})
     readonly property var prefs: s.prefs || ({})
@@ -12,6 +13,16 @@ QtObject {
     readonly property bool live: Backend.daemon && !!s.connected
     readonly property bool ready: live && s.ready !== false
     readonly property string name: s.name || "AirPods"
+    // over-ear headphones report one battery, carried in the left slot
+    readonly property bool oneBattery: !!s.oneBattery
+
+    // a moment after the buds are ready, settings this model never reported get hidden
+    property bool settled: false
+    onReadyChanged: settled = false
+    property Timer settle: Timer { interval: 1500; running: store.ready && !store.settled; onTriggered: store.settled = true }
+    function has(key) { return !settled || settings[key] !== undefined }
+    // models without adaptive mode (AirPods Max, first AirPods Pro) never report its strength
+    readonly property bool adaptive: has("adaptiveStrength") || s.mode === "adaptive"
 
     function setting(key, fallback) {
         return settings[key] !== undefined && settings[key] !== null ? settings[key] : fallback

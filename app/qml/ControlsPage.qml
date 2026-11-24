@@ -23,6 +23,7 @@ Page {
             }
         }
         Setting {
+            visible: Store.has("pressSpeed")
             title: qsTr("Press speed")
             subtitle: qsTr("How much time can pass between presses for a double or triple press.")
             Segmented {
@@ -32,6 +33,7 @@ Page {
             }
         }
         Setting {
+            visible: Store.has("holdDuration")
             title: qsTr("Press and hold duration")
             Segmented {
                 options: [qsTr("Default"), qsTr("Shorter"), qsTr("Shortest")]
@@ -102,6 +104,7 @@ Page {
 
     Section {
         title: qsTr("Volume Swipe")
+        visible: Store.has("volumeSwipe")
         enabled: Store.ready
         Setting {
             title: qsTr("Swipe on stem to change volume")

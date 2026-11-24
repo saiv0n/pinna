@@ -15,6 +15,7 @@ Page {
                 [qsTr("Left AirPod"), Store.s.serialLeft || ""],
                 [qsTr("Right AirPod"), Store.s.serialRight || ""],
                 [qsTr("Firmware"), Store.s.firmware || ""],
+                [qsTr("Version"), Store.s.version || ""],
                 [qsTr("Bluetooth address"), Store.s.address || ""]
             ]
             Setting {

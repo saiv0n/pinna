@@ -7,6 +7,7 @@ Page {
     Section {
         enabled: Store.ready
         Setting {
+            visible: Store.has("hearingAssist")
             title: qsTr("Hearing assistance")
             subtitle: qsTr("Helps you hear conversations and your surroundings more clearly.")
             Switch {
@@ -15,6 +16,7 @@ Page {
             }
         }
         Setting {
+            visible: Store.has("sleepDetection")
             title: qsTr("Sleep detection")
             subtitle: qsTr("Media is paused when you fall asleep.")
             Switch {

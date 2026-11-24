@@ -8,7 +8,7 @@ Item {
     property string mode: Store.s.mode || ""
     readonly property var modes: ["off", "transparency", "adaptive", "anc"]
     readonly property bool allowOff: Store.setting("allowOff", true)
-    readonly property var shown: allowOff || mode === "off" ? modes : modes.slice(1)
+    readonly property var shown: modes.filter(m => (m !== "off" || allowOff || mode === "off") && (m !== "adaptive" || Store.adaptive))
     readonly property int index: shown.indexOf(mode)
     readonly property real spacing: 8
     readonly property real tileWidth: (width - spacing * (shown.length - 1)) / shown.length

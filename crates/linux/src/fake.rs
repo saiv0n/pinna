@@ -1,7 +1,8 @@
 // A pretend pair of AirPods for working on pinnad and the app without a headset.
 // It answers the handshake with packets shaped like real AirPods Pro 2 (USB-C) captures,
 // echoes settings back like the buds do, and drains the battery so estimates have data.
-// Start it with PINNA_FAKE=1; use PINNA_BUS and XDG_CONFIG_HOME / XDG_STATE_HOME to keep
+// Start it with PINNA_FAKE=1, or PINNA_FAKE=pro3, max or airpods4 for the controls and
+// battery layout those models report (from LibrePods and CAPod captures); use PINNA_BUS and XDG_CONFIG_HOME / XDG_STATE_HOME to keep
 // it away from the real service and its files.
 
 use pinna_core::aap;
@@ -16,10 +17,85 @@ fn pkt(op: u8, body: &[u8]) -> Vec<u8> {
     p
 }
 
-fn info() -> Vec<u8> {
+pub struct Profile {
+    pub name: &'static str,
+    pub model_name: &'static str,
+    pub product: u16,
+    part: &'static str,
+    firmware: &'static str,
+    /// one battery for the whole headset, no case
+    single: bool,
+    eq: bool,
+    /// the controls these buds report right after connecting
+    controls: &'static [(u8, [u8; 4])],
+}
+
+const PRO2: Profile = Profile {
+    name: "Fake AirPods Pro",
+    model_name: "AirPods Pro 2 (USB-C)",
+    product: 0x2024,
+    part: "A3047",
+    firmware: "8A358",
+    single: false,
+    eq: true,
+    controls: &[
+        (0x0D, [2, 0, 0, 0]), (0x17, [0, 0, 0, 0]), (0x18, [0, 0, 0, 0]), (0x1B, [2, 0, 0, 0]), (0x1F, [80, 80, 0, 0]),
+        (0x23, [0, 0, 0, 0]), (0x24, [0, 3, 0, 0]), (0x25, [1, 0, 0, 0]), (0x26, [2, 0, 0, 0]), (0x28, [1, 0, 0, 0]),
+        (0x2E, [50, 0, 0, 0]), (0x33, [2, 0, 0, 0]), (0x35, [2, 0, 0, 0]),
+    ],
+};
+
+const PROFILES: &[(&str, Profile)] = &[
+    ("pro2", PRO2),
+    ("pro3", Profile {
+        name: "Fake AirPods Pro 3",
+        model_name: "AirPods Pro 3",
+        product: 0x2027,
+        part: "A3064",
+        firmware: "81.2675000075000000.6503",
+        single: false,
+        eq: false,
+        controls: &[
+            (0x0D, [2, 0, 0, 0]), (0x17, [0, 0, 0, 0]), (0x18, [0, 0, 0, 0]), (0x1B, [2, 0, 0, 0]), (0x1F, [80, 80, 0, 0]),
+            (0x23, [0, 0, 0, 0]), (0x24, [0, 3, 0, 0]), (0x25, [1, 0, 0, 0]), (0x26, [2, 0, 0, 0]), (0x28, [2, 0, 0, 0]),
+            (0x2E, [50, 0, 0, 0]), (0x3B, [1, 0, 0, 0]),
+        ],
+    }),
+    ("max", Profile {
+        name: "Fake AirPods Max",
+        model_name: "AirPods Max",
+        product: 0x200A,
+        part: "A2096",
+        firmware: "65.1868046005000000.109",
+        single: true,
+        eq: false,
+        controls: &[
+            (0x0D, [2, 0, 0, 0]), (0x17, [0, 0, 0, 0]), (0x18, [0, 0, 0, 0]), (0x1B, [2, 0, 0, 0]), (0x1F, [80, 80, 0, 0]),
+            (0x24, [0, 3, 0, 0]), (0x26, [2, 0, 0, 0]), (0x28, [1, 0, 0, 0]), (0x34, [2, 0, 0, 0]),
+        ],
+    }),
+    // AirPods 4 (ANC): no volume swipe, no case speaker setting, no noise cancellation with one bud
+    ("airpods4", Profile {
+        name: "Fake AirPods 4",
+        model_name: "AirPods 4 (ANC)",
+        product: 0x201B,
+        part: "A3056",
+        firmware: "8A356",
+        single: false,
+        eq: false,
+        controls: &[(0x0D, [2, 0, 0, 0]), (0x17, [0, 0, 0, 0]), (0x18, [0, 0, 0, 0]), (0x26, [2, 0, 0, 0]), (0x28, [1, 0, 0, 0]), (0x2E, [50, 0, 0, 0])],
+    }),
+];
+
+pub fn profile() -> &'static Profile {
+    let want = std::env::var("PINNA_FAKE").unwrap_or_default();
+    PROFILES.iter().find(|(k, _)| *k == want).map_or(&PRO2, |(_, p)| p)
+}
+
+fn info(p: &Profile) -> Vec<u8> {
     let fields = [
-        "Fake AirPods Pro", "A3047", "Apple Inc.", "FAKESERIAL01", "8A358", "8A358", "1.0.0",
-        "com.apple.accessory.updater.app.71", "FAKELEFT0001", "FAKERIGHT001",
+        p.name, p.part, "Apple Inc.", "FAKESERIAL01", p.firmware, p.firmware, "1.0.0",
+        "com.apple.accessory.updater.app.71", if p.single { "0" } else { "FAKELEFT0001" }, if p.single { "0" } else { "FAKERIGHT001" },
     ];
     let mut body = vec![0x02, 0xe2, 0x00, 0x04];
     for f in fields {
@@ -29,7 +105,10 @@ fn info() -> Vec<u8> {
     pkt(0x1d, &body)
 }
 
-fn battery(left: u8, right: u8, case: Option<u8>) -> Vec<u8> {
+fn battery(p: &Profile, left: u8, right: u8, case: Option<u8>) -> Vec<u8> {
+    if p.single {
+        return pkt(0x04, &[0x01, 0x01, 0x01, left, 0x02, 0x01]);
+    }
     let mut b = vec![0x03];
     b.extend_from_slice(&[0x02, 0x01, right, 0x02, 0x01]);
     b.extend_from_slice(&[0x04, 0x01, left, 0x02, 0x01]);
@@ -42,6 +121,7 @@ fn battery(left: u8, right: u8, case: Option<u8>) -> Vec<u8> {
 
 /// Runs the pretend buds on one end of a datagram pair.
 pub async fn headset(sock: UnixDatagram) {
+    let prof = profile();
     let mut buf = vec![0u8; 2048];
     let (mut left, mut right) = (100u8, 98u8);
     let mut tick = tokio::time::interval(Duration::from_secs(20));
@@ -55,16 +135,12 @@ pub async fn headset(sock: UnixDatagram) {
                 if d.starts_with(&[0x00, 0x00, 0x04, 0x00, 0x01]) {
                     let _ = sock.send(&[0x01, 0x00, 0x04, 0x00]).await;
                     up = true;
-                    for p in [
-                        info(),
-                        battery(left, right, None),
-                        pkt(0x06, &[0x00, 0x00]),
-                        aap::control(aap::cmd::LISTENING_MODE, [0x02, 0, 0, 0]),
-                        aap::control(aap::cmd::CONVERSATION, [0x01, 0, 0, 0]),
-                        aap::control(aap::cmd::ADAPTIVE_STRENGTH, [50, 0, 0, 0]),
-                        aap::control(aap::cmd::CHIME_VOLUME, [80, 80, 0, 0]),
-                        aap::eq(aap::Eq { enabled: false, low: 50, mid: 50, high: 50 }),
-                    ] {
+                    let mut list = vec![info(prof), battery(prof, left, right, None), pkt(0x06, &[0x00, 0x00])];
+                    list.extend(prof.controls.iter().map(|(id, v)| aap::control(*id, *v)));
+                    if prof.eq {
+                        list.push(aap::eq(aap::Eq { enabled: false, low: 50, mid: 50, high: 50 }));
+                    }
+                    for p in list {
                         let _ = sock.send(&p).await;
                     }
                 } else if d.len() > 7 && d[4] == 0x09 && d[6] == aap::cmd::STEM_CONFIG {
@@ -83,7 +159,7 @@ pub async fn headset(sock: UnixDatagram) {
                 if ticks.is_multiple_of(5) {
                     left = left.saturating_sub(1);
                     right = right.saturating_sub(1);
-                    let _ = sock.send(&battery(left, right, None)).await;
+                    let _ = sock.send(&battery(prof, left, right, None)).await;
                 }
             }
         }

@@ -770,12 +770,14 @@ impl Daemon {
                 g.state.adapter = true;
                 g.state.connected = true;
                 g.state.address = Some(crate::fake::ADDRESS.into());
-                g.state.model_name = "AirPods Pro 2 (USB-C)".into();
+                let p = crate::fake::profile();
+                g.state.model_name = p.model_name.into();
+                g.state.model_id = p.product;
                 g.state.devices = vec![Device {
                     address: crate::fake::ADDRESS.into(),
-                    name: "Fake AirPods Pro".into(),
-                    model_name: "AirPods Pro 2 (USB-C)".into(),
-                    model_id: 0x2024,
+                    name: p.name.into(),
+                    model_name: p.model_name.into(),
+                    model_id: p.product,
                     connected: true,
                     last: None,
                 }];
@@ -1108,12 +1110,14 @@ impl Daemon {
         match p {
             Packet::Battery(list) => {
                 if let Some(first) = list.iter().find(|e| e.component != Component::Case) {
-                    g.primary_left = first.component == Component::Left;
+                    g.primary_left = first.component != Component::Right;
                 }
+                // history, estimates and warnings then work unchanged for a single battery
+                g.state.one_battery = list.iter().any(|e| e.component == Component::Single);
                 for e in list {
                     let cell = Cell { level: e.connected.then_some(e.level), charging: e.charging };
                     match e.component {
-                        Component::Left => g.state.battery.left = cell,
+                        Component::Left | Component::Single => g.state.battery.left = cell,
                         Component::Right => g.state.battery.right = cell,
                         Component::Case => g.state.battery.case_ = cell,
                     }
@@ -1221,6 +1225,7 @@ impl Daemon {
                 g.state.name = i.name;
                 g.state.model = i.model;
                 g.state.firmware = i.firmware;
+                g.state.version = i.version;
                 g.state.serial = i.serial;
                 g.state.serial_left = i.serial_left;
                 g.state.serial_right = i.serial_right;
@@ -1326,6 +1331,7 @@ impl Daemon {
             return None;
         }
         let mut msg = None;
+        let one = g.state.one_battery.then(|| g.state.model_name.clone());
         for (i, (cell, side)) in [(g.state.battery.left, t("Left")), (g.state.battery.right, t("Right"))].iter().enumerate() {
             let Some(lvl) = cell.level else { continue };
             let limit = g.state.prefs.low_battery;
@@ -1336,7 +1342,10 @@ impl Daemon {
             let step = if lvl <= limit / 2 { limit / 2 } else { limit };
             if step < g.warned[i] {
                 g.warned[i] = step;
-                msg = Some(format!("{side} AirPod {lvl}%"));
+                msg = Some(match &one {
+                    Some(name) => format!("{name} {lvl}%"),
+                    None => format!("{side} AirPod {lvl}%"),
+                });
             }
         }
         msg
@@ -1344,7 +1353,8 @@ impl Daemon {
 
     fn charged(&self, g: &mut Inner) -> Option<String> {
         let b = &g.state.battery;
-        let cells = [(b.left, t("Left AirPod")), (b.right, t("Right AirPod")), (b.case_, t("Case"))];
+        let left = if g.state.one_battery { g.state.model_name.clone() } else { t("Left AirPod").to_string() };
+        let cells = [(b.left, left), (b.right, t("Right AirPod").to_string()), (b.case_, t("Case").to_string())];
         let mut done = Vec::new();
         for (i, (c, name)) in cells.iter().enumerate() {
             match c.level {
@@ -1352,7 +1362,7 @@ impl Daemon {
                 // the charging bit is ignored since some buds clear it once full
                 Some(100) if !g.full[i] => {
                     g.full[i] = true;
-                    done.push(*name);
+                    done.push(name.clone());
                 }
                 Some(l) if l < 95 => g.full[i] = false,
                 _ => {}
