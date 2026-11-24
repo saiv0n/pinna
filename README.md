@@ -21,7 +21,8 @@
   <a href="#features">Features</a> ·
   <a href="#supported-headphones">Supported headphones</a> ·
   <a href="#command-line">Command line</a> ·
-  <a href="#troubleshooting">Troubleshooting</a>
+  <a href="#troubleshooting">Troubleshooting</a> ·
+  <a href="ROADMAP.md">Roadmap</a>
 </p>
 
 <br>
@@ -318,10 +319,20 @@ Each language is one file, `app/i18n/pinna_<code>.ts`, covering the app, the tra
 
 The images are rendered in Blender from Jed Falcone's [AirPods Pro](https://sketchfab.com/3d-models/3f84ddc3d87a4ec0a5e5f379abfecd9c) model, licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model is not in the repo; download it and run `art/build.sh path/to/Airpods_ForSketchfab.fbx`.
 
+## Roadmap
+
+Linux comes first, then Windows and Android. Both start with what the platform allows without a driver or root, battery and in-ear status from the BLE adverts, and grow from there. `crates/core` and the Qt app are shared, so most of the work carries over. The full plan is in [ROADMAP.md](ROADMAP.md).
+
+## Contributing
+
+Reports from headphones other than AirPods Pro 2 help the most, and there is an issue template just for that. For code and translations, [CONTRIBUTING.md](CONTRIBUTING.md) covers building, working without headphones and the checks to run. Security problems go through [SECURITY.md](SECURITY.md), not public issues.
+
 ## Thanks
 
 To the [LibrePods](https://github.com/kavishdevar/librepods) team, whose protocol work made this possible, and to everyone who posted packet captures in their issues and in [CAPod](https://github.com/d4rken-org/capod).
 
 ## License
 
-GPL-3.0. AirPods and Beats are trademarks of Apple Inc. Pinna is not affiliated with or endorsed by Apple.
+Pinna is made by [saivon](https://github.com/saiv0n) and released under the [GPL-3.0](LICENSE). You can use, change and share it freely. If you ship it or anything built on it, keep the line "Based on Pinna by saivon" with a link back here, in your documentation and on your About screen. The exact terms are in [NOTICE](NOTICE).
+
+AirPods and Beats are trademarks of Apple Inc. Pinna is not affiliated with or endorsed by Apple.
