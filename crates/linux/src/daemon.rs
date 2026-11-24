@@ -104,6 +104,8 @@ pub struct Daemon {
     /// the session loop writes here on every audio packet, so no async lock
     mic: Arc<std::sync::Mutex<Option<mic::Mic>>>,
     spatial: Arc<Mutex<Option<Spatial>>>,
+    /// devices with a property watcher, so one never gets two and strangers get none
+    watched: Arc<std::sync::Mutex<std::collections::HashSet<Address>>>,
 }
 
 impl Daemon {
@@ -151,6 +153,7 @@ impl Daemon {
             wake: Arc::new(Notify::new()),
             mic: Default::default(),
             spatial: Default::default(),
+            watched: Default::default(),
         })
     }
 
@@ -413,6 +416,7 @@ impl Daemon {
             d.pair().await.map_err(|_| anyhow!("pair-failed: Pairing did not finish. With the lid open, hold the button on the back until the light flashes white."))?;
         }
         d.set_trusted(true).await?;
+        self.watch_device(a);
         let _ = self.pairing.send(false);
         {
             let mut g = self.inner.lock().await;
@@ -908,21 +912,31 @@ impl Daemon {
     }
 
     fn watch_device(&self, a: Address) {
+        if !self.watched.lock().unwrap_or_else(|e| e.into_inner()).insert(a) {
+            return;
+        }
         let me = self.clone();
         tokio::spawn(async move {
-            let Ok(d) = me.adapter.device(a) else { return };
-            // only watch Apple devices, not the hundreds of others a scan finds
-            if !matches!(d.modalias().await, Ok(Some(m)) if m.vendor == APPLE) {
-                return;
-            }
-            let Ok(mut ev) = d.events().await else { return };
-            while let Some(bluer::DeviceEvent::PropertyChanged(p)) = ev.next().await {
-                use bluer::DeviceProperty as P;
-                if matches!(p, P::Connected(_) | P::Paired(_) | P::Alias(_) | P::ServicesResolved(_)) {
-                    me.refresh_devices().await;
-                    me.wake.notify_one();
+            // only Apple devices that are paired or have a fixed address; rotating addresses come and go
+            // by the hundreds while scanning, and each watcher holds a system bus subscription
+            let ok = match me.adapter.device(a) {
+                Ok(d) => {
+                    matches!(d.modalias().await, Ok(Some(m)) if m.vendor == APPLE)
+                        && (d.is_paired().await.unwrap_or(false)
+                            || !matches!(d.address_type().await, Ok(bluer::AddressType::LeRandom)))
+                }
+                Err(_) => false,
+            };
+            if ok && let Ok(d) = me.adapter.device(a) && let Ok(mut ev) = d.events().await {
+                while let Some(bluer::DeviceEvent::PropertyChanged(p)) = ev.next().await {
+                    use bluer::DeviceProperty as P;
+                    if matches!(p, P::Connected(_) | P::Paired(_) | P::Alias(_) | P::ServicesResolved(_)) {
+                        me.refresh_devices().await;
+                        me.wake.notify_one();
+                    }
                 }
             }
+            me.watched.lock().unwrap_or_else(|e| e.into_inner()).remove(&a);
         });
     }
 
