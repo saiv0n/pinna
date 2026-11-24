@@ -1,0 +1,46 @@
+app-id: dev.pinna.Pinna
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: pinna
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # L2CAP to the buds and BLE adverts from BlueZ
+  - --allow=bluetooth
+  - --system-talk-name=org.bluez
+  - --socket=pulseaudio
+  - --filesystem=xdg-run/pipewire-0
+  # the service runs inside the sandbox and keeps its bus name
+  - --own-name=dev.pinna.Daemon
+  - --talk-name=org.mpris.MediaPlayer2.*
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --env=PINNA_POPUP=pinna --popup
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/pinna/cargo
+modules:
+  - name: pinna
+    buildsystem: simple
+    build-commands:
+      - cargo --offline build --release
+      - cmake -S app -B app/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/app
+      - cmake --build app/build
+      - install -Dm755 -t /app/bin target/release/pinnad target/release/pinnactl app/build/pinna
+      - install -Dm644 -t /app/share/applications dist/dev.pinna.Pinna.desktop dist/dev.pinna.Popup.desktop
+      - install -Dm644 dist/dev.pinna.Pinna.metainfo.xml /app/share/metainfo/dev.pinna.Pinna.metainfo.xml
+      - install -Dm644 dist/icon.png /app/share/icons/hicolor/512x512/apps/dev.pinna.Pinna.png
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - target
+          - app/build
+          - .git
+      - cargo-sources.json

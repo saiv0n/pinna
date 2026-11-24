@@ -25,6 +25,7 @@
 // PINNA_BUS points the app at a test daemon
 static const QString SERVICE = qEnvironmentVariable("PINNA_BUS", QStringLiteral("dev.pinna.Daemon"));
 static const QString PATH = QStringLiteral("/dev/pinna/Daemon");
+static bool inFlatpak() { return qEnvironmentVariableIsSet("FLATPAK_ID"); }
 static const QString IFACE = QStringLiteral("dev.pinna.Daemon1");
 
 static QString str(const QVariant &v)
@@ -77,6 +78,9 @@ Backend::Backend(QObject *parent) : QObject(parent)
     });
 
     setDaemon(bus.interface()->isServiceRegistered(SERVICE));
+    // a Flatpak has no systemd unit or D-Bus activation for the service, so it runs inside the sandbox
+    if (!m_daemon && inFlatpak())
+        QProcess::startDetached(QStringLiteral("pinnad"), {});
     refresh();
 }
 
@@ -318,11 +322,27 @@ void Backend::setLanguage(const QString &lang)
     emit languageChanged();
 }
 
-bool Backend::autostart() const { return QFile::exists(autostartFile()); }
+bool Backend::autostart() const
+{
+    if (inFlatpak())
+        return QSettings().value(QStringLiteral("autostart"), false).toBool();
+    return QFile::exists(autostartFile());
+}
 
 void Backend::setAutostart(bool on)
 {
-    if (on) {
+    if (inFlatpak()) {
+        // the sandbox cannot write ~/.config/autostart, the portal does it for us
+        QDBusMessage m = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.portal.Desktop"),
+            QStringLiteral("/org/freedesktop/portal/desktop"), QStringLiteral("org.freedesktop.portal.Background"),
+            QStringLiteral("RequestBackground"));
+        QVariantMap opts{{QStringLiteral("autostart"), on},
+                         {QStringLiteral("commandline"), QStringList{QStringLiteral("pinna"), QStringLiteral("--tray")}},
+                         {QStringLiteral("reason"), tr("Show the AirPods battery in the tray after login")}};
+        m.setArguments({QString(), opts});
+        QDBusConnection::sessionBus().asyncCall(m);
+        QSettings().setValue(QStringLiteral("autostart"), on);
+    } else if (on) {
         QDir().mkpath(QFileInfo(autostartFile()).path());
         QFile f(autostartFile());
         if (f.open(QIODevice::WriteOnly)) {

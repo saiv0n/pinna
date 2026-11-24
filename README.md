@@ -41,6 +41,8 @@ You need Rust (1.85 or newer), Qt 6.8 or newer (Widgets, Quick, QuickControls2, 
 
 The script installs everything under `~/.local` and enables the `pinnad` service with `systemctl --user`. No sudo. The service runs sandboxed: it can only write to `~/.config/pinna`, `~/.local/state/pinna`, its runtime folder and `~/.config/wireplumber/wireplumber.conf.d` for the call setting, and it has no network access. The config file that holds the BLE keys is written with 0600 permissions.
 
+Packaging files live in `dist/`. `dist/arch/PKGBUILD` builds a `pinna-git` package for Arch; after installing it, run `systemctl --user enable --now pinnad.service`. `dist/flatpak/dev.pinna.Pinna.yml` is a Flatpak manifest on the KDE 6.11 runtime. In the Flatpak the app starts the service itself, `pinnactl` runs with `flatpak run --command=pinnactl dev.pinna.Pinna`, and the call profile setting and lowering the volume while you talk need `wpctl`, which the runtime lacks. After changing `Cargo.lock`, refresh the offline crate list with `dist/flatpak/cargo-sources.py Cargo.lock > dist/flatpak/cargo-sources.json`.
+
 Pair the buds once from your system Bluetooth settings. Pinna finds them after that.
 
 Some features want to see an Apple device on the other end. The DeviceID setting on the This Computer page adds this line to `/etc/bluetooth/main.conf` and restarts Bluetooth. It shows the command and asks for your password first. To do it by hand:

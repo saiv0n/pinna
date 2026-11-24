@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.pinna.Pinna</id>
+  <name>Pinna</name>
+  <summary>Battery, noise control and settings for AirPods</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="dev.pinna">
+    <name>um4tb</name>
+  </developer>
+  <description>
+    <p>
+      Pinna connects your AirPods and Beats, shows the battery of each bud and the case, and lets you
+      change the settings you would otherwise need an iPhone for.
+    </p>
+    <ul>
+      <li>Noise cancellation, transparency and adaptive mode</li>
+      <li>Ear detection that pauses and resumes any media player</li>
+      <li>Conversation awareness, press and hold modes, head tracking</li>
+      <li>A tray icon and a small card when you open the case</li>
+      <li>Battery history and an estimate of the listening time left</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">dev.pinna.Pinna.desktop</launchable>
+  <url type="homepage">https://github.com/saiv0n/pinna</url>
+  <url type="bugtracker">https://github.com/saiv0n/pinna/issues</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/saiv0n/pinna/main/docs/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>Settings</category>
+    <category>AudioVideo</category>
+  </categories>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <releases>
+    <release version="0.1.0" date="2026-11-24"/>
+  </releases>
+</component>

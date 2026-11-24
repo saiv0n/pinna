@@ -1,14 +1,14 @@
 [Unit]
-Description=Pinna AirPods servisi
+Description=Pinna AirPods service
 After=bluetooth.target pipewire.service
 PartOf=graphical-session.target
 
 [Service]
-ExecStart=%h/.local/bin/pinnad
+ExecStart=@bindir@/pinnad
 Restart=on-failure
 RestartSec=3
 Environment=RUST_LOG=info
-Environment="PINNA_POPUP=%h/.local/bin/pinna --popup"
+Environment="PINNA_POPUP=@bindir@/pinna --popup"
 
 # may only write its config and battery history
 ConfigurationDirectory=pinna

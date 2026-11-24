@@ -1,0 +1,9 @@
+post_install() {
+    echo 'Start the service for your user with:'
+    echo '  systemctl --user enable --now pinnad.service'
+}
+
+post_upgrade() {
+    echo 'Restart the service to use the new version:'
+    echo '  systemctl --user restart pinnad.service'
+}

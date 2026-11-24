@@ -20,7 +20,11 @@ install -Dm644 dist/dev.pinna.Pinna.desktop "$prefix/share/applications/dev.pinn
 # the card has its own class, let the portal know it too
 install -Dm644 dist/dev.pinna.Popup.desktop "$prefix/share/applications/dev.pinna.Popup.desktop"
 install -Dm644 dist/icon.png "$prefix/share/icons/hicolor/512x512/apps/dev.pinna.Pinna.png"
-install -Dm644 dist/pinnad.service "$HOME/.config/systemd/user/pinnad.service"
+mkdir -p "$HOME/.config/systemd/user"
+# a user prefix like ~/.local becomes %h/.local so the unit stays portable
+bindir="$prefix/bin"
+bindir="${bindir/#$HOME/%h}"
+sed "s|@bindir@|$bindir|g" dist/pinnad.service > "$HOME/.config/systemd/user/pinnad.service"
 # start on demand when the app or pinnactl calls the service
 install -Dm644 dist/dev.pinna.Daemon.service "$prefix/share/dbus-1/services/dev.pinna.Daemon.service"
 
