@@ -15,6 +15,15 @@ cmake --build app/build
 
 install -Dm755 target/release/pinnad "$prefix/bin/pinnad"
 install -Dm755 target/release/pinnactl "$prefix/bin/pinnactl"
+for sh in bash zsh fish; do
+    case $sh in
+        bash) f="$prefix/share/bash-completion/completions/pinnactl" ;;
+        zsh) f="$prefix/share/zsh/site-functions/_pinnactl" ;;
+        fish) f="$prefix/share/fish/vendor_completions.d/pinnactl.fish" ;;
+    esac
+    mkdir -p "$(dirname "$f")"
+    target/release/pinnactl completions $sh > "$f"
+done
 install -Dm755 app/build/pinna "$prefix/bin/pinna"
 install -Dm644 dist/dev.pinna.Pinna.desktop "$prefix/share/applications/dev.pinna.Pinna.desktop"
 # the card has its own class, let the portal know it too

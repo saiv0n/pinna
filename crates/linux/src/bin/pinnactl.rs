@@ -59,6 +59,8 @@ enum Cmd {
     Connect,
     /// Disconnect
     Disconnect,
+    /// Print shell completions: bash, zsh or fish
+    Completions { shell: clap_complete::Shell },
 }
 
 fn bat(v: &Value) -> String {
@@ -196,6 +198,11 @@ async fn main() {
 }
 
 async fn run(cli: Cli) -> anyhow::Result<()> {
+    if let Some(Cmd::Completions { shell }) = cli.cmd {
+        use clap::CommandFactory;
+        clap_complete::generate(shell, &mut Cli::command(), "pinnactl", &mut std::io::stdout());
+        return Ok(());
+    }
     let conn = zbus::Connection::session().await?;
     let mut b = DaemonProxy::builder(&conn);
     // PINNA_BUS talks to a test daemon instead of the real one
@@ -217,6 +224,7 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
         Cmd::Audio { key, value } => p.set_audio(&key, &value).await?,
         Cmd::Connect => p.connect().await?,
         Cmd::Disconnect => p.disconnect().await?,
+        Cmd::Completions { .. } => {}
     }
     Ok(())
 }

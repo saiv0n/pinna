@@ -71,6 +71,8 @@ pinnactl watch               # one JSON line per change
 pinnactl waybar              # lines for a Waybar custom module
 ```
 
+`install.sh` and the Arch package also install bash, zsh and fish completions for `pinnactl`.
+
 `pinnactl cycle` steps through the same modes as press and hold on the stem. It works well on a Hyprland shortcut:
 
 ```
