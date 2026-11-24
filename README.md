@@ -34,7 +34,7 @@ Tested on AirPods Pro 2 (USB-C) on x86_64. AirPods Max show one battery, and set
 
 ## Install
 
-You need Rust (1.85 or newer), Qt 6.8 or newer (Widgets, Quick, QuickControls2, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` and `pactl`) and the FFmpeg libavcodec development package (`libavcodec-dev` on Ubuntu). Translations need `lrelease`; without it the app is English only.
+You need Rust (1.88 or newer), Qt 6.8 or newer (Widgets, Quick, QuickControls2, DBus, Svg), CMake, Ninja, BlueZ, PipeWire (`wpctl` and `pactl`) and the FFmpeg libavcodec development package (`libavcodec-dev` on Ubuntu). Translations need `lrelease`; without it the app is English only.
 
 ```bash
 ./install.sh
