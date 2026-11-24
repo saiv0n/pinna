@@ -885,6 +885,20 @@ impl Daemon {
                 tokio::time::sleep(Duration::from_secs(s)).await;
                 me.refresh_audio().await;
             }
+            // sometimes only our AAP channel comes up and the buds never start A2DP, so there is
+            // no audio device at all (LibrePods #799); ask for it once
+            let (up, connected) = {
+                let g = me.inner.lock().await;
+                (g.state.audio.available, g.state.connected)
+            };
+            if connected && !up && let Ok(d) = me.adapter.device(addr) {
+                info!("no audio device after connecting, asking for A2DP");
+                if let Err(e) = d.connect_profile(&A2DP_SINK).await {
+                    debug!("A2DP request failed: {e}");
+                }
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                me.refresh_audio().await;
+            }
         });
 
         let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
