@@ -13,7 +13,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 - Makes the buds the default output on connect, or only once you put one in. Volume and profile are in the app. The music codec is left to PipeWire (AAC on AirPods) unless you pick another one.
 - Three mic choices for calls. With the computer mic or the high quality AirPods mic the buds stay in music quality (AAC). The second one is experimental: the bud mic arrives as AAC-ELD over a separate channel, Pinna decodes it into a mic named "(Pinna)" and opens it when an app starts listening. The third is the Bluetooth headset profile, where both sound and mic drop to phone quality (LC3 at 24 kHz on these buds).
 - With several paired AirPods or Beats you can switch between them from the app or the tray, pair new ones and forget old ones. Each pair keeps its own keys, and the battery of the others shows up in the list and the tray tooltip when they are nearby.
-- Lives in the system tray: battery, mode switching, connect and disconnect. Closing the window keeps it in the tray, and it can start in the tray when you log in.
+- Lives in the system tray: a ring on the icon shows the lower bud, and the menu has battery, mode switching, connect and disconnect. Closing the window keeps it in the tray, and it can start in the tray when you log in.
 - Pauses what is playing when you take a bud out and resumes when you put it back (any MPRIS player). Lowers the computer volume while you talk.
 - A small card pops up in a corner when you open the case or the buds connect. Click it to open the app.
 - Reports the headphone battery to the system through BlueZ, so UPower, GNOME, KDE and bars show it in their own battery indicators.

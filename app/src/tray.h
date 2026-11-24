@@ -21,4 +21,5 @@ private:
     void rebuild();
     QSystemTrayIcon *m_icon;
     QMenu *m_menu;
+    int m_iconKey = -2;
 };
