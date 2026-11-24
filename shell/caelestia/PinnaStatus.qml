@@ -62,7 +62,7 @@ Item {
             text: root.st.mode === "anc" ? "noise_control_on"
                 : root.st.mode === "transparency" ? "hearing"
                 : root.st.mode === "adaptive" ? "noise_aware"
-                : "earbuds"
+                : root.st.oneBattery ? "headphones" : "earbuds"
             color: root.colour
             fontStyle: Tokens.font.icon.medium
             fill: 1
