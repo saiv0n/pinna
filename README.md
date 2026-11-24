@@ -27,14 +27,20 @@
 
 <br>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/general-dark.png">
-  <img src="docs/img/general-light.png" alt="Pinna showing battery levels, headphone settings and battery history">
-</picture>
+<p align="center">
+  <a href="https://github.com/saiv0n/pinna/releases/download/v0.1.0/pinna-demo.mp4">
+    <img src="docs/img/demo.webp" alt="Pinna in use: the case card, battery, noise control and settings">
+  </a>
+</p>
 
 <br>
 
 On a phone, AirPods show their battery the moment you open the case, switch noise modes with a tap and keep a long list of settings. On Linux they are a plain Bluetooth headset. Pinna speaks the same protocol the phone does, so the buds behave on your computer the way they do on an iPhone, and it fits in with the rest of the desktop: tray, notifications, the system battery indicator, your bar and your shortcuts.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/general-dark.png">
+  <img src="docs/img/general-light.png" alt="Pinna showing battery levels, headphone settings and battery history">
+</picture>
 
 It is a small service that talks to the headphones and an app on top of it. Nothing leaves your computer: the service has no network access and keeps its keys in a file only you can read.
 
