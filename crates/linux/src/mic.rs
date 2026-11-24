@@ -40,7 +40,7 @@ impl Drop for Decoder {
 
 pub struct Mic {
     module: String,
-    /// shown name, like "saivon's AirPods Pro (Pinna)"
+    /// shown name, like "AirPods Pro (Pinna)"
     pub desc: String,
     dec: Decoder,
     fifo: Option<std::fs::File>,

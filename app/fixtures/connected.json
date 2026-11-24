@@ -3,7 +3,7 @@
  "address": "00:11:22:33:44:55",
  "connected": true,
  "ready": true,
- "name": "saivon's AirPods Pro",
+ "name": "AirPods Pro",
  "model": "",
  "modelName": "AirPods Pro 2 (USB-C)",
  "modelId": 8228,
@@ -52,7 +52,7 @@
  "devices": [
   {
    "address": "00:11:22:33:44:55",
-   "name": "saivon's AirPods Pro",
+   "name": "AirPods Pro",
    "modelName": "AirPods Pro 2 (USB-C)",
    "modelId": 8228,
    "connected": true
