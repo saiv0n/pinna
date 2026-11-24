@@ -88,6 +88,11 @@ pub fn rpa_matches(addr: [u8; 6], irk: &[u8; 16]) -> bool {
     r[0..3] == hash
 }
 
+/// AirPods 1 and 2 have no motion sensor; AirPods 3 send motion over RemoteHID, which we do not read yet.
+pub fn has_head_sensor(id: u16) -> bool {
+    !matches!(id, 0x2002 | 0x200f | 0x2013)
+}
+
 pub fn model_name(id: u16) -> &'static str {
     match id {
         0x2002 => "AirPods",

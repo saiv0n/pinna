@@ -736,7 +736,9 @@ impl Daemon {
     /// One head tracking stream shared by the live view, spatial audio and head gestures.
     async fn sync_head(&self) -> Result<()> {
         let mut g = self.inner.lock().await;
-        let want = g.state.ready && (g.state.head_tracking || g.spatial_head || g.state.prefs.head_gestures);
+        let want = g.state.ready
+            && proximity::has_head_sensor(g.state.model_id)
+            && (g.state.head_tracking || g.spatial_head || g.state.prefs.head_gestures);
         if want == g.head_on {
             return Ok(());
         }
