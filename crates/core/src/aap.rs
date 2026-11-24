@@ -58,6 +58,8 @@ pub mod cmd {
     pub const HEARING_ASSIST: u8 = 0x33;
     pub const ALLOW_OFF: u8 = 0x34;
     pub const SLEEP_DETECTION: u8 = 0x35;
+    /// loud sound reduction, called hearing protection in some regions
+    pub const LOUD_SOUND: u8 = 0x37;
     /// bit mask: 2 double, 4 triple, 8 long press; marked presses are forwarded to us
     pub const STEM_CONFIG: u8 = 0x39;
 }

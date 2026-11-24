@@ -8,7 +8,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 
 - Shows left, right and case battery and keeps a battery chart of the last 24 hours. While the case is closed it shows the last known case level, and while the buds are away it says when they were last seen. It notifies you when the battery runs low (you pick the threshold) and when charging is done.
 - Switches between noise cancellation, transparency, adaptive and off right away. In adaptive mode you can set how much outside sound gets in, from 0 to 100.
-- Conversation awareness, personalized volume, noise cancellation with one AirPod, volume swipe, press speed, press and hold duration, case speaker volume, sleep detection, hearing assistance.
+- Conversation awareness, personalized volume, noise cancellation with one AirPod, volume swipe, press speed, press and hold duration, case speaker volume, sleep detection, hearing assistance, and Loud Sound Reduction on models that report it (experimental).
 - You choose which modes press and hold cycles through and what the left and right bud do. The buds forget this on every new device, so Pinna writes it again on each connection.
 - Makes the buds the default output on connect. Volume and profile are in the app.
 - Three mic choices for calls. With the computer mic or the high quality AirPods mic the buds stay in music quality (AAC). The second one is experimental: the bud mic arrives as AAC-ELD over a separate channel, Pinna decodes it into a mic named "(Pinna)" and opens it when an app starts listening. The third is the Bluetooth headset profile, where both sound and mic drop to phone quality (LC3 at 24 kHz on these buds).

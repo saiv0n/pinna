@@ -126,7 +126,7 @@ Window {
                 NumberAnimation { target: shift; property: "y"; from: 10; to: 0; duration: 260; easing.type: Easing.OutCubic }
             }
             GeneralPage { id: general; confirm: confirm }
-            NoisePage {}
+            NoisePage { confirm: confirm }
             ControlsPage {}
             AudioPage {}
             AccessibilityPage {}

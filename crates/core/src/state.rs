@@ -225,6 +225,7 @@ pub const SETTINGS: &[(&str, u8, Kind)] = &[
     ("allowOff", cmd::ALLOW_OFF, Kind::Toggle),
     ("hearingAssist", cmd::HEARING_ASSIST, Kind::Toggle),
     ("autoConnect", cmd::AUTO_CONNECT, Kind::Toggle),
+    ("loudSoundReduction", cmd::LOUD_SOUND, Kind::Toggle),
     ("volumeSwipeInterval", cmd::VOLUME_SWIPE_INTERVAL, Kind::Number(0, 2)),
     ("pressSpeed", cmd::PRESS_SPEED, Kind::Number(0, 2)),
     ("holdDuration", cmd::HOLD_DURATION, Kind::Number(0, 2)),
@@ -340,5 +341,14 @@ mod tests {
         assert!(p.set("stem.double.left", "cmd: ").is_err());
         p.set("stem.double.left", "").unwrap();
         assert_eq!(p.stem_mask(), 0x08);
+    }
+
+    #[test]
+    fn loud_sound_reduction() {
+        let (key, kind) = lookup_id(0x37).unwrap();
+        assert_eq!(key, "loudSoundReduction");
+        assert_eq!(decode(kind, 1), Some(Value::from(true)));
+        assert_eq!(decode(kind, 2), Some(Value::from(false)));
+        assert_eq!(encode(kind, "off"), Some(2));
     }
 }

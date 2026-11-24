@@ -1104,6 +1104,30 @@
         <source>Keeps noise cancellation on with only one AirPod in.</source>
         <translation>Yalnızca bir AirPod takılıyken de gürültü engelleme açık kalır.</translation>
     </message>
+    <message>
+        <source>Hearing Protection</source>
+        <translation>İşitme Koruması</translation>
+    </message>
+    <message>
+        <source>Lowers sudden loud sounds around you in Transparency and Adaptive modes. It does not limit the volume of your music.</source>
+        <translation>Şeffaf ve Uyarlanabilir modlarda çevredeki ani yüksek sesleri azaltır. Müziğin ses düzeyini sınırlamaz.</translation>
+    </message>
+    <message>
+        <source>Loud Sound Reduction</source>
+        <translation>Yüksek Ses Azaltma</translation>
+    </message>
+    <message>
+        <source>Turn off Loud Sound Reduction?</source>
+        <translation>Yüksek Ses Azaltma kapatılsın mı?</translation>
+    </message>
+    <message>
+        <source>Loud noise around you, like sirens or concerts, will reach your ears at full level in Transparency and Adaptive modes. Music volume stays the same either way.</source>
+        <translation>Siren ya da konser gibi çevredeki yüksek sesler Şeffaf ve Uyarlanabilir modlarda kulağına tam düzeyde ulaşır. Müziğin sesi iki durumda da aynı kalır.</translation>
+    </message>
+    <message>
+        <source>Turn Off</source>
+        <translation>Kapat</translation>
+    </message>
 </context>
 <context>
     <name>Onboarding</name>

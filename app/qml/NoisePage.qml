@@ -3,6 +3,7 @@ import Pinna
 
 Page {
     id: page
+    property Item confirm
     title: qsTr("Noise Control")
     subtitle: qsTr("Choose how much of the outside world you hear. Changes are sent right away.")
     readonly property int mask: Store.setting("listeningCycle", 14)
@@ -89,6 +90,29 @@ Page {
             Switch {
                 checked: Store.setting("oneBudAnc", false)
                 onToggled: v => Backend.setSetting("oneBudAnc", v)
+            }
+        }
+    }
+
+    // only models that report it, like AirPods Pro 2 on newer firmware and Pro 3
+    Section {
+        title: qsTr("Hearing Protection")
+        visible: Store.settings.loudSoundReduction !== undefined
+        enabled: Store.ready
+        experimental: true
+        footer: qsTr("Lowers sudden loud sounds around you in Transparency and Adaptive modes. It does not limit the volume of your music.")
+        Setting {
+            title: qsTr("Loud Sound Reduction")
+            Switch {
+                checked: Store.setting("loudSoundReduction", true)
+                onToggled: v => {
+                    if (v)
+                        Backend.setSetting("loudSoundReduction", true)
+                    else
+                        page.confirm.ask(qsTr("Turn off Loud Sound Reduction?"),
+                                         qsTr("Loud noise around you, like sirens or concerts, will reach your ears at full level in Transparency and Adaptive modes. Music volume stays the same either way."),
+                                         "", qsTr("Turn Off"), () => Backend.setSetting("loudSoundReduction", false))
+                }
             }
         }
     }
