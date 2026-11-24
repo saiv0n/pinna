@@ -15,7 +15,8 @@ fn err(e: anyhow::Error) -> fdo::Error {
 
 /// Upper bound for any string from D-Bus; real validation happens in the daemon.
 fn short(s: &str) -> fdo::Result<&str> {
-    if s.len() > 64 || s.chars().any(char::is_control) {
+    // long enough for a shell command bound to a stem press
+    if s.len() > 512 || s.chars().any(char::is_control) {
         return Err(fdo::Error::InvalidArgs("invalid: Value is too long or invalid.".into()));
     }
     Ok(s)

@@ -67,6 +67,11 @@ pub async fn headset(sock: UnixDatagram) {
                     ] {
                         let _ = sock.send(&p).await;
                     }
+                } else if d.len() > 7 && d[4] == 0x09 && d[6] == aap::cmd::STEM_CONFIG {
+                    // once presses are forwarded, act out a double press on the left stem
+                    if d[7] & 0x02 != 0 {
+                        let _ = sock.send(&pkt(0x19, &[0x06, 0x01])).await;
+                    }
                 } else if d.len() > 6 && (d[4] == 0x09 || d[4] == 0x63) {
                     // the buds confirm a setting by sending it back
                     let _ = sock.send(&d).await;
