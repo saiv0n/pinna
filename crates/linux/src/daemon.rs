@@ -221,12 +221,14 @@ impl Daemon {
         let mode = Mode::parse(m).ok_or_else(|| anyhow!("invalid: Unknown mode."))?;
         {
             let g = self.inner.lock().await;
-            // models without listening modes never report one once they are set up
-            if g.state.ready && g.state.mode.is_none() {
+            // models without listening modes never report one once they are set up; an empty
+            // settings map means the buds have not reported anything yet
+            let known = g.state.ready && !g.state.settings.is_empty();
+            if known && g.state.mode.is_none() {
                 bail!("invalid: These headphones have no listening modes.");
             }
             // same rule as the app: models with adaptive mode report its strength
-            if g.state.ready && mode == Mode::Adaptive && !g.state.settings.contains_key("adaptiveStrength") {
+            if known && mode == Mode::Adaptive && !g.state.settings.contains_key("adaptiveStrength") {
                 bail!("invalid: These headphones have no adaptive mode.");
             }
         }
@@ -242,7 +244,7 @@ impl Daemon {
         let (cycle, mode, allow_off) = {
             let g = self.inner.lock().await;
             let mut cycle = g.state.settings.get("listeningCycle").and_then(|v| v.as_u64()).unwrap_or(0x0E) as u8;
-            if g.state.ready && !g.state.settings.contains_key("adaptiveStrength") {
+            if g.state.ready && !g.state.settings.is_empty() && !g.state.settings.contains_key("adaptiveStrength") {
                 cycle &= !0x08;
             }
             let allow_off = g.state.settings.get("allowOff").and_then(|v| v.as_bool()).unwrap_or(false);
