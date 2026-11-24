@@ -107,6 +107,8 @@ Run `pinnactl doctor` first. It checks the service, BlueZ, the adapter, the pair
 
 If the headphones connect but there is no sound, Pinna asks BlueZ for the music profile once on its own; if it stays silent, check that "Use for system sound" on the Audio page is not set to Never, or disconnect and connect again from the General page. If the case card or the case battery never shows up, connect the headphones once so they hand over their keys, and keep "Show battery when case opens" on. A Bluetooth mouse or keyboard that is slow to reconnect can come from scanning; the scan already rests most of the time, and turning that option off stops it.
 
+If pressing the stem or the AirPods Max Digital Crown pauses but never plays again, BlueZ is sending it as a plain Pause key; bind `XF86AudioPause` to `playerctl play-pause` in your desktop, or let Pinna handle that press under Controls > Press Shortcuts.
+
 For a bug report, use Export on the This Computer page. The file starts with the doctor output and leaves out serial numbers, names and the device part of Bluetooth addresses.
 
 ## Translations
