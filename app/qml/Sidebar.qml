@@ -204,24 +204,4 @@ Rectangle {
             }
         }
     }
-
-    // service status
-    Row {
-        x: 20
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 16
-        spacing: 7
-        Rectangle {
-            width: 7
-            height: 7
-            radius: 4
-            anchors.verticalCenter: parent.verticalCenter
-            color: Backend.daemon ? Theme.green : Theme.red
-        }
-        Text {
-            text: Backend.daemon ? qsTr("pinnad is running") : qsTr("pinnad is not running")
-            font: Theme.footnote
-            color: Theme.text2
-        }
-    }
 }
