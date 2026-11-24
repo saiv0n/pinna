@@ -315,3 +315,27 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn waybar_lines() {
+        let off = waybar(&serde_json::json!({ "name": "Pods", "connected": false }));
+        assert_eq!(off["class"], "disconnected");
+        assert_eq!(off["text"], "");
+        let on = waybar(&serde_json::json!({
+            "name": "Pods", "connected": true, "mode": "anc",
+            "battery": { "left": { "level": 15, "charging": false }, "right": { "level": 40, "charging": true }, "case": { "level": null } }
+        }));
+        assert_eq!(on["text"], "15%");
+        assert_eq!(on["percentage"], 15);
+        assert_eq!(on["class"], serde_json::json!(["connected", "anc", "low", "charging"]));
+        assert!(on["tooltip"].as_str().unwrap().contains("Noise Cancellation"));
+        let max = waybar(&serde_json::json!({
+            "connected": true, "oneBattery": true, "battery": { "left": { "level": 70 } }
+        }));
+        assert!(max["tooltip"].as_str().unwrap().contains("Battery 70%"));
+    }
+}
