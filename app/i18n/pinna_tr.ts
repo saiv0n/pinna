@@ -1349,6 +1349,18 @@
         <translation>Bağlı değil</translation>
     </message>
     <message>
+        <source>%1 min left</source>
+        <translation>%1 dk kaldı</translation>
+    </message>
+    <message>
+        <source>%1 h left</source>
+        <translation>%1 sa kaldı</translation>
+    </message>
+    <message>
+        <source>%1 h %2 min left</source>
+        <translation>%1 sa %2 dk kaldı</translation>
+    </message>
+    <message>
         <source>Off</source>
         <translation>Kapalı</translation>
     </message>

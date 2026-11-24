@@ -60,11 +60,28 @@ void Tray::rebuild()
     const QString status = !b->daemon() ? tr("Service not running")
         : !s.value(QStringLiteral("adapter")).toBool() ? tr("Bluetooth is off")
         : !live ? tr("Not connected") : parts.join(QStringLiteral("  "));
-    m_icon->setToolTip(name + QStringLiteral("\n") + status);
+    // the lower of the two estimates, since the first bud to run out ends listening
+    QString left;
+    if (live) {
+        const auto est = s.value(QStringLiteral("estimate")).toMap();
+        int m = -1;
+        for (const auto &k : {QStringLiteral("left"), QStringLiteral("right")}) {
+            const auto v = est.value(k);
+            if (v.isValid() && !v.isNull() && (m < 0 || v.toInt() < m))
+                m = v.toInt();
+        }
+        if (m > 0)
+            left = m < 60 ? tr("%1 min left").arg(m)
+                : m % 60 == 0 ? tr("%1 h left").arg(m / 60)
+                : tr("%1 h %2 min left").arg(m / 60).arg(m % 60);
+    }
+    m_icon->setToolTip(name + QStringLiteral("\n") + status + (left.isEmpty() ? QString() : QStringLiteral("\n") + left));
 
     m_menu->clear();
     m_menu->addAction(name)->setEnabled(false);
     m_menu->addAction(status)->setEnabled(false);
+    if (!left.isEmpty())
+        m_menu->addAction(left)->setEnabled(false);
     m_menu->addSeparator();
 
     if (live) {
