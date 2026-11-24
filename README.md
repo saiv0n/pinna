@@ -105,7 +105,7 @@ On KDE, GNOME and other desktops with the global shortcuts portal, turn on Globa
 
 Run `pinnactl doctor` first. It checks the service, BlueZ, the adapter, the paired headphones, the PipeWire tools and the tray, and says what to do about anything missing.
 
-If the headphones connect but there is no sound, open the Audio page: Pinna asks for the music profile once on its own, and the profile can be switched there. If the case card or the case battery never shows up, connect the headphones once so they hand over their keys, and keep "Show battery when case opens" on. A Bluetooth mouse or keyboard that is slow to reconnect can come from scanning; the scan already rests most of the time, and turning that option off stops it.
+If the headphones connect but there is no sound, Pinna asks BlueZ for the music profile once on its own; if it stays silent, check that "Use for system sound" on the Audio page is not set to Never, or disconnect and connect again from the General page. If the case card or the case battery never shows up, connect the headphones once so they hand over their keys, and keep "Show battery when case opens" on. A Bluetooth mouse or keyboard that is slow to reconnect can come from scanning; the scan already rests most of the time, and turning that option off stops it.
 
 For a bug report, use Export on the This Computer page. The file starts with the doctor output and leaves out serial numbers, names and the device part of Bluetooth addresses.
 
