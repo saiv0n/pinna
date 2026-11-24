@@ -58,6 +58,8 @@ struct Inner {
     head_on: bool,
     gestures: pinna_core::gesture::Detector,
     epoch: Instant,
+    /// when an advert last said the lid is open; None once it said closed
+    lid_open_at: Option<Instant>,
 }
 
 /// What a session needs from its channel: whole packets in, whole packets out.
@@ -147,6 +149,7 @@ impl Daemon {
                 head_on: false,
                 gestures: Default::default(),
                 epoch: Instant::now(),
+                lid_open_at: None,
                 spatial_head: false,
                 ca_held: false,
                 ear_gen: 0,
@@ -1566,7 +1569,6 @@ impl Daemon {
             .await?;
         let mut stream = self.adapter().discover_devices_with_changes().await?;
         debug!("case scan started");
-        let mut lid_open = false;
         let started = Instant::now();
         let mut tick = tokio::time::interval(Duration::from_secs(1));
         loop {
@@ -1606,8 +1608,12 @@ impl Daemon {
                     if adv.lid_open {
                         *seen = Instant::now();
                     }
-                    let opened = adv.lid_open && !lid_open;
-                    lid_open = adv.lid_open;
+                    // the lid state outlives one scan, or an open case on the desk would pop the card
+                    // again every time the part time scan starts over
+                    let opened = {
+                        let mut g = self.inner.lock().await;
+                        lid_opened(&mut g.lid_open_at, adv.lid_open, Instant::now())
+                    };
                     {
                         let mut g = self.inner.lock().await;
                         if g.state.connected { continue; }
@@ -1664,6 +1670,13 @@ fn is_headphone(product: u16) -> bool {
     product & 0xff00 == 0x2000
 }
 
+/// True when the lid goes from closed (or unseen for a while) to open.
+fn lid_opened(open_at: &mut Option<Instant>, open: bool, now: Instant) -> bool {
+    let was = open_at.is_some_and(|t| now.duration_since(t) < Duration::from_secs(90));
+    *open_at = open.then_some(now);
+    open && !was
+}
+
 fn next_mode(cycle: u8, mode: Option<Mode>, allow_off: bool) -> Option<Mode> {
     let order = [(Mode::Anc, 2), (Mode::Transparency, 4), (Mode::Adaptive, 8), (Mode::Off, 1)];
     // without the off option the buds refuse it and the cycle gets stuck
@@ -1679,6 +1692,19 @@ fn next_mode(cycle: u8, mode: Option<Mode>, allow_off: bool) -> Option<Mode> {
 #[cfg(test)]
 mod cycle_tests {
     use super::*;
+
+    #[test]
+    fn lid_open_once_per_opening() {
+        let t = Instant::now();
+        let mut at = None;
+        assert!(lid_opened(&mut at, true, t));
+        // the next scan 30 s later still sees it open: no second card
+        assert!(!lid_opened(&mut at, true, t + Duration::from_secs(30)));
+        assert!(!lid_opened(&mut at, false, t + Duration::from_secs(40)));
+        assert!(lid_opened(&mut at, true, t + Duration::from_secs(45)));
+        // gone for minutes, then open again counts as a new opening
+        assert!(lid_opened(&mut at, true, t + Duration::from_secs(400)));
+    }
 
     #[test]
     fn follows_the_stem_selection() {
