@@ -39,6 +39,8 @@ enum Cmd {
     Json,
     /// Print one JSON line on every change
     Watch,
+    /// Stream lines for a Waybar custom module (return-type json)
+    Waybar,
     /// Listening mode: off, anc, transparency, adaptive
     Mode { mode: String },
     /// Switch to the next of the modes picked for press and hold
@@ -116,6 +118,66 @@ fn print_status(s: &Value) {
     }
 }
 
+/// One line per state change, built from the full state; nothing is printed when the line
+/// would repeat. Ends quietly when the reader goes away.
+async fn follow(p: &DaemonProxy<'_>, line: impl Fn(&Value) -> Option<String>) -> anyhow::Result<()> {
+    use std::io::Write;
+    let mut st = p.receive_state_changed().await?;
+    let mut out = std::io::stdout().lock();
+    let mut full: Value = serde_json::from_str(&p.state().await?)?;
+    let mut last = None;
+    loop {
+        if let Some(l) = line(&full).filter(|l| last.as_ref() != Some(l)) {
+            if writeln!(out, "{l}").and_then(|_| out.flush()).is_err() {
+                return Ok(());
+            }
+            last = Some(l);
+        }
+        // the service only sends changed fields
+        let Some(sig) = st.next().await else { return Ok(()) };
+        if let (Value::Object(m), Ok(Value::Object(d))) = (&mut full, serde_json::from_str(sig.args()?.json)) {
+            m.extend(d);
+        }
+    }
+}
+
+/// Waybar custom module output: the lower bud in the bar, details in the tooltip.
+fn waybar(s: &Value) -> Value {
+    let name = s["name"].as_str().filter(|n| !n.is_empty()).unwrap_or("AirPods");
+    if !s["connected"].as_bool().unwrap_or(false) {
+        return serde_json::json!({ "text": "", "tooltip": format!("{name}: not connected"), "class": "disconnected" });
+    }
+    let b = &s["battery"];
+    let low = ["left", "right"].iter().filter_map(|k| b[k]["level"].as_u64()).min();
+    let mode = s["mode"].as_str().unwrap_or("");
+    let mut class = vec!["connected".to_string()];
+    if !mode.is_empty() {
+        class.push(mode.to_string());
+    }
+    if low.is_some_and(|l| l <= 20) {
+        class.push("low".into());
+    }
+    if ["left", "right"].iter().any(|k| b[k]["charging"].as_bool() == Some(true)) {
+        class.push("charging".into());
+    }
+    let levels = if s["oneBattery"].as_bool() == Some(true) {
+        format!("Battery {}", bat(&b["left"]))
+    } else {
+        format!("Left {}   Right {}   Case {}", bat(&b["left"]), bat(&b["right"]), bat(&b["case"]))
+    };
+    let mut tip = format!("{name}\n{levels}");
+    if !mode.is_empty() {
+        tip += &format!("\n{}", mode_name(mode));
+    }
+    serde_json::json!({
+        "text": low.map(|l| format!("{l}%")).unwrap_or_default(),
+        "alt": mode,
+        "tooltip": tip,
+        "class": class,
+        "percentage": low.unwrap_or(0),
+    })
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     if let Err(e) = run(Cli::parse()).await {
@@ -144,25 +206,8 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
     match cli.cmd.unwrap_or(Cmd::Status) {
         Cmd::Status => print_status(&serde_json::from_str(&p.state().await?)?),
         Cmd::Json => println!("{}", p.state().await?),
-        Cmd::Watch => {
-            use std::io::Write;
-            let mut st = p.receive_state_changed().await?;
-            let mut out = std::io::stdout().lock();
-            // exit quietly when the reader goes away
-            let mut full: Value = serde_json::from_str(&p.state().await?)?;
-            if writeln!(out, "{full}").and_then(|_| out.flush()).is_err() {
-                return Ok(());
-            }
-            // the service only sends changed fields, still print the full state per line
-            while let Some(sig) = st.next().await {
-                if let (Value::Object(m), Ok(Value::Object(d))) = (&mut full, serde_json::from_str(sig.args()?.json)) {
-                    m.extend(d);
-                }
-                if writeln!(out, "{full}").and_then(|_| out.flush()).is_err() {
-                    return Ok(());
-                }
-            }
-        }
+        Cmd::Watch => follow(&p, |v| Some(v.to_string())).await?,
+        Cmd::Waybar => follow(&p, |v| Some(waybar(v).to_string())).await?,
         Cmd::Mode { mode } => p.set_mode(&mode).await?,
         Cmd::Cycle => println!("{}", mode_name(&p.cycle_mode().await?)),
         Cmd::Card => p.show_card().await?,

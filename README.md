@@ -68,6 +68,7 @@ pinnactl cycle               # step through the modes
 pinnactl card                # show the battery card
 pinnactl set conversationAwareness on
 pinnactl watch               # one JSON line per change
+pinnactl waybar              # lines for a Waybar custom module
 ```
 
 `pinnactl cycle` steps through the same modes as press and hold on the stem. It works well on a Hyprland shortcut:
@@ -77,6 +78,21 @@ bind = SUPER, A, exec, pinnactl cycle
 ```
 
 On KDE, GNOME and other desktops with the global shortcuts portal, turn on Global shortcuts on the This Computer page and pick the keys in the desktop's shortcut settings. There is one for the next mode, one for each mode and one that shows the battery card.
+
+## Waybar
+
+`pinnactl waybar` prints a line for a custom module whenever something changes: the lower bud in the bar, every battery and the mode in the tooltip, and classes like `connected`, `disconnected`, `low`, `charging` and the mode name for styling.
+
+```json
+"custom/airpods": {
+    "exec": "pinnactl waybar",
+    "return-type": "json",
+    "restart-interval": 5,
+    "format": "󰋋 {}",
+    "on-click": "pinnactl cycle",
+    "on-click-right": "pinna"
+}
+```
 
 ## Caelestia bar
 
