@@ -1,0 +1,51 @@
+{
+ "adapter": true,
+ "prefs": {
+  "autoPause": true,
+  "autoResume": true,
+  "duckOnSpeech": true,
+  "duckLevel": 25,
+  "lowBatteryNotify": true,
+  "popup": true,
+  "caseScan": true,
+  "lowBattery": 20,
+  "chargedNotify": true,
+  "autoOutput": true,
+  "callMic": "airpods",
+  "stem": {},
+  "caOneBud": false,
+  "spatial": "off"
+ },
+ "audio": {
+  "available": false
+ },
+ "settings": {},
+ "connected": false,
+ "ready": false,
+ "devices": [],
+ "nearby": [],
+ "discovering": false,
+ "address": null,
+ "name": "",
+ "battery": {
+  "left": {
+   "level": null,
+   "charging": false
+  },
+  "right": {
+   "level": null,
+   "charging": false
+  },
+  "case": {
+   "level": null,
+   "charging": false
+  }
+ },
+ "ear": {},
+ "mode": null,
+ "history": [],
+ "estimate": {
+  "left": null,
+  "right": null
+ }
+}
