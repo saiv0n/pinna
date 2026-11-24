@@ -91,8 +91,8 @@ pub fn rpa_matches(addr: [u8; 6], irk: &[u8; 16]) -> bool {
 pub fn model_name(id: u16) -> &'static str {
     match id {
         0x2002 => "AirPods",
-        0x200f => "AirPods (2. nesil)",
-        0x2013 => "AirPods (3. nesil)",
+        0x200f => "AirPods (2nd generation)",
+        0x2013 => "AirPods (3rd generation)",
         0x200e => "AirPods Pro",
         0x2014 => "AirPods Pro 2",
         0x2024 => "AirPods Pro 2 (USB-C)",
@@ -105,9 +105,53 @@ pub fn model_name(id: u16) -> &'static str {
     }
 }
 
+/// Name from the part number the buds report in their info packet (like A3047), for
+/// models whose product id is not in the table above. Part numbers from CAPod's model list.
+pub fn model_from_part(part: &str) -> Option<&'static str> {
+    const PARTS: &[(&[&str], &str)] = &[
+        (&["A1523", "A1722"], "AirPods"),
+        (&["A2031", "A2032"], "AirPods (2nd generation)"),
+        (&["A2564", "A2565"], "AirPods (3rd generation)"),
+        (&["A3050", "A3053", "A3054"], "AirPods 4"),
+        (&["A3055", "A3056", "A3057"], "AirPods 4 (ANC)"),
+        (&["A2083", "A2084"], "AirPods Pro"),
+        (&["A2698", "A2699", "A2931"], "AirPods Pro 2"),
+        (&["A3047", "A3048", "A3049"], "AirPods Pro 2 (USB-C)"),
+        (&["A3063", "A3064", "A3065"], "AirPods Pro 3"),
+        (&["A2096"], "AirPods Max"),
+        (&["A3184"], "AirPods Max (USB-C)"),
+        (&["A3454"], "AirPods Max 2"),
+        (&["A2295"], "Beats Flex"),
+        (&["A1796"], "Beats Solo3"),
+        (&["A1881"], "Beats Solo Pro"),
+        (&["A3140"], "Beats Solo 4"),
+        (&["A3150", "A3151", "A3153"], "Beats Solo Buds"),
+        (&["A1914"], "Beats Studio3"),
+        (&["A2512", "A2513", "A2514"], "Beats Studio Buds"),
+        (&["A2871", "A2872", "A2952"], "Beats Studio Buds +"),
+        (&["A2924"], "Beats Studio Pro"),
+        (&["A1763"], "BeatsX"),
+        (&["A1747"], "Powerbeats3"),
+        (&["A2015"], "Powerbeats"),
+        (&["A2047", "A2048", "A2453", "A2454"], "Powerbeats Pro"),
+        (&["A3157", "A3158", "A3159"], "Powerbeats Pro 2"),
+        (&["A2576", "A2577", "A2578"], "Beats Fit Pro"),
+    ];
+    let p = part.trim();
+    PARTS.iter().find(|(list, _)| list.contains(&p)).map(|(_, n)| *n)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn part_numbers() {
+        // our AirPods Pro 2 (USB-C) report A3047
+        assert_eq!(model_from_part("A3047"), Some("AirPods Pro 2 (USB-C)"));
+        assert_eq!(model_from_part("A3454"), Some("AirPods Max 2"));
+        assert_eq!(model_from_part("X0000"), None);
+    }
 
     #[test]
     fn rpa_spec_vector() {

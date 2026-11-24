@@ -1164,6 +1164,12 @@ impl Daemon {
                 }
             }
             Packet::Info(i) => {
+                // the product id table may not know newer models; the part number fills in
+                if (g.state.model_name.is_empty() || g.state.model_name == "AirPods")
+                    && let Some(n) = proximity::model_from_part(&i.model)
+                {
+                    g.state.model_name = n.into();
+                }
                 g.state.name = i.name;
                 g.state.model = i.model;
                 g.state.firmware = i.firmware;
