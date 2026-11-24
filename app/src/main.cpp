@@ -51,7 +51,7 @@ public:
                     static bool once = false;
                     if (!once) {
                         once = true;
-                        qInfo("pinna: ilk kare %lld ms", startClock.elapsed());
+                        qInfo("pinna: first frame after %lld ms", startClock.elapsed());
                     }
                 }, Qt::DirectConnection);
             }

@@ -1076,7 +1076,7 @@ impl Daemon {
                     break;
                 }
                 Err(e) => {
-                    debug!("L2CAP denemesi {i}: {e}");
+                    debug!("L2CAP attempt {i}: {e}");
                     tokio::time::sleep(Duration::from_millis(800)).await;
                     if !self.adapter().device(addr)?.is_connected().await.unwrap_or(false) {
                         bail!("device closed the connection");
