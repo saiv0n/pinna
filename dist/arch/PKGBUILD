@@ -1,4 +1,4 @@
-# Maintainer: um4tb <https://github.com/saiv0n>
+# Maintainer: saivon <https://github.com/saiv0n>
 pkgname=pinna-git
 pkgver=0.1.0.r0.g0000000
 pkgrel=1
@@ -51,6 +51,7 @@ package() {
     target/release/pinnactl completions fish > "$pkgdir/usr/share/fish/vendor_completions.d/pinnactl.fish"
     install -Dm644 -t "$pkgdir/usr/share/applications" dist/dev.pinna.Pinna.desktop dist/dev.pinna.Popup.desktop
     install -Dm644 dist/dev.pinna.Pinna.metainfo.xml "$pkgdir/usr/share/metainfo/dev.pinna.Pinna.metainfo.xml"
+    install -Dm644 NOTICE "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
     install -Dm644 dist/icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/dev.pinna.Pinna.png"
     install -Dm644 dist/dev.pinna.Daemon.service "$pkgdir/usr/share/dbus-1/services/dev.pinna.Daemon.service"
     install -dm755 "$pkgdir/usr/lib/systemd/user"

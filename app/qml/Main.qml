@@ -69,6 +69,15 @@ Window {
         onTriggered: pinnaDemo === "page" ? win.go(1) : Backend.setMode(Store.s.mode === "transparency" ? "anc" : "transparency")
     }
 
+    // steps of a PINNA_RECORD script
+    function demo(action, arg) {
+        if (action === "page") go(Number(arg))
+        else if (action === "mode") Backend.setMode(arg)
+        else if (action === "on" || action === "off") Backend.setSetting(arg, action === "on")
+        else if (action === "scroll") { demoScroll.target = stack.children[page]; demoScroll.to = Number(arg); demoScroll.restart() }
+    }
+    NumberAnimation { id: demoScroll; property: "contentY"; duration: 900; easing.type: Easing.InOutCubic }
+
     Sidebar {
         id: side
         height: parent.height

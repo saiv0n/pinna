@@ -1,7 +1,9 @@
 #include "backend.h"
 #include "tray.h"
 
+#include <QAnimationDriver>
 #include <QApplication>
+#include <QFile>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QElapsedTimer>
@@ -18,6 +20,56 @@
 #include <malloc.h>
 
 static QElapsedTimer startClock;
+
+// Animation time that moves exactly one frame per grab, so a recording is smooth however slow the grab is.
+class StepDriver : public QAnimationDriver
+{
+public:
+    qint64 now = 0;
+    qint64 elapsed() const override { return now; }
+    void step(qint64 to) { now = to; advance(); }
+};
+
+// PINNA_RECORD=out.mkv renders PINNA_RECORD_SECONDS of the window at 60 fps into a lossless video.
+// PINNA_RECORD_SCRIPT lines are "seconds action argument" and go to demo() in QML.
+static void record(QQuickWindow *window)
+{
+    struct Step { double at; QString action, arg; };
+    QList<Step> steps;
+    QFile f(qEnvironmentVariable("PINNA_RECORD_SCRIPT"));
+    if (f.open(QIODevice::ReadOnly)) {
+        for (const QString &line : QString::fromUtf8(f.readAll()).split(QLatin1Char('\n'))) {
+            const QStringList p = line.simplified().split(QLatin1Char(' '));
+            if (p.size() >= 2 && !line.startsWith(QLatin1Char('#')))
+                steps << Step{p[0].toDouble(), p[1], p.value(2)};
+        }
+    }
+    auto *driver = new StepDriver;
+    driver->install();
+    driver->step(0);
+    const QImage first = window->grabWindow();
+    auto *ffmpeg = new QProcess;
+    ffmpeg->start(QStringLiteral("ffmpeg"), {"-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgba",
+        "-s", QStringLiteral("%1x%2").arg(first.width()).arg(first.height()), "-r", "60", "-i", "-",
+        "-c:v", "libx264rgb", "-qp", "0", "-preset", "ultrafast", qEnvironmentVariable("PINNA_RECORD")});
+    ffmpeg->waitForStarted();
+    const int frames = qRound(qEnvironmentVariable("PINNA_RECORD_SECONDS", QStringLiteral("5")).toDouble() * 60);
+    for (int n = 0; n < frames; ++n) {
+        const double t = n / 60.0;
+        while (!steps.isEmpty() && steps.first().at <= t) {
+            const Step s = steps.takeFirst();
+            QMetaObject::invokeMethod(window, "demo", Q_ARG(QVariant, s.action), Q_ARG(QVariant, s.arg));
+        }
+        driver->step(qRound64(t * 1000));
+        QCoreApplication::processEvents();
+        const QImage img = window->grabWindow().convertToFormat(QImage::Format_RGBA8888);
+        ffmpeg->write(reinterpret_cast<const char *>(img.constBits()), img.sizeInBytes());
+        ffmpeg->waitForBytesWritten(-1);
+    }
+    ffmpeg->closeWriteChannel();
+    ffmpeg->waitForFinished(-1);
+    QCoreApplication::quit();
+}
 
 // The settings window. When it goes to the tray the QML engine is dropped and only the tray stays in memory.
 class App : public QObject
@@ -111,7 +163,7 @@ int main(int argc, char *argv[])
 
     const bool popup = app.arguments().contains(QStringLiteral("--popup"));
     const bool hidden = app.arguments().contains(QStringLiteral("--tray"));
-    const bool shot = !qEnvironmentVariable("PINNA_SHOT").isEmpty();
+    const bool shot = !qEnvironmentVariable("PINNA_SHOT").isEmpty() || !qEnvironmentVariable("PINNA_RECORD").isEmpty();
     // Hyprland rules match the class, so the card gets its own
     app.setDesktopFileName(popup ? QStringLiteral("dev.pinna.Popup") : QStringLiteral("dev.pinna.Pinna"));
 
@@ -200,13 +252,15 @@ int main(int argc, char *argv[])
     window->show();
 
     // for README images: PINNA_SHOT=file.png saves the window and quits
-    if (shot) {
+    if (!qEnvironmentVariable("PINNA_SHOT").isEmpty()) {
         const QString path = qEnvironmentVariable("PINNA_SHOT");
         QTimer::singleShot(qEnvironmentVariableIntValue("PINNA_SHOT_DELAY") ?: 2500, window, [window, path] {
             window->grabWindow().save(path);
             QCoreApplication::quit();
         });
     }
+    if (!qEnvironmentVariable("PINNA_RECORD").isEmpty())
+        QTimer::singleShot(1500, window, [window] { record(window); });
     return app.exec();
 }
 
