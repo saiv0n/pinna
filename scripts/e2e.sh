@@ -57,6 +57,14 @@ check "bud back in resumes" PLAY "$(tail -n1 "$tmp/mpris.log")"
 check "conversation awareness back" True "$(field "d['settings']['conversationAwareness']")"
 stop
 
+echo "head gestures"
+start 1
+$ctl pref headGestures on
+sleep 7
+check "one nod plays or pauses once" 1 "$(grep -c PLAYPAUSE "$tmp/mpris.log")"
+check "shake skips" NEXT "$(tail -n1 "$tmp/mpris.log")"
+stop
+
 echo "settings survive a reconnect"
 start 1
 $ctl set adaptiveStrength 30

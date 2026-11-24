@@ -19,5 +19,7 @@ class M(dbus.service.Object):
     def Play(self): self.status = "Playing"; print("PLAY", flush=True)
     @dbus.service.method(P)
     def PlayPause(self): print("PLAYPAUSE", flush=True)
+    @dbus.service.method(P)
+    def Next(self): print("NEXT", flush=True)
 M(bus, "/org/mpris/MediaPlayer2")
 GLib.MainLoop().run()
