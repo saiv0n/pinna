@@ -169,6 +169,8 @@ int main(int argc, char *argv[])
         QObject::connect(Backend::instance(), &Backend::windowReleased, &instance, [&instance] { instance.release(); });
         if (hidden && tray->available())
             return app.exec();
+        if (hidden)
+            qWarning("pinna: no system tray found (it needs a StatusNotifierItem host), showing the window instead");
     }
 
     QQuickWindow *window = instance.load();

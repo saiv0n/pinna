@@ -29,7 +29,7 @@ An AirPods manager for Linux. It connects your AirPods, shows the battery and wh
 
 Headphone accommodation, custom transparency, mic selection and turning off ear detection are not there yet. The buds never report these values back, so I could not make sure they work. The live noise level around you, which an Apple Watch shows, is not there either: no one has found it in the protocol yet.
 
-Tested on AirPods Pro 2 (USB-C). Other AirPods and Beats speak the same protocol, so most settings should work, but a setting does nothing if the model does not support it.
+Tested on AirPods Pro 2 (USB-C) on x86_64. There is no architecture specific code, so it should build the same on aarch64 (Asahi, Raspberry Pi); the PKGBUILD lists both. Other AirPods and Beats speak the same protocol, so most settings should work, but a setting does nothing if the model does not support it.
 
 ## Install
 
