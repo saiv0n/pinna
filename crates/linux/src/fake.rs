@@ -161,6 +161,11 @@ pub async fn headset(sock: UnixDatagram) {
     let mut up = false;
     let mut ticks = 0u32;
     let mut stream: Option<std::time::Instant> = None;
+    // PINNA_FAKE_EAR=1 takes a bud out 4 s after connecting and puts it back 3 s later
+    let ear_script = std::env::var_os("PINNA_FAKE_EAR").is_some();
+    let mut since: Option<std::time::Instant> = None;
+    let mut ear_step = 0u8;
+    let mut second = tokio::time::interval(Duration::from_secs(1));
     let mut frame = tokio::time::interval(Duration::from_millis(66));
     loop {
         tokio::select! {
@@ -170,6 +175,7 @@ pub async fn headset(sock: UnixDatagram) {
                 if d.starts_with(&[0x00, 0x00, 0x04, 0x00, 0x01]) {
                     let _ = sock.send(&[0x01, 0x00, 0x04, 0x00]).await;
                     up = true;
+                    since = Some(std::time::Instant::now());
                     let mut list = vec![info(prof), battery(prof, left, right, Some(30)), pkt(0x06, &[0x00, 0x00])];
                     list.extend(prof.controls.iter().map(|(id, v)| aap::control(*id, *v)));
                     if prof.eq {
@@ -190,6 +196,16 @@ pub async fn headset(sock: UnixDatagram) {
                 } else if d.len() > 6 && (d[4] == 0x09 || d[4] == 0x63) {
                     // the buds confirm a setting by sending it back
                     let _ = sock.send(&d).await;
+                }
+            }
+            _ = second.tick(), if ear_script && ear_step < 2 => {
+                let t = since.map_or(0, |s| s.elapsed().as_secs());
+                if ear_step == 0 && t >= 4 {
+                    let _ = sock.send(&pkt(0x06, &[0x01, 0x00])).await;
+                    ear_step = 1;
+                } else if ear_step == 1 && t >= 7 {
+                    let _ = sock.send(&pkt(0x06, &[0x00, 0x00])).await;
+                    ear_step = 2;
                 }
             }
             _ = frame.tick(), if stream.is_some() => {
