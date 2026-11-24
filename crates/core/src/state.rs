@@ -150,6 +150,8 @@ pub struct Prefs {
     pub auto_output: bool,
     /// with auto_output, wait until a bud is worn instead of switching as soon as they connect
     pub output_on_ear: bool,
+    /// connect as soon as the case lid opens nearby, like a Mac
+    pub connect_on_open: bool,
     /// which mic in calls: computer, airpods (high quality, stays on A2DP) or hfp
     pub call_mic: String,
     /// keys like "double.left", an action name or "cmd:<command>"; when unset the buds do their own thing
@@ -180,6 +182,7 @@ impl Default for Prefs {
             charged_notify: true,
             auto_output: true,
             output_on_ear: false,
+            connect_on_open: false,
             call_mic: "computer".into(),
             stem: BTreeMap::new(),
             spatial: "off".into(),
@@ -207,6 +210,7 @@ impl Prefs {
             "chargedNotify" => self.charged_notify = b()?,
             "autoOutput" => self.auto_output = b()?,
             "outputOnEar" => self.output_on_ear = b()?,
+            "connectOnOpen" => self.connect_on_open = b()?,
             "caOneBud" => self.ca_one_bud = b()?,
             "callMic" if ["computer", "airpods", "hfp"].contains(&v) => self.call_mic = v.into(),
             "callMic" => anyhow::bail!("invalid value: {v}"),

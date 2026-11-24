@@ -180,6 +180,15 @@ Page {
             }
         }
         Setting {
+            title: qsTr("Connect when the case opens")
+            subtitle: qsTr("Opening the lid near this computer connects the headphones here, even if another device used them last.")
+            enabled: Backend.daemon
+            Switch {
+                checked: Store.pref("connectOnOpen", false)
+                onToggled: v => Backend.setPref("connectOnOpen", v)
+            }
+        }
+        Setting {
             // newer models report it; waits at 80% while charging and finishes before you usually need them
             visible: Store.settings.optimizedCharging !== undefined
             enabled: Store.ready

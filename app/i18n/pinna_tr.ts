@@ -876,6 +876,14 @@
         <translation>Kulaklık yakındaki aygıtlar arasında kendiliğinden bu bilgisayara geçebilir.</translation>
     </message>
     <message>
+        <source>Connect when the case opens</source>
+        <translation>Kutu açılınca bağlan</translation>
+    </message>
+    <message>
+        <source>Opening the lid near this computer connects the headphones here, even if another device used them last.</source>
+        <translation>Bu bilgisayarın yanında kapağı açınca kulaklık buraya bağlanır, en son başka bir cihaz kullanmış olsa bile.</translation>
+    </message>
+    <message>
         <source>Optimized Charging</source>
         <translation>Optimize Şarj</translation>
     </message>

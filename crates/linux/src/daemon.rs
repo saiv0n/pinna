@@ -1642,6 +1642,15 @@ impl Daemon {
                         info!("case opened");
                         let _ = self.events.send(Event::CaseOpened(adv));
                         self.popup().await;
+                        if self.inner.lock().await.state.prefs.connect_on_open {
+                            // off the scan loop; connecting takes a few seconds
+                            let me = self.clone();
+                            tokio::spawn(async move {
+                                if let Err(e) = me.connect().await {
+                                    info!("connect on open failed: {e}");
+                                }
+                            });
+                        }
                     }
                 }
             }
