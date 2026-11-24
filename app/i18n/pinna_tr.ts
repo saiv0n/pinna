@@ -1259,6 +1259,10 @@
 <context>
     <name>Popup</name>
     <message>
+        <source>Open Pinna</source>
+        <translation>Pinna’yı aç</translation>
+    </message>
+    <message>
         <source>Connecting…</source>
         <translation>Bağlanıyor…</translation>
     </message>
@@ -1285,10 +1289,6 @@
     <message>
         <source>Case</source>
         <translation>Kutu</translation>
-    </message>
-    <message>
-        <source>Settings</source>
-        <translation>Ayarlar</translation>
     </message>
     <message>
         <source>Connect</source>

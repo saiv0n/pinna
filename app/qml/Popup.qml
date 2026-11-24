@@ -5,7 +5,8 @@ import Pinna
 Window {
     id: win
     width: 380
-    height: 132
+    // room for the Connect button under the batteries only while it is needed
+    height: connected ? 116 : 160
     minimumWidth: width
     maximumWidth: width
     minimumHeight: height
@@ -55,13 +56,21 @@ Window {
             NumberAnimation { target: drop; property: "y"; to: 0; duration: 340; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
         }
         HoverHandler { id: hover }
+        // the whole card opens the app, like a notification
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTr("Open Pinna")
+            onClicked: { Backend.openSettings(); Qt.quit() }
+        }
 
         Buds {
             x: 10
             anchors.verticalCenter: parent.verticalCenter
             spacing: -6
-            budWidth: 52
-            budHeight: 96
+            budWidth: 48
+            budHeight: 88
         }
 
         Column {
@@ -104,22 +113,15 @@ Window {
             }
         }
 
-        Row {
+        Button {
+            visible: !win.connected
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.margins: 12
-            spacing: 8
-            Button {
-                text: qsTr("Settings")
-                onClicked: { Backend.openSettings(); Qt.quit() }
-            }
-            Button {
-                visible: !win.connected
-                primary: true
-                busy: win.connecting
-                text: qsTr("Connect")
-                onClicked: { win.connecting = true; Backend.connectDevice() }
-            }
+            anchors.margins: 14
+            primary: true
+            busy: win.connecting
+            text: qsTr("Connect")
+            onClicked: { win.connecting = true; Backend.connectDevice() }
         }
 
         IconButton {
