@@ -86,6 +86,17 @@ fn print_status(s: &Value) {
     let name = s["name"].as_str().unwrap_or("AirPods");
     if !s["connected"].as_bool().unwrap_or(false) {
         println!("{name}: not connected");
+        // what the case advert said while scanning
+        let b = &s["battery"];
+        if ["left", "right", "case"].iter().any(|k| b[k]["level"].is_u64()) {
+            println!("  Left {}   Right {}   Case {}", bat(&b["left"]), bat(&b["right"]), bat(&b["case"]));
+        }
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        if let (Some(rssi), Some(at)) = (s["signal"].as_i64(), s["signalAt"].as_u64())
+            && now.saturating_sub(at) < 60
+        {
+            println!("  Nearby, signal {rssi} dBm {}s ago", now.saturating_sub(at));
+        }
         return;
     }
     println!("{name}  ({})", s["modelName"].as_str().unwrap_or(""));
@@ -319,6 +330,16 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn status_while_away() {
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let s = serde_json::json!({ "name": "Pods", "connected": false, "signal": -60, "signalAt": now,
+            "battery": { "left": { "level": 50 }, "right": { "level": null }, "case": { "level": 80 } } });
+        // prints; this only makes sure the away branch handles partial data
+        print_status(&s);
+        print_status(&serde_json::json!({ "connected": false }));
+    }
 
     #[test]
     fn waybar_lines() {
