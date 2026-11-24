@@ -1379,21 +1379,14 @@ impl Daemon {
     /// What a stem press or head gesture was bound to.
     async fn act(&self, action: &str) {
         let mode = self.inner.lock().await.state.mode;
-        let wpctl = |args: &[&str]| {
-            let mut c = tokio::process::Command::new("wpctl");
-            c.args(args);
-            c
-        };
         match action {
             "playPause" => self.media.lock().await.player("PlayPause").await,
             "next" => self.media.lock().await.player("Next").await,
             "previous" => self.media.lock().await.player("Previous").await,
-            "volumeUp" => drop(wpctl(&["set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]).status().await),
-            "volumeDown" => drop(wpctl(&["set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]).status().await),
+            "volumeUp" => crate::media::step_volume(true).await,
+            "volumeDown" => crate::media::step_volume(false).await,
             "micMute" => {
-                let _ = wpctl(&["set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]).status().await;
-                let out = wpctl(&["get-volume", "@DEFAULT_AUDIO_SOURCE@"]).output().await;
-                let muted = out.is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains("MUTED"));
+                let muted = crate::media::toggle_mic().await;
                 let (title, icon) = if muted { (t("Microphone muted"), "microphone-sensitivity-muted") } else { (t("Microphone on"), "audio-input-microphone") };
                 self.media.lock().await.notify(title, "", icon).await;
             }

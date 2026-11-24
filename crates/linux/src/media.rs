@@ -74,16 +74,11 @@ impl Media {
     }
 
     async fn volume() -> Option<f32> {
-        let out = Command::new("wpctl").args(["get-volume", "@DEFAULT_AUDIO_SINK@"]).output().await.ok()?;
-        let s = String::from_utf8_lossy(&out.stdout);
-        s.split_whitespace().nth(1)?.parse().ok()
+        sink_volume().await
     }
 
     async fn set_volume(v: f32) {
-        let _ = Command::new("wpctl")
-            .args(["set-volume", "@DEFAULT_AUDIO_SINK@", &format!("{v:.2}")])
-            .status()
-            .await;
+        set_sink_volume(v).await;
     }
 
     /// level: speech level from the buds. 1-2 speaking, 3-7 in between, 8-9 normal.
@@ -168,5 +163,60 @@ mod lang_tests {
         assert_eq!(super::lookup("tr", "Microphone muted"), "Mikrofon kapalı");
         assert_eq!(super::lookup("xx_YY", "Case"), "Case");
         assert_eq!(super::lookup("", "Case"), "Case");
+    }
+}
+
+// wpctl first; the Flatpak runtime only has pactl
+
+async fn run(cmd: &str, args: &[&str]) -> Option<String> {
+    // decimals and "yes" must not come out translated
+    let out = Command::new(cmd).args(args).env("LC_ALL", "C").output().await.ok()?;
+    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+/// "Volume: front-left: 39321 /  60% / -13.31 dB, ..." -> 0.6
+fn pactl_percent(s: &str) -> Option<f32> {
+    let p = s.split('%').next()?.rsplit(' ').next()?.trim();
+    p.parse::<f32>().ok().map(|v| v / 100.0)
+}
+
+pub async fn sink_volume() -> Option<f32> {
+    if let Some(s) = run("wpctl", &["get-volume", "@DEFAULT_AUDIO_SINK@"]).await {
+        return s.split_whitespace().nth(1)?.parse().ok();
+    }
+    pactl_percent(&run("pactl", &["get-sink-volume", "@DEFAULT_SINK@"]).await?)
+}
+
+pub async fn set_sink_volume(v: f32) {
+    let v = v.clamp(0.0, 1.0);
+    if run("wpctl", &["set-volume", "@DEFAULT_AUDIO_SINK@", &format!("{v:.2}")]).await.is_none() {
+        let _ = run("pactl", &["set-sink-volume", "@DEFAULT_SINK@", &format!("{}%", (v * 100.0).round())]).await;
+    }
+}
+
+/// One volume step up or down, never above 100%.
+pub async fn step_volume(up: bool) {
+    if let Some(v) = sink_volume().await {
+        set_sink_volume(v + if up { 0.05 } else { -0.05 }).await;
+    }
+}
+
+/// Toggles the default mic; returns whether it is muted now.
+pub async fn toggle_mic() -> bool {
+    if run("wpctl", &["set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]).await.is_some() {
+        return run("wpctl", &["get-volume", "@DEFAULT_AUDIO_SOURCE@"]).await.is_some_and(|s| s.contains("MUTED"));
+    }
+    let _ = run("pactl", &["set-source-mute", "@DEFAULT_SOURCE@", "toggle"]).await;
+    run("pactl", &["get-source-mute", "@DEFAULT_SOURCE@"]).await.is_some_and(|s| s.contains("yes"))
+}
+
+#[cfg(test)]
+mod volume_tests {
+    #[test]
+    fn pactl_output() {
+        let s = "Volume: front-left: 39321 /  60% / -13.31 dB,   front-right: 39321 /  60% / -13.31 dB\n        balance 0.00\n";
+        assert_eq!(super::pactl_percent(s), Some(0.6));
+        assert_eq!(super::pactl_percent("Volume: mono: 65536 / 100% / 0.00 dB"), Some(1.0));
+        assert_eq!(super::pactl_percent("nothing"), None);
     }
 }
