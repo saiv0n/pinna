@@ -170,7 +170,11 @@ Page {
             Dropdown {
                 readonly property var codes: [""].concat(a.codecs || [])
                 model: [qsTr("Automatic")].concat(a.codecs || [])
-                currentIndex: Math.max(0, codes.indexOf(Store.pref("codec", "")))
+                // the codec list often arrives after the pick, and a new model resets the index after count changes
+                readonly property int want: Math.max(0, codes.indexOf(Store.pref("codec", "")))
+                currentIndex: want
+                onWantChanged: currentIndex = want
+                onCountChanged: Qt.callLater(() => currentIndex = want)
                 onPicked: i => Backend.setPref("codec", codes[i])
             }
         }
